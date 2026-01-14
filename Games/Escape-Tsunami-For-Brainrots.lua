@@ -784,7 +784,9 @@ local function toggleAntiFall(state)
                     local hrp = character:FindFirstChild("HumanoidRootPart")
                     if hrp then
                         local currentVelocity = hrp.Velocity
-                        hrp.Velocity = Vector3.new(currentVelocity.X, 0, currentVelocity.Z)
+                        if currentVelocity.Y < 0 then
+                            hrp.Velocity = Vector3.new(currentVelocity.X, 0, currentVelocity.Z)
+                        end
                     end
                 end
             end
