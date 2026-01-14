@@ -1357,12 +1357,12 @@ local GodModeToggle = PlayerTab:Toggle({
     end
 })
 
-local AntiRagdollToggle = PlayerTab:Toggle({
+local AntiSlapToggle = PlayerTab:Toggle({
     Title = "Anti Slap",
     Desc = "Prevents slap ragdoll and fling effects",
     Default = false,
     Callback = function(state)
-        toggleAntiRagdoll(state)
+        toggleAntiSlap(state)
         saveConfiguration()
     end
 })
@@ -1436,7 +1436,7 @@ local JumpPowerSlider = PlayerTab:Slider({
 })
 
 myConfig:Register("GodMode", GodModeToggle)
-myConfig:Register("AntiRagdoll", AntiRagdollToggle)
+myConfig:Register("AntiSlap", AntiSlapToggle)
 myConfig:Register("Noclip", NoclipToggle)
 myConfig:Register("InfJump", InfJumpToggle)
 myConfig:Register("Speed", SpeedToggle)
