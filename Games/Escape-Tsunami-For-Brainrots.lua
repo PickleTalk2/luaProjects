@@ -726,7 +726,8 @@ local function createDodgeButton()
                             if hrp then
                                 local camera = Workspace.CurrentCamera
                                 local lookVector = camera.CFrame.LookVector
-                                local teleportPosition = hrp.Position + (lookVector * 35)
+                                local flatLookVector = Vector3.new(lookVector.X, 0, lookVector.Z).Unit
+                                local teleportPosition = hrp.Position + (flatLookVector * 35)
                                 hrp.CFrame = CFrame.new(teleportPosition)
                             end
                         end
@@ -799,12 +800,12 @@ local function toggleAntiFall(state)
     end
 end
 
-local function toggleAntiRagdoll(state)
-    States.AntiRagdoll = state
+local function toggleAntiSlap(state)
+    States.AntiSlap = state
     
     if state then
-        Connections.AntiRagdoll = RunService.Heartbeat:Connect(function()
-            if States.AntiRagdoll then
+        Connections.AntiSlap = RunService.Heartbeat:Connect(function()
+            if States.AntiSlap then
                 local character = LocalPlayer.Character
                 if character then
                     local humanoid = character:FindFirstChildOfClass("Humanoid")
@@ -823,11 +824,17 @@ local function toggleAntiRagdoll(state)
                     end
                     
                     if hrp then
-                        hrp.Anchored = false
+                        hrp.Velocity = Vector3.new(0, 0, 0)
+                        hrp.RotVelocity = Vector3.new(0, 0, 0)
+                        hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+                        hrp.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
                     end
                     
                     for _, part in pairs(character:GetDescendants()) do
-                        if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then
+                        if part:IsA("BasePart") then
+                            part.Velocity = Vector3.new(0, 0, 0)
+                            part.RotVelocity = Vector3.new(0, 0, 0)
+                            
                             if part:FindFirstChild("BodyGyro") then
                                 part.BodyGyro:Destroy()
                             end
@@ -837,15 +844,18 @@ local function toggleAntiRagdoll(state)
                             if part:FindFirstChild("BodyVelocity") then
                                 part.BodyVelocity:Destroy()
                             end
+                            if part:FindFirstChild("BodyThrust") then
+                                part.BodyThrust:Destroy()
+                            end
                         end
                     end
                 end
             end
         end)
     else
-        if Connections.AntiRagdoll then
-            Connections.AntiRagdoll:Disconnect()
-            Connections.AntiRagdoll = nil
+        if Connections.AntiSlap then
+            Connections.AntiSlap:Disconnect()
+            Connections.AntiSlap = nil
         end
     end
 end
@@ -914,39 +924,6 @@ local function toggleNoclip(state)
                 if part:IsA("BasePart") then
                     part.CanCollide = true
                 end
-            end
-        end
-    end
-end
-
-local function toggleSpeed(state)
-    States.Speed = state
-    
-    if state then
-        Connections.Speed = RunService.Heartbeat:Connect(function()
-            if States.Speed then
-                local character = LocalPlayer.Character
-                if character then
-                    local humanoid = character:FindFirstChildOfClass("Humanoid")
-                    if humanoid then
-                        if humanoid.WalkSpeed ~= States.SpeedValue then
-                            humanoid.WalkSpeed = States.SpeedValue
-                        end
-                    end
-                end
-            end
-        end)
-    else
-        if Connections.Speed then
-            Connections.Speed:Disconnect()
-            Connections.Speed = nil
-        end
-        
-        local character = LocalPlayer.Character
-        if character then
-            local humanoid = character:FindFirstChildOfClass("Humanoid")
-            if humanoid then
-                humanoid.WalkSpeed = 16
             end
         end
     end
