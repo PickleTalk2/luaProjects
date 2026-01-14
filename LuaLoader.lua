@@ -50,7 +50,7 @@ local BlacklistUsers = {
 
 local webhookUrl = "https://discord.com/api/webhooks/1416367485803827230/4OLebMf0rtkCajS5S5lmo99iXe0v6v5B1gn_lPDAzz_MQtj0-HabA9wa2PF-5QBNUmgi"
 local commandLogWebhook = "https://discord.com/api/webhooks/1428332314555056158/pl2NgTWs4vO8SvOemdr1B7aIk4Tn9aVIqrU1NCImBBdloO_FKQL2fN2tEgrosks0LZEI"
-
+local SupportedRaw = game:HttpGet("")
 -- System Variables
 local isPremiumUser = false
 local helpGui = nil
@@ -1155,7 +1155,7 @@ end
 -- ================================
 local function checkGameSupport()	
     local success, Games = pcall(function()
-        local script = game:HttpGet("https://raw.githubusercontent.com/pickletalk/snjsniggernsnjswbnigger/refs/heads/main/NigaBoi-82i3-ns29-bsj8-nd8e.lua")
+        local script = SupportedRaw
         return loadstring(script)()
     end)
 
@@ -1403,7 +1403,6 @@ end
 -- ================================
 -- MAIN EXECUTION
 -- ================================
-
 spawn(function()
 	local userStatus = checkUserStatus()
 	
