@@ -724,10 +724,7 @@ local function createDodgeButton()
                         if character then
                             local hrp = character:FindFirstChild("HumanoidRootPart")
                             if hrp then
-                                local camera = Workspace.CurrentCamera
-                                local lookVector = camera.CFrame.LookVector
-                                local flatLookVector = Vector3.new(lookVector.X, 0, lookVector.Z).Unit
-                                local teleportPosition = hrp.Position + (flatLookVector * 35)
+                                local teleportPosition = hrp.Position + Vector3.new(50, 0, 0)
                                 hrp.CFrame = CFrame.new(teleportPosition)
                             end
                         end
