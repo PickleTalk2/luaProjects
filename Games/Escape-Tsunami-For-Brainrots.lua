@@ -829,7 +829,7 @@ local function toggleAutoDodgeWave(state)
                             local wavePos = hitbox.Position
                             local distance = (playerPosition - wavePos).Magnitude
         
-                            if distance <= 60 then
+                            if distance <= 90 then
                                 local teleportPosition = hrp.Position + Vector3.new(200, 0, 0)
                                 hrp.CFrame = CFrame.new(teleportPosition)
                                 task.wait(0.5)
@@ -872,9 +872,15 @@ local function toggleAntiSlap(state)
                     end
                     
                     if hrp then
-                        hrp.Velocity = Vector3.new(0, 0, 0)
+                        local currentVelocity = hrp.Velocity
+                        local velocityMagnitude = currentVelocity.Magnitude
+    
+                        if velocityMagnitude > 100 then
+                            hrp.Velocity = Vector3.new(0, 0, 0)
+                            hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+                        end
+    
                         hrp.RotVelocity = Vector3.new(0, 0, 0)
-                        hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
                         hrp.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
                     end
                     
