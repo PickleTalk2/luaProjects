@@ -822,15 +822,19 @@ local function toggleAutoDodgeWave(state)
                     local waveName = "Wave" .. i
                     local wave = activeTsunamis:FindFirstChild(waveName)
     
-                    if wave and wave:IsA("Model") and wave.PrimaryPart then
-                        local wavePos = wave.PrimaryPart.Position
-                        local distance = (playerPosition - wavePos).Magnitude
+                    if wave and wave:IsA("Model") then
+                        local hitbox = wave:FindFirstChild("Hitbox")
+                        
+                        if hitbox and hitbox:IsA("BasePart") then
+                            local wavePos = hitbox.Position
+                            local distance = (playerPosition - wavePos).Magnitude
         
-                        if distance <= 80 then
-                            local teleportPosition = hrp.Position + Vector3.new(200, 0, 0)
-                            hrp.CFrame = CFrame.new(teleportPosition)
-                            task.wait(0.5)
-                            break
+                            if distance <= 60 then
+                                local teleportPosition = hrp.Position + Vector3.new(200, 0, 0)
+                                hrp.CFrame = CFrame.new(teleportPosition)
+                                task.wait(0.5)
+                                break
+                            end
                         end
                     end
                 end
