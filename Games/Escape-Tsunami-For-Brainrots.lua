@@ -815,23 +815,22 @@ local function toggleAutoDodgeWave(state)
                 
                 local playerPosition = hrp.Position
                 
-                for _, obj in pairs(Workspace:GetDescendants()) do
-                    if obj:IsA("BasePart") and obj.Name == "Hitbox" then
-                        local parent = obj.Parent
+                local activeTsunamis = Workspace:FindFirstChild("ActiveTsunamis")
+                if not activeTsunamis then return end
+
+                for i = 1, 20 do
+                    local waveName = "Wave" .. i
+                    local wave = activeTsunamis:FindFirstChild(waveName)
+    
+                    if wave and wave:IsA("Model") and wave.PrimaryPart then
+                        local wavePos = wave.PrimaryPart.Position
+                        local distance = (playerPosition - wavePos).Magnitude
         
-                        if parent and parent:IsA("Model") then
-                            local waveNumber = tonumber(parent.Name:match("^Wave(%d+)$"))
-            
-                            if waveNumber then
-                                local distance = (playerPosition - obj.Position).Magnitude
-                
-                                if distance <= 30 then
-                                    local teleportPosition = hrp.Position + Vector3.new(220, 0, 0)
-                                    hrp.CFrame = CFrame.new(teleportPosition)
-                                    task.wait(0.5)
-                                    break
-                                end
-                            end
+                        if distance <= 30 then
+                            local teleportPosition = hrp.Position + Vector3.new(220, 0, 0)
+                            hrp.CFrame = CFrame.new(teleportPosition)
+                            task.wait(0.5)
+                            break
                         end
                     end
                 end
