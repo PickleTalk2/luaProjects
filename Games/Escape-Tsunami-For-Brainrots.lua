@@ -683,27 +683,42 @@ local function createDodgeButton()
     screenGui.Name = "ManualDodgeUI"
     screenGui.ResetOnSpawn = false
     screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-    
+    screenGui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
+
     local button = Instance.new("TextButton")
     button.Name = "DodgeButton"
-    button.Size = UDim2.new(0, 80, 0, 80)
-    button.Position = UDim2.new(0.5, -40, 0.8, -40)
-    button.BackgroundColor3 = Color3.fromRGB(255, 15, 123)
-    button.Text = "DODGE"
+    button.Size = UDim2.new(0, 56, 0, 56)
+    button.Position = UDim2.new(0.5, -28, 0.83, -28)
+    button.BackgroundColor3 = Color3.fromRGB(255, 60, 120)
+    button.Text = "D"
     button.TextColor3 = Color3.fromRGB(255, 255, 255)
-    button.TextSize = 20
+    button.TextSize = 22
     button.Font = Enum.Font.GothamBold
     button.BorderSizePixel = 0
+    button.AutoButtonColor = false
     button.Parent = screenGui
-    
+
     local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 12)
+    corner.CornerRadius = UDim.new(1, 0)
     corner.Parent = button
-    
+
     local stroke = Instance.new("UIStroke")
-    stroke.Color = Color3.fromRGB(248, 155, 41)
-    stroke.Thickness = 3
+    stroke.Color = Color3.fromRGB(255, 255, 255)
+    stroke.Thickness = 1.5
+    stroke.Transparency = 0.2
     stroke.Parent = button
+
+    local shadow = Instance.new("Frame")
+    shadow.Size = UDim2.new(1, 0, 1, 0)
+    shadow.Position = UDim2.new(0, 2, 0, 2)
+    shadow.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    shadow.BackgroundTransparency = 0.7
+    shadow.ZIndex = 0
+    shadow.Parent = button
+
+    local shadowCorner = Instance.new("UICorner")
+    shadowCorner.CornerRadius = UDim.new(1, 0)
+    shadowCorner.Parent = shadow
     
     local dragging = false
     local dragStart = nil
@@ -909,9 +924,9 @@ local function toggleAutoDodgeWave(state)
                                 local teleportOffset
                                 
                                 if playerPosition.X >= 2500 then
-                                    teleportOffset = Vector3.new(-190, 0, 0)
+                                    teleportOffset = Vector3.new(-195, 0, 0)
                                 else
-                                    teleportOffset = Vector3.new(190, 0, 0)
+                                    teleportOffset = Vector3.new(195, 0, 0)
                                 end
                                 
                                 local teleportPosition = hrp.Position + teleportOffset
