@@ -242,6 +242,7 @@ local States = {
     GodMode = false,
     InfJump = false,
     Noclip = false,
+    AutoDodgeWave = false,
     Speed = false,
     JumpPower = false,
     SpeedValue = 16,
@@ -255,6 +256,7 @@ local Connections = {
     LowGFX = nil,
     AutoCollect = nil,
     GodMode = nil,
+    AutoDodgeWave = nil,
     WaveMonitor = nil,
     CharPartMonitor = nil,
     InfJump = nil,
@@ -795,6 +797,47 @@ local function toggleAntiFall(state)
         if Connections.AntiFall then
             Connections.AntiFall:Disconnect()
             Connections.AntiFall = nil
+        end
+    end
+end
+
+local function toggleAutoDodgeWave(state)
+    States.AutoDodgeWave = state
+    
+    if state then
+        Connections.AutoDodgeWave = RunService.Heartbeat:Connect(function()
+            if States.AutoDodgeWave then
+                local character = LocalPlayer.Character
+                if not character then return end
+                
+                local hrp = character:FindFirstChild("HumanoidRootPart")
+                if not hrp then return end
+                
+                local playerPosition = hrp.Position
+                
+                for _, obj in pairs(Workspace:GetDescendants()) do
+                    if obj:IsA("BasePart") then
+                        local name = obj.Name
+                        local waveNumber = tonumber(name:match("^Wave(%d+)$"))
+                        
+                        if waveNumber then
+                            local distance = (playerPosition - obj.Position).Magnitude
+                            
+                            if distance <= 25 then
+                                local teleportPosition = hrp.Position + Vector3.new(220, 0, 0)
+                                hrp.CFrame = CFrame.new(teleportPosition)
+                                task.wait(0.5)
+                                break
+                            end
+                        end
+                    end
+                end
+            end
+        end)
+    else
+        if Connections.AutoDodgeWave then
+            Connections.AutoDodgeWave:Disconnect()
+            Connections.AutoDodgeWave = nil
         end
     end
 end
@@ -1341,10 +1384,21 @@ local AntiFallToggle = MainTab:Toggle({
     end
 })
 
+local AutoDodgeWaveToggle = MainTab:Toggle({
+    Title = "Auto Dodge Wave",
+    Desc = "Auto teleport when wave is within 25 studs",
+    Default = false,
+    Callback = function(state)
+        toggleAutoDodgeWave(state)
+        saveConfiguration()
+    end
+})
+
 myConfig:Register("AutoCollect", AutoCollectToggle)
 myConfig:Register("FastInteraction", FastInteractionToggle)
 myConfig:Register("ManualDodge", ManualDodgeToggle)
 myConfig:Register("AntiFall", AntiFallToggle)
+myConfig:Register("AutoDodgeWave", AutoDodgeWaveToggle)
 
 local GodModeToggle = PlayerTab:Toggle({
     Title = "God Mode",
@@ -1671,6 +1725,12 @@ LocalPlayer.CharacterAdded:Connect(function(character)
         toggleNoclip(false)
         task.wait(0.1)
         toggleNoclip(true)
+    end
+
+    if States.AutoDodgeWave then
+        toggleAutoDodgeWave(false)
+        task.wait(0.1)
+        toggleAutoDodgeWave(true)
     end
     
     if States.AutoCollect then
