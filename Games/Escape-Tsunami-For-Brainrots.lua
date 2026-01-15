@@ -741,7 +741,7 @@ local function createDodgeButton()
                         if character then
                             local hrp = character:FindFirstChild("HumanoidRootPart")
                             if hrp then
-                                local teleportPosition = hrp.Position + Vector3.new(200, 0, 0)
+                                local teleportPosition = hrp.Position + Vector3.new(175, 0, 0)
                                 hrp.CFrame = CFrame.new(teleportPosition)
                             end
                         end
@@ -916,13 +916,13 @@ local function toggleAutoDodgeWave(state)
                             local wavePos = hitbox.Position
                             local distance = (playerPosition - wavePos).Magnitude
         
-                            if distance <= 115 then
+                            if distance <= 110 then
                                 local teleportOffset
                                 
                                 if playerPosition.X >= 2800 then
-                                    teleportOffset = Vector3.new(-195, 0, 0)
+                                    teleportOffset = Vector3.new(-175, 0, 0)
                                 else
-                                    teleportOffset = Vector3.new(195, 0, 0)
+                                    teleportOffset = Vector3.new(175, 0, 0)
                                 end
                                 
                                 local teleportPosition = hrp.Position + teleportOffset
