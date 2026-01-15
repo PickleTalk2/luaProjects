@@ -916,13 +916,13 @@ local function toggleAutoDodgeWave(state)
                             local wavePos = hitbox.Position
                             local distance = (playerPosition - wavePos).Magnitude
         
-                            if distance <= 95 then
+                            if distance <= 115 then
                                 local teleportOffset
                                 
-                                if playerPosition.X >= 2700 then
-                                    teleportOffset = Vector3.new(-190, 0, 0)
+                                if playerPosition.X >= 2800 then
+                                    teleportOffset = Vector3.new(-195, 0, 0)
                                 else
-                                    teleportOffset = Vector3.new(190, 0, 0)
+                                    teleportOffset = Vector3.new(195, 0, 0)
                                 end
                                 
                                 local teleportPosition = hrp.Position + teleportOffset
