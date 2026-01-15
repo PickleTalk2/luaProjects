@@ -826,8 +826,8 @@ local function toggleAutoDodgeWave(state)
                         local wavePos = wave.PrimaryPart.Position
                         local distance = (playerPosition - wavePos).Magnitude
         
-                        if distance <= 30 then
-                            local teleportPosition = hrp.Position + Vector3.new(220, 0, 0)
+                        if distance <= 25 then
+                            local teleportPosition = hrp.Position + Vector3.new(200, 0, 0)
                             hrp.CFrame = CFrame.new(teleportPosition)
                             task.wait(0.5)
                             break
