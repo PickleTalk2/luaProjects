@@ -835,7 +835,7 @@ local function toggleAntiSlap(state)
                 if character then
                     local humanoid = character:FindFirstChildOfClass("Humanoid")
                     local hrp = character:FindFirstChild("HumanoidRootPart")
-                    
+
                     if humanoid then
                         if humanoid.PlatformStand then
                             humanoid.PlatformStand = false
@@ -844,36 +844,32 @@ local function toggleAntiSlap(state)
                         if humanoid.Sit then
                             humanoid.Sit = false
                         end
-                        
-                        humanoid:ChangeState(Enum.HumanoidStateType.Running)
-                    end
-                    
-                    if hrp then
-                        local currentVelocity = hrp.Velocity
-                        local velocityMagnitude = currentVelocity.Magnitude
-                        
-                        if velocityMagnitude > 250 then
-                            hrp.Velocity = Vector3.new(0, 0, 0)
-                            hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+
+                        if humanoid:GetState() == Enum.HumanoidStateType.Physics
+                        or humanoid:GetState() == Enum.HumanoidStateType.Ragdoll
+                        or humanoid:GetState() == Enum.HumanoidStateType.FallingDown then
+                            humanoid:ChangeState(Enum.HumanoidStateType.Running)
                         end
-                        
-                        hrp.RotVelocity = Vector3.new(0, 0, 0)
-                        hrp.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
                     end
-                    
+
+                    if hrp then
+                        local v = hrp.AssemblyLinearVelocity
+                        local speed = v.Magnitude
+
+                        if speed > 200 then
+                            hrp.AssemblyLinearVelocity = v.Unit * 16
+                        end
+
+                        hrp.AssemblyAngularVelocity = Vector3.zero
+                        hrp.RotVelocity = Vector3.zero
+                    end
+
                     for _, part in pairs(character:GetDescendants()) do
                         if part:IsA("BasePart") then
-                            if part:FindFirstChild("BodyGyro") then
-                                part.BodyGyro:Destroy()
-                            end
-                            if part:FindFirstChild("BodyPosition") then
-                                part.BodyPosition:Destroy()
-                            end
-                            if part:FindFirstChild("BodyVelocity") then
-                                part.BodyVelocity:Destroy()
-                            end
-                            if part:FindFirstChild("BodyThrust") then
-                                part.BodyThrust:Destroy()
+                            for _, obj in pairs(part:GetChildren()) do
+                                if obj:IsA("BodyMover") or obj:IsA("VectorForce") or obj:IsA("LinearVelocity") then
+                                    obj:Destroy()
+                                end
                             end
                         end
                     end
