@@ -785,9 +785,18 @@ local function toggleAntiFall(state)
                 if character then
                     local hrp = character:FindFirstChild("HumanoidRootPart")
                     if hrp then
-                        local currentVelocity = hrp.Velocity
-                        if currentVelocity.Y < 0 then
-                            hrp.Velocity = Vector3.new(currentVelocity.X, 0, currentVelocity.Z)
+                        local currentPosition = hrp.Position
+                        
+                        if currentPosition.Y <= 3 then
+                            local currentVelocity = hrp.Velocity
+                            
+                            if currentVelocity.Y < 0 then
+                                hrp.Velocity = Vector3.new(currentVelocity.X, 0, currentVelocity.Z)
+                            end
+                            
+                            if currentPosition.Y < 2 then
+                                hrp.CFrame = CFrame.new(currentPosition.X, 3, currentPosition.Z)
+                            end
                         end
                     end
                 end
@@ -797,53 +806,6 @@ local function toggleAntiFall(state)
         if Connections.AntiFall then
             Connections.AntiFall:Disconnect()
             Connections.AntiFall = nil
-        end
-    end
-end
-
-local function toggleAutoDodgeWave(state)
-    States.AutoDodgeWave = state
-    
-    if state then
-        Connections.AutoDodgeWave = RunService.Heartbeat:Connect(function()
-            if States.AutoDodgeWave then
-                local character = LocalPlayer.Character
-                if not character then return end
-                
-                local hrp = character:FindFirstChild("HumanoidRootPart")
-                if not hrp then return end
-                
-                local playerPosition = hrp.Position
-                
-                local activeTsunamis = Workspace:FindFirstChild("ActiveTsunamis")
-                if not activeTsunamis then return end
-
-                for i = 1, 20 do
-                    local waveName = "Wave" .. i
-                    local wave = activeTsunamis:FindFirstChild(waveName)
-    
-                    if wave and wave:IsA("Model") then
-                        local hitbox = wave:FindFirstChild("Hitbox")
-                        
-                        if hitbox and hitbox:IsA("BasePart") then
-                            local wavePos = hitbox.Position
-                            local distance = (playerPosition - wavePos).Magnitude
-        
-                            if distance <= 90 then
-                                local teleportPosition = hrp.Position + Vector3.new(200, 0, 0)
-                                hrp.CFrame = CFrame.new(teleportPosition)
-                                task.wait(0.5)
-                                break
-                            end
-                        end
-                    end
-                end
-            end
-        end)
-    else
-        if Connections.AutoDodgeWave then
-            Connections.AutoDodgeWave:Disconnect()
-            Connections.AutoDodgeWave = nil
         end
     end
 end
@@ -874,21 +836,18 @@ local function toggleAntiSlap(state)
                     if hrp then
                         local currentVelocity = hrp.Velocity
                         local velocityMagnitude = currentVelocity.Magnitude
-    
-                        if velocityMagnitude > 100 then
+                        
+                        if velocityMagnitude > 250 then
                             hrp.Velocity = Vector3.new(0, 0, 0)
                             hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
                         end
-    
+                        
                         hrp.RotVelocity = Vector3.new(0, 0, 0)
                         hrp.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
                     end
                     
                     for _, part in pairs(character:GetDescendants()) do
                         if part:IsA("BasePart") then
-                            part.Velocity = Vector3.new(0, 0, 0)
-                            part.RotVelocity = Vector3.new(0, 0, 0)
-                            
                             if part:FindFirstChild("BodyGyro") then
                                 part.BodyGyro:Destroy()
                             end
@@ -910,6 +869,65 @@ local function toggleAntiSlap(state)
         if Connections.AntiSlap then
             Connections.AntiSlap:Disconnect()
             Connections.AntiSlap = nil
+        end
+    end
+end
+
+local function toggleAutoDodgeWave(state)
+    States.AutoDodgeWave = state
+    
+    if state then
+        Connections.AutoDodgeWave = RunService.Heartbeat:Connect(function()
+            if States.AutoDodgeWave then
+                local character = LocalPlayer.Character
+                if not character then return end
+                
+                local hrp = character:FindFirstChild("HumanoidRootPart")
+                if not hrp then return end
+                
+                local playerPosition = hrp.Position
+                
+                if playerPosition.Y < 2 then return end
+                
+                if playerPosition.X < 153 then return end
+                
+                local activeTsunamis = Workspace:FindFirstChild("ActiveTsunamis")
+                if not activeTsunamis then return end
+
+                for i = 1, 20 do
+                    local waveName = "Wave" .. i
+                    local wave = activeTsunamis:FindFirstChild(waveName)
+    
+                    if wave and wave:IsA("Model") then
+                        local hitbox = wave:FindFirstChild("Hitbox")
+                        
+                        if hitbox and hitbox:IsA("BasePart") then
+                            local wavePos = hitbox.Position
+                            local distance = (playerPosition - wavePos).Magnitude
+        
+                            if distance <= 100 then
+                                local teleportOffset
+                                
+                                if playerPosition.X >= 2500 then
+                                    teleportOffset = Vector3.new(-190, 0, 0)
+                                else
+                                    teleportOffset = Vector3.new(190, 0, 0)
+                                end
+                                
+                                local teleportPosition = hrp.Position + teleportOffset
+                                hrp.CFrame = CFrame.new(teleportPosition)
+                                task.wait(0.5)
+                                break
+                            end
+                        end
+                    end
+                end
+            end
+        end)
+    else
+        if Connections.AutoDodgeWave then
+            Connections.AutoDodgeWave:Disconnect()
+            Connections.AutoDodgeWave = nil
         end
     end
 end
