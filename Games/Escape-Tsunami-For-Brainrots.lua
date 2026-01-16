@@ -242,6 +242,9 @@ local States = {
     GodMode = false,
     InfJump = false,
     Noclip = false,
+    UpgradeBrainrot = false,
+    SelectedBrainrots = {},
+    BrainrotData = {},
     AutoDodgeWave = false,
     Speed = false,
     JumpPower = false,
@@ -257,6 +260,8 @@ local Connections = {
     AutoCollect = nil,
     GodMode = nil,
     AutoDodgeWave = nil,
+    BrainrotScanner = nil,
+    BrainrotUpgrade = nil,
     WaveMonitor = nil,
     CharPartMonitor = nil,
     InfJump = nil,
@@ -317,6 +322,138 @@ local function findPlayerBase()
         warn("Error finding player base: " .. tostring(result))
         return nil
     end
+end
+
+local function scanBrainrots()
+    local success, result = pcall(function()
+        if not States.PlayerBase then
+            States.PlayerBase = findPlayerBase()
+            if not States.PlayerBase then
+                return {}
+            end
+        end
+        
+        local bases = Workspace:FindFirstChild("Bases")
+        if not bases then return {} end
+        
+        local playerBase = bases:FindFirstChild(States.PlayerBase)
+        if not playerBase then
+            States.PlayerBase = findPlayerBase()
+            return {}
+        end
+        
+        local slots = playerBase:FindFirstChild("Slots")
+        if not slots then return {} end
+        
+        local brainrotData = {}
+        
+        for i = 1, 30 do
+            local slotName = "Slot" .. i
+            local slot = slots:FindFirstChild(slotName)
+            
+            if slot and slot:IsA("Model") then
+                for _, child in pairs(slot:GetChildren()) do
+                    if child:IsA("Tool") or (child:IsA("Model") and child.Name ~= "Upgrade") then
+                        local toolTipName = child.Name
+                        local cost = "N/A"
+                        
+                        local upgrade = slot:FindFirstChild("Upgrade")
+                        if upgrade then
+                            local surfaceGui = upgrade:FindFirstChild("SurfaceGui")
+                            if surfaceGui then
+                                local frame = surfaceGui:FindFirstChild("Frame")
+                                if frame then
+                                    local costLabel = frame:FindFirstChild("Cost")
+                                    if costLabel then
+                                        cost = costLabel.Text
+                                    end
+                                end
+                            end
+                        end
+                        
+                        table.insert(brainrotData, {
+                            SlotName = slotName,
+                            ToolTipName = toolTipName,
+                            Cost = cost,
+                            DisplayName = toolTipName .. " - " .. cost
+                        })
+                    end
+                end
+            end
+        end
+        
+        return brainrotData
+    end)
+    
+    if success then
+        return result
+    else
+        return {}
+    end
+end
+
+local function updateBrainrotDropdown()
+    local brainrots = scanBrainrots()
+    States.BrainrotData = brainrots
+    
+    if BrainrotDropdown then
+        local dropdownValues = {}
+        for _, data in pairs(brainrots) do
+            table.insert(dropdownValues, {
+                Title = data.DisplayName,
+                Icon = "zap"
+            })
+        end
+        
+        pcall(function()
+            BrainrotDropdown:Set({Values = dropdownValues})
+        end)
+    end
+end
+
+local function upgradeBrainrot(slotName)
+    pcall(function()
+        local args = {slotName}
+        game:GetService("ReplicatedStorage"):WaitForChild("RemoteFunctions"):WaitForChild("UpgradeBrainrot"):InvokeServer(unpack(args))
+    end)
+end
+
+local function upgradeSelectedBrainrots()
+    for _, selectedName in pairs(States.SelectedBrainrots) do
+        for _, data in pairs(States.BrainrotData) do
+            if data.DisplayName == selectedName then
+                upgradeBrainrot(data.SlotName)
+                break
+            end
+        end
+    end
+end
+
+local function toggleBrainrotUpgrade(state)
+    States.UpgradeBrainrot = state
+    
+    if state then
+        Connections.BrainrotUpgrade = RunService.Heartbeat:Connect(function()
+            if States.UpgradeBrainrot and os.clock() % 0.5 < 0.016 then
+                upgradeSelectedBrainrots()
+            end
+        end)
+    else
+        if Connections.BrainrotUpgrade then
+            Connections.BrainrotUpgrade:Disconnect()
+            Connections.BrainrotUpgrade = nil
+        end
+    end
+end
+
+local function startBrainrotScanner()
+    updateBrainrotDropdown()
+    
+    Connections.BrainrotScanner = RunService.Heartbeat:Connect(function()
+        if os.clock() % 5 < 0.016 then
+            updateBrainrotDropdown()
+        end
+    end)
 end
 
 local function fireCollect()
@@ -1385,6 +1522,57 @@ local SettingsTab = Window:Tab({
     Icon = "settings",
 })
 
+local BrainrotDropdown = MainTab:Dropdown({
+    Title = "Select Brainrots",
+    Values = {},
+    Multi = true,
+    Callback = function(selected)
+        States.SelectedBrainrots = {}
+        for _, option in pairs(selected) do
+            table.insert(States.SelectedBrainrots, option.Title)
+        end
+        saveConfiguration()
+    end
+})
+
+local UpgradeBrainrotToggle = MainTab:Toggle({
+    Title = "Upgrade Selected Brainrot Spam",
+    Desc = "Auto upgrade every 0.5 seconds",
+    Default = false,
+    Callback = function(state)
+        toggleBrainrotUpgrade(state)
+        saveConfiguration()
+    end
+})
+
+local UpgradeBrainrotButton = MainTab:Button({
+    Title = "Upgrade Brainrot",
+    Desc = "Manually upgrade selected brainrots",
+    Callback = function()
+        upgradeSelectedBrainrots()
+    end
+})
+
+local AutoDodgeWaveToggle = MainTab:Toggle({
+    Title = "Auto Dodge Wave",
+    Desc = "Auto teleport when wave is within 25 studs",
+    Default = false,
+    Callback = function(state)
+        toggleAutoDodgeWave(state)
+        saveConfiguration()
+    end
+})
+
+local ManualDodgeToggle = MainTab:Toggle({
+    Title = "Manual Dodge Wave",
+    Desc = "Show dodge button to teleport 30 studs forward",
+    Default = false,
+    Callback = function(state)
+        toggleManualDodge(state)
+        saveConfiguration()
+    end
+})
+
 local AutoCollectToggle = MainTab:Toggle({
     Title = "Auto Collect",
     Desc = "Automatically collect from your base slots",
@@ -1405,16 +1593,6 @@ local FastInteractionToggle = MainTab:Toggle({
     end
 })
 
-local ManualDodgeToggle = MainTab:Toggle({
-    Title = "Manual Dodge Wave",
-    Desc = "Show dodge button to teleport 30 studs forward",
-    Default = false,
-    Callback = function(state)
-        toggleManualDodge(state)
-        saveConfiguration()
-    end
-})
-
 local AntiFallToggle = MainTab:Toggle({
     Title = "Anti Fall",
     Desc = "Disable Y movement to prevent falling",
@@ -1425,21 +1603,13 @@ local AntiFallToggle = MainTab:Toggle({
     end
 })
 
-local AutoDodgeWaveToggle = MainTab:Toggle({
-    Title = "Auto Dodge Wave",
-    Desc = "Auto teleport when wave is within 25 studs",
-    Default = false,
-    Callback = function(state)
-        toggleAutoDodgeWave(state)
-        saveConfiguration()
-    end
-})
-
 myConfig:Register("AutoCollect", AutoCollectToggle)
 myConfig:Register("FastInteraction", FastInteractionToggle)
 myConfig:Register("ManualDodge", ManualDodgeToggle)
 myConfig:Register("AntiFall", AntiFallToggle)
 myConfig:Register("AutoDodgeWave", AutoDodgeWaveToggle)
+myConfig:Register("SelectedBrainrots", BrainrotDropdown)
+myConfig:Register("UpgradeBrainrot", UpgradeBrainrotToggle)
 
 local GodModeToggle = PlayerTab:Toggle({
     Title = "God Mode",
