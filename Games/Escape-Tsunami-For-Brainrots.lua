@@ -231,6 +231,8 @@ Window:EditOpenButton({
 })
 
 local States = {
+    SafeZone = false,
+    SafeZonePart = nil,
     FullBright = false,
     LowGFX = false,
     CurrentTheme = "Dark",
@@ -242,9 +244,6 @@ local States = {
     GodMode = false,
     InfJump = false,
     Noclip = false,
-    UpgradeBrainrot = false,
-    SelectedBrainrots = {},
-    BrainrotData = {},
     AutoDodgeWave = false,
     Speed = false,
     JumpPower = false,
@@ -260,8 +259,6 @@ local Connections = {
     AutoCollect = nil,
     GodMode = nil,
     AutoDodgeWave = nil,
-    BrainrotScanner = nil,
-    BrainrotUpgrade = nil,
     WaveMonitor = nil,
     CharPartMonitor = nil,
     InfJump = nil,
@@ -269,6 +266,7 @@ local Connections = {
     AntiFall = nil,
     AntiRagdoll = nil,
     Noclip = nil,
+    SafeZone = nil,
     Speed = nil,
     JumpPower = nil,
 }
@@ -324,138 +322,6 @@ local function findPlayerBase()
     end
 end
 
-local BrainrotDropdown = nil
-
-local function scanBrainrots()
-    local success, result = pcall(function()
-        if not States.PlayerBase then
-            States.PlayerBase = findPlayerBase()
-            if not States.PlayerBase then
-                return {}
-            end
-        end
-        
-        local bases = Workspace:FindFirstChild("Bases")
-        if not bases then return {} end
-        
-        local playerBase = bases:FindFirstChild(States.PlayerBase)
-        if not playerBase then
-            States.PlayerBase = findPlayerBase()
-            return {}
-        end
-        
-        local slots = playerBase:FindFirstChild("Slots")
-        if not slots then return {} end
-        
-        local brainrotData = {}
-        
-        for i = 1, 30 do
-            local slotName = "Slot" .. i
-            local slot = slots:FindFirstChild(slotName)
-            
-            if slot then
-                for _, child in pairs(slot:GetChildren()) do
-                    if child.Name ~= "Upgrade" then
-                        local toolTipName = child.Name
-                        local cost = "N/A"
-                        
-                        local upgrade = slot:FindFirstChild("Upgrade")
-                        if upgrade then
-                            local surfaceGui = upgrade:FindFirstChild("SurfaceGui")
-                            if surfaceGui then
-                                local frame = surfaceGui:FindFirstChild("Frame")
-                                if frame then
-                                    local costLabel = frame:FindFirstChild("Cost")
-                                    if costLabel then
-                                        cost = costLabel.Text
-                                    end
-                                end
-                            end
-                        end
-                        
-                        table.insert(brainrotData, {
-                            SlotName = slotName,
-                            ToolTipName = toolTipName,
-                            Cost = cost,
-                            DisplayName = toolTipName .. " - " .. cost
-                        })
-                    end
-                end
-            end
-        end
-        
-        return brainrotData
-    end)
-    
-    if success then
-        return result
-    else
-        return {}
-    end
-end
-
-local function updateBrainrotDropdown()
-    local brainrots = scanBrainrots()
-    States.BrainrotData = brainrots
-    
-    if BrainrotDropdown then
-        local dropdownValues = {}
-        for _, data in pairs(brainrots) do
-            table.insert(dropdownValues, {
-                Title = data.DisplayName,
-                Icon = "zap"
-            })
-        end
-        
-        pcall(function()
-            BrainrotDropdown:Set({Values = dropdownValues})
-        end)
-    end
-end
-
-local function upgradeBrainrot(slotName)
-    pcall(function()
-        local args = {slotName}
-        game:GetService("ReplicatedStorage"):WaitForChild("RemoteFunctions"):WaitForChild("UpgradeBrainrot"):InvokeServer(unpack(args))
-    end)
-end
-
-local function upgradeSelectedBrainrots()
-    for _, selectedName in pairs(States.SelectedBrainrots) do
-        for _, data in pairs(States.BrainrotData) do
-            if data.DisplayName == selectedName then
-                upgradeBrainrot(data.SlotName)
-                break
-            end
-        end
-    end
-end
-
-local function toggleBrainrotUpgrade(state)
-    States.UpgradeBrainrot = state
-    
-    if state then
-        Connections.BrainrotUpgrade = RunService.Heartbeat:Connect(function()
-            if States.UpgradeBrainrot and os.clock() % 0.5 < 0.016 then
-                upgradeSelectedBrainrots()
-            end
-        end)
-    else
-        if Connections.BrainrotUpgrade then
-            Connections.BrainrotUpgrade:Disconnect()
-            Connections.BrainrotUpgrade = nil
-        end
-    end
-end
-
-local function startBrainrotScanner()
-    task.spawn(function()
-        while true do
-            updateBrainrotDropdown()
-            task.wait(3)
-        end
-    end)
-end
 
 local function fireCollect()
     if not States.AutoCollect then return end
@@ -813,6 +679,112 @@ local function toggleFastInteraction(state)
             Connections.FastInteraction:Disconnect()
             Connections.FastInteraction = nil
         end
+    end
+end
+
+local function createSafeZonePlatform()
+    if States.SafeZonePart then
+        States.SafeZonePart:Destroy()
+        States.SafeZonePart = nil
+    end
+    
+    local platform = Instance.new("Part")
+    platform.Name = "SafeZonePlatform"
+    platform.Size = Vector3.new(20, 1, 20)
+    platform.Position = Vector3.new(0, -3, 0)
+    platform.Anchored = true
+    platform.CanCollide = true
+    platform.Transparency = 0.5
+    platform.Material = Enum.Material.Neon
+    platform.BrickColor = BrickColor.new("Bright blue")
+    platform.Parent = Workspace
+    
+    States.SafeZonePart = platform
+    
+    return platform
+end
+
+local function removeSafeZonePlatform()
+    if States.SafeZonePart then
+        States.SafeZonePart:Destroy()
+        States.SafeZonePart = nil
+    end
+end
+
+local function toggleSafeZone(state)
+    States.SafeZone = state
+    
+    if state then
+        local character = LocalPlayer.Character
+        if not character then
+            WindUI:Notify({
+                Title = "Safe Zone Error",
+                Content = "Character not found!",
+                Duration = 3,
+                Icon = "x",
+            })
+            return
+        end
+        
+        local hrp = character:FindFirstChild("HumanoidRootPart")
+        if not hrp then
+            WindUI:Notify({
+                Title = "Safe Zone Error",
+                Content = "HumanoidRootPart not found!",
+                Duration = 3,
+                Icon = "x",
+            })
+            return
+        end
+        
+        if not States.Noclip then
+            toggleNoclip(true)
+        end
+        
+        createSafeZonePlatform()
+        
+        hrp.CFrame = CFrame.new(hrp.Position.X, -3, hrp.Position.Z)
+        
+        Connections.SafeZone = RunService.Heartbeat:Connect(function()
+            if States.SafeZone then
+                local character = LocalPlayer.Character
+                if character then
+                    local hrp = character:FindFirstChild("HumanoidRootPart")
+                    if hrp and States.SafeZonePart then
+                        States.SafeZonePart.Position = Vector3.new(hrp.Position.X, -3, hrp.Position.Z)
+                    end
+                end
+            end
+        end)
+        
+        WindUI:Notify({
+            Title = "Safe Zone Enabled",
+            Content = "You are now in the safe zone!",
+            Duration = 3,
+            Icon = "shield",
+        })
+    else
+        if Connections.SafeZone then
+            Connections.SafeZone:Disconnect()
+            Connections.SafeZone = nil
+        end
+        
+        removeSafeZonePlatform()
+        
+        local character = LocalPlayer.Character
+        if character then
+            local hrp = character:FindFirstChild("HumanoidRootPart")
+            if hrp then
+                hrp.CFrame = CFrame.new(hrp.Position.X, 5, hrp.Position.Z)
+            end
+        end
+        
+        WindUI:Notify({
+            Title = "Safe Zone Disabled",
+            Content = "You left the safe zone!",
+            Duration = 3,
+            Icon = "shield-off",
+        })
     end
 end
 
@@ -1523,34 +1495,13 @@ local SettingsTab = Window:Tab({
     Icon = "settings",
 })
 
-local BrainrotDropdown = MainTab:Dropdown({
-    Title = "Select Brainrots",
-    Values = {},
-    Multi = true,
-    Callback = function(selected)
-        States.SelectedBrainrots = {}
-        for _, option in pairs(selected) do
-            table.insert(States.SelectedBrainrots, option.Title)
-        end
-        saveConfiguration()
-    end
-})
-
-local UpgradeBrainrotToggle = MainTab:Toggle({
-    Title = "Upgrade Selected Brainrot Spam",
-    Desc = "Auto upgrade every 0.5 seconds",
+local SafeZoneToggle = PlayerTab:Toggle({
+    Title = "Safe Zone",
+    Desc = "Teleport to safe zone",
     Default = false,
     Callback = function(state)
-        toggleBrainrotUpgrade(state)
+        toggleSafeZone(state)
         saveConfiguration()
-    end
-})
-
-local UpgradeBrainrotButton = MainTab:Button({
-    Title = "Upgrade Brainrot",
-    Desc = "Manually upgrade selected brainrots",
-    Callback = function()
-        upgradeSelectedBrainrots()
     end
 })
 
@@ -1604,6 +1555,7 @@ local AntiFallToggle = MainTab:Toggle({
     end
 })
 
+myConfig:Register("SafeZone", SafeZoneToggle)
 myConfig:Register("AutoCollect", AutoCollectToggle)
 myConfig:Register("FastInteraction", FastInteractionToggle)
 myConfig:Register("ManualDodge", ManualDodgeToggle)
@@ -1943,6 +1895,12 @@ LocalPlayer.CharacterAdded:Connect(function(character)
         toggleAutoDodgeWave(false)
         task.wait(0.1)
         toggleAutoDodgeWave(true)
+    end
+
+    if States.SafeZone then
+        toggleSafeZone(false)
+        task.wait(0.1)
+        toggleSafeZone(true)
     end
     
     if States.AutoCollect then
