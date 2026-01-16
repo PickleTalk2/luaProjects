@@ -694,7 +694,7 @@ local function createSafeZonePlatform()
     platform.Position = Vector3.new(0, -3, 0)
     platform.Anchored = true
     platform.CanCollide = true
-    platform.Transparency = 0.5
+    platform.Transparency = 1
     platform.Material = Enum.Material.Neon
     platform.BrickColor = BrickColor.new("Bright blue")
     platform.Parent = Workspace
@@ -739,10 +739,12 @@ local function toggleSafeZone(state)
         
         if not States.Noclip then
             toggleNoclip(true)
+            task.wait(0.1)
         end
         
         createSafeZonePlatform()
         
+        task.wait(0.05)
         hrp.CFrame = CFrame.new(hrp.Position.X, -3, hrp.Position.Z)
         
         Connections.SafeZone = RunService.Heartbeat:Connect(function()
@@ -751,7 +753,13 @@ local function toggleSafeZone(state)
                 if character then
                     local hrp = character:FindFirstChild("HumanoidRootPart")
                     if hrp and States.SafeZonePart then
-                        States.SafeZonePart.Position = Vector3.new(hrp.Position.X, -3, hrp.Position.Z)
+                        local playerX = hrp.Position.X
+                        local playerZ = hrp.Position.Z
+                        States.SafeZonePart.Position = Vector3.new(playerX, -3, playerZ)
+                        
+                        if hrp.Position.Y > -2 then
+                            hrp.CFrame = CFrame.new(hrp.Position.X, -3, hrp.Position.Z)
+                        end
                     end
                 end
             end
@@ -769,14 +777,19 @@ local function toggleSafeZone(state)
             Connections.SafeZone = nil
         end
         
-        removeSafeZonePlatform()
-        
         local character = LocalPlayer.Character
         if character then
             local hrp = character:FindFirstChild("HumanoidRootPart")
             if hrp then
                 hrp.CFrame = CFrame.new(hrp.Position.X, 5, hrp.Position.Z)
             end
+        end
+        
+        task.wait(0.1)
+        removeSafeZonePlatform()
+        
+        if States.Noclip then
+            toggleNoclip(false)
         end
         
         WindUI:Notify({
@@ -1495,7 +1508,7 @@ local SettingsTab = Window:Tab({
     Icon = "settings",
 })
 
-local SafeZoneToggle = PlayerTab:Toggle({
+local SafeZoneToggle = MainTab:Toggle({
     Title = "Safe Zone",
     Desc = "Teleport to safe zone",
     Default = false,
