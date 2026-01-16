@@ -324,6 +324,8 @@ local function findPlayerBase()
     end
 end
 
+local BrainrotDropdown = nil
+
 local function scanBrainrots()
     local success, result = pcall(function()
         if not States.PlayerBase then
@@ -351,9 +353,9 @@ local function scanBrainrots()
             local slotName = "Slot" .. i
             local slot = slots:FindFirstChild(slotName)
             
-            if slot and slot:IsA("Model") then
+            if slot then
                 for _, child in pairs(slot:GetChildren()) do
-                    if child:IsA("Tool") or (child:IsA("Model") and child.Name ~= "Upgrade") then
+                    if child.Name ~= "Upgrade" then
                         local toolTipName = child.Name
                         local cost = "N/A"
                         
@@ -447,11 +449,10 @@ local function toggleBrainrotUpgrade(state)
 end
 
 local function startBrainrotScanner()
-    updateBrainrotDropdown()
-    
-    Connections.BrainrotScanner = RunService.Heartbeat:Connect(function()
-        if os.clock() % 5 < 0.016 then
+    task.spawn(function()
+        while true do
             updateBrainrotDropdown()
+            task.wait(3)
         end
     end)
 end
