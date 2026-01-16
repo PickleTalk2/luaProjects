@@ -737,10 +737,24 @@ local function toggleSafeZone(state)
             return
         end
         
-        if not States.Noclip then
-            toggleNoclip(true)
-            task.wait(0.1)
+        local character = LocalPlayer.Character
+        if not character then
+            return
         end
+        
+        local function setNoclip()
+            for _, part in pairs(character:GetDescendants()) do
+                if part:IsA("BasePart") then
+                    part.CanCollide = false
+                end
+            end
+        end
+        
+        Connections.Noclip = RunService.Stepped:Connect(function()
+            if States.Noclip then
+                setNoclip()
+            end
+        end)
         
         createSafeZonePlatform()
         
@@ -764,13 +778,6 @@ local function toggleSafeZone(state)
                 end
             end
         end)
-        
-        WindUI:Notify({
-            Title = "Safe Zone Enabled",
-            Content = "You are now in the safe zone!",
-            Duration = 3,
-            Icon = "shield",
-        })
     else
         if Connections.SafeZone then
             Connections.SafeZone:Disconnect()
@@ -788,16 +795,19 @@ local function toggleSafeZone(state)
         task.wait(0.1)
         removeSafeZonePlatform()
         
-        if States.Noclip then
-            toggleNoclip(false)
+        if Connections.Noclip then
+            Connections.Noclip:Disconnect()
+            Connections.Noclip = nil
         end
         
-        WindUI:Notify({
-            Title = "Safe Zone Disabled",
-            Content = "You left the safe zone!",
-            Duration = 3,
-            Icon = "shield-off",
-        })
+        local character = LocalPlayer.Character
+        if character then
+            for _, part in pairs(character:GetDescendants()) do
+                if part:IsA("BasePart") then
+                    part.CanCollide = true
+                end
+            end
+        end
     end
 end
 
