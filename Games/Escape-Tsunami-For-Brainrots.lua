@@ -690,11 +690,11 @@ local function createSafeZonePlatform()
     
     local platform = Instance.new("Part")
     platform.Name = "SafeZonePlatform"
-    platform.Size = Vector3.new(20, 1, 20)
+    platform.Size = Vector3.new(20, 3, 20)
     platform.Position = Vector3.new(0, -4, 0)
     platform.Anchored = true
     platform.CanCollide = true
-    platform.Transparency = 1
+    platform.Transparency = 0.5
     platform.Material = Enum.Material.Neon
     platform.BrickColor = BrickColor.new("Bright blue")
     platform.Parent = Workspace
@@ -713,6 +713,7 @@ end
 
 local function toggleSafeZone(state)
     States.SafeZone = state
+    States.Noclip = state
     
     if state then
         local character = LocalPlayer.Character
