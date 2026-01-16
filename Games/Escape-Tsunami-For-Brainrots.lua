@@ -691,7 +691,7 @@ local function createSafeZonePlatform()
     local platform = Instance.new("Part")
     platform.Name = "SafeZonePlatform"
     platform.Size = Vector3.new(20, 1, 20)
-    platform.Position = Vector3.new(0, -3, 0)
+    platform.Position = Vector3.new(0, -4, 0)
     platform.Anchored = true
     platform.CanCollide = true
     platform.Transparency = 1
@@ -1042,7 +1042,7 @@ local function toggleAutoDodgeWave(state)
                             if distance <= 115 then
                                 local teleportOffset
                                 
-                                if playerPosition.X >= 3000 then
+                                if playerPosition.X >= 2800 then
                                     teleportOffset = Vector3.new(-150, 0, 0)
                                 else
                                     teleportOffset = Vector3.new(150, 0, 0)
