@@ -934,27 +934,36 @@ local function toggleAntiTsunami(state)
                 
                 if isWaveBlockingGap(playerPosition.X, bestGap.XPosition, allWaves) then
                     if States.DebugMode then
-                        print("Wave blocking path, checking alternatives...")
+                        print("Wave blocking path to " .. bestGap.Name .. ", finding alternative...")
                     end
-                    
-                    local emergencyJump = false
-                    for _, wave in ipairs(allWaves) do
-                        local distToWave = math.abs(playerPosition.X - wave.XPosition)
-                        if distToWave < 30 then
-                            emergencyJump = true
-                            break
+    
+                    local alternativeGaps = {}
+                    local targetDirection = bestGap.XPosition > playerPosition.X and 1 or -1
+    
+                    for _, gap in ipairs(gaps) do
+                        local gapDirection = gap.XPosition > playerPosition.X and 1 or -1
+                        if gapDirection ~= targetDirection then
+                            if not isWaveBlockingGap(playerPosition.X, gap.XPosition, allWaves) then
+                                table.insert(alternativeGaps, gap)
+                            end
                         end
                     end
-                    
-                    if emergencyJump then
-                        local jumpDir = nearestWave.XPosition > playerPosition.X and -100 or 100
-                        hrp.CFrame = CFrame.new(playerPosition.X + jumpDir, 3, -1)
-                        lastMoveTime = currentTime
+    
+                    if #alternativeGaps > 0 then
+                        table.sort(alternativeGaps, function(a, b)
+                            return math.abs(playerPosition.X - a.XPosition) < math.abs(playerPosition.X - b.XPosition)
+                        end)
+        
+                        bestGap = alternativeGaps[1]
                         if States.DebugMode then
-                            print("Emergency jump!")
+                            print(string.format("Using alternative gap: %s (X: %.1f)", bestGap.Name, bestGap.XPosition))
                         end
+                    else
+                        if States.DebugMode then
+                            print("No safe gaps available, staying in place")
+                        end
+                        return
                     end
-                    return
                 end
                 
                 lastMoveTime = currentTime
