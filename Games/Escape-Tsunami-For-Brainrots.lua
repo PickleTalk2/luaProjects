@@ -255,6 +255,7 @@ local States = {
     ManualReset = false,
     DodgeButton = nil,
     CurrentTween = nil,
+    AntiTsunamiDebounce = false,
 }
 
 local Connections = {
@@ -660,7 +661,7 @@ local function findNearestWave(playerPosition)
             if wave and wave:IsA("Model") then
                 local hitbox = wave:FindFirstChild("Hitbox")
                 
-                if hitbox and hitbox:IsA("BasePart") and hitbox.Position.X > playerPosition.X then
+                if hitbox and hitbox:IsA("BasePart") then
                     local distance = (playerPosition - hitbox.Position).Magnitude
                     
                     if distance < nearestDistance then
@@ -812,6 +813,7 @@ local function toggleAntiTsunami(state)
     if state then
         Connections.AntiTsunami = RunService.Heartbeat:Connect(function()
             if not States.AntiTsunami then return end
+            if States.AntiTsunamiDebounce then return end
             
             pcall(function()
                 local character = LocalPlayer.Character
@@ -825,14 +827,23 @@ local function toggleAntiTsunami(state)
                 local nearestWave = findNearestWave(playerPosition)
                 if not nearestWave then return end
                 
-                if nearestWave.Distance > 100 then return end
-
-                if playerPosition.Y <= -2 and playerPosition.Y >= -3 and playerPosition.X < 150 then
-                    return
-                end
-                        
+                if nearestWave.Distance > 120 then return end
+                
                 local gaps = getAllGaps()
                 if #gaps == 0 then return end
+                
+                local playerInSafeGap = false
+                for _, gap in ipairs(gaps) do
+                    local distToGap = math.abs(playerPosition.X - gap.XPosition)
+                    if distToGap < 15 and playerPosition.Y < 0 then
+                        playerInSafeGap = true
+                        break
+                    end
+                end
+                
+                if playerInSafeGap and nearestWave.Distance > 50 then
+                    return
+                end
                 
                 local allWaves = getAllWaves(playerPosition)
                 
@@ -867,7 +878,11 @@ local function toggleAntiTsunami(state)
                         end
                         
                         if closestFrontWave and closestDist <= 40 then
+                            States.AntiTsunamiDebounce = true
                             hrp.CFrame = CFrame.new(playerPosition.X + 80, 3, -1)
+                            task.delay(1, function()
+                                States.AntiTsunamiDebounce = false
+                            end)
                         end
                         return
                     end
@@ -875,10 +890,12 @@ local function toggleAntiTsunami(state)
                     return
                 end
                 
+                States.AntiTsunamiDebounce = true
                 tweenToGap(hrp, bestGap)
+                task.delay(1.5, function()
+                    States.AntiTsunamiDebounce = false
+                end)
             end)
-            
-            task.wait(0.8)
         end)
     else
         if Connections.AntiTsunami then
@@ -890,6 +907,8 @@ local function toggleAntiTsunami(state)
             States.CurrentTween:Cancel()
             States.CurrentTween = nil
         end
+        
+        States.AntiTsunamiDebounce = false
     end
 end
 
