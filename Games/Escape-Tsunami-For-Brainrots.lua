@@ -257,6 +257,8 @@ local States = {
     CurrentTween = nil,
     AntiTsunamiDebounce = false,
     MovementDisabled = false,
+    AntiSlap = false,
+    SlapAura = false,
     DebugMode = false,
 }
 
@@ -271,6 +273,8 @@ local Connections = {
     Noclip = nil,
     Speed = nil,
     JumpPower = nil,
+    AntiSlap = nil,
+    SlapAura = nil,
 }
 
 local LowGFXStorage = {
@@ -650,6 +654,157 @@ local function getAllGaps()
     end)
     
     return gaps
+end
+
+local function toggleAntiSlap(state)
+    States.AntiSlap = state
+    
+    if state then
+        local character = LocalPlayer.Character
+        if not character then return end
+        
+        local humanoid = character:FindFirstChildOfClass("Humanoid")
+        local hrp = character:FindFirstChild("HumanoidRootPart")
+        
+        if not humanoid or not hrp then return end
+        
+        local lastPosition = hrp.Position
+        local lastVelocity = Vector3.new(0, 0, 0)
+        
+        Connections.AntiSlap = RunService.Heartbeat:Connect(function()
+            if not States.AntiSlap then return end
+            
+            pcall(function()
+                local character = LocalPlayer.Character
+                if not character then return end
+                
+                local humanoid = character:FindFirstChildOfClass("Humanoid")
+                local hrp = character:FindFirstChild("HumanoidRootPart")
+                
+                if not humanoid or not hrp then return end
+                
+                if humanoid:GetState() == Enum.HumanoidStateType.Ragdoll or 
+                   humanoid:GetState() == Enum.HumanoidStateType.FallingDown then
+                    humanoid:ChangeState(Enum.HumanoidStateType.Running)
+                end
+                
+                if hrp:FindFirstChild("BodyVelocity") then
+                    hrp.BodyVelocity:Destroy()
+                end
+                
+                if hrp:FindFirstChild("BodyGyro") then
+                    hrp.BodyGyro:Destroy()
+                end
+                
+                local currentVelocity = hrp.AssemblyVelocity
+                
+                if currentVelocity.Magnitude > 100 and not States.Speed then
+                    hrp.AssemblyVelocity = Vector3.new(0, currentVelocity.Y, 0)
+                end
+                
+                if math.abs(hrp.Position.Y - lastPosition.Y) > 20 then
+                    hrp.CFrame = CFrame.new(lastPosition.X, lastPosition.Y, lastPosition.Z)
+                end
+                
+                if hrp.Position.Y > lastPosition.Y + 5 and currentVelocity.Y > 50 then
+                    hrp.AssemblyVelocity = Vector3.new(currentVelocity.X, 0, currentVelocity.Z)
+                end
+                
+                lastPosition = hrp.Position
+            end)
+        end)
+    else
+        if Connections.AntiSlap then
+            Connections.AntiSlap:Disconnect()
+            Connections.AntiSlap = nil
+        end
+    end
+end
+
+local function findNearestPlayer()
+    local character = LocalPlayer.Character
+    if not character then return nil end
+    
+    local hrp = character:FindFirstChild("HumanoidRootPart")
+    if not hrp then return nil end
+    
+    local nearestPlayer = nil
+    local nearestDistance = math.huge
+    
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character then
+            local targetHrp = player.Character:FindFirstChild("HumanoidRootPart")
+            if targetHrp then
+                local distance = (hrp.Position - targetHrp.Position).Magnitude
+                if distance < nearestDistance then
+                    nearestDistance = distance
+                    nearestPlayer = player
+                end
+            end
+        end
+    end
+    
+    return nearestPlayer, nearestDistance
+end
+
+local function toggleSlapAura(state)
+    States.SlapAura = state
+    
+    if state then
+        Connections.SlapAura = UserInputService.InputBegan:Connect(function(input, gameProcessed)
+            if gameProcessed then return end
+            if not States.SlapAura then return end
+            
+            if input.UserInputType == Enum.UserInputType.MouseButton1 or 
+               input.UserInputType == Enum.UserInputType.Touch then
+                
+                pcall(function()
+                    local character = LocalPlayer.Character
+                    if not character then return end
+                    
+                    local hasBat = false
+                    for _, tool in pairs(character:GetChildren()) do
+                        if tool:IsA("Tool") and (tool.Name:lower():find("bat") or tool.Name:lower():find("slap")) then
+                            hasBat = true
+                            break
+                        end
+                    end
+                    
+                    if not hasBat then
+                        if States.DebugMode then
+                            print("No bat equipped")
+                        end
+                        return
+                    end
+                    
+                    local nearestPlayer, distance = findNearestPlayer()
+                    if nearestPlayer and nearestPlayer.Character then
+                        local targetHrp = nearestPlayer.Character:FindFirstChild("HumanoidRootPart")
+                        if targetHrp then
+                            local hrp = character:FindFirstChild("HumanoidRootPart")
+                            if hrp then
+                                hrp.CFrame = targetHrp.CFrame * CFrame.new(0, 0, 3)
+                                
+                                if States.DebugMode then
+                                    WindUI:Notify({
+                                        Title = "Slap Teleport",
+                                        Content = string.format("Teleported to %s (%.0f studs)", nearestPlayer.Name, distance),
+                                        Duration = 1,
+                                        Icon = "zap",
+                                    })
+                                end
+                            end
+                        end
+                    end
+                end)
+            end
+        end)
+    else
+        if Connections.SlapAura then
+            Connections.SlapAura:Disconnect()
+            Connections.SlapAura = nil
+        end
+    end
 end
 
 local function findNearestWave(playerPosition)
@@ -1642,6 +1797,28 @@ local ManualDodgeToggle = MainTab:Toggle({
     end
 })
 
+local AntiSlapToggle = MainTab:Toggle({
+    Title = "Anti Slap",
+    Desc = "Prevents ragdoll and fling from slaps",
+    Default = false,
+    Callback = function(state)
+        toggleAntiSlap(state)
+        saveConfiguration()
+    end
+})
+
+local SlapAuraToggle = MainTab:Toggle({
+    Title = "Slap Nearest Player",
+    Desc = "Click screen while holding bat to teleport to nearest player",
+    Default = false,
+    Callback = function(state)
+        toggleSlapAura(state)
+        saveConfiguration()
+    end
+})
+
+myConfig:Register("AntiSlap", AntiSlapToggle)
+myConfig:Register("SlapAura", SlapAuraToggle)
 myConfig:Register("AntiTsunami", AntiTsunamiToggle)
 myConfig:Register("FastInteraction", FastInteractionToggle)
 myConfig:Register("ManualDodge", ManualDodgeToggle)
