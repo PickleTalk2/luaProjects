@@ -659,22 +659,48 @@ end
 local function findBestGapToRetreat(playerPosition, wavePosition, gaps)
     if #gaps == 0 then return nil end
     
-    local bestGap = nil
-    local bestScore = -math.huge
+    local forwardGaps = {}
+    local backwardGaps = {}
     
     for _, gap in ipairs(gaps) do
-        local gapToPlayer = (playerPosition - gap.Position).Magnitude
-        local gapToWave = (wavePosition - gap.Position).Magnitude
-        
-        local score = gapToWave - gapToPlayer
-        
-        if score > bestScore then
-            bestScore = score
-            bestGap = gap
+        if gap.Position.X > playerPosition.X then
+            table.insert(forwardGaps, gap)
+        else
+            table.insert(backwardGaps, gap)
         end
     end
     
-    return bestGap
+    for _, gap in ipairs(forwardGaps) do
+        local gapToWave = (wavePosition - gap.Position).Magnitude
+        
+        if gapToWave > 150 then
+            local closestForward = nil
+            local closestDist = math.huge
+            
+            for _, fgap in ipairs(forwardGaps) do
+                local dist = (playerPosition - fgap.Position).Magnitude
+                if dist < closestDist then
+                    closestDist = dist
+                    closestForward = fgap
+                end
+            end
+            
+            return closestForward
+        end
+    end
+    
+    local closestBackward = nil
+    local closestDist = math.huge
+    
+    for _, bgap in ipairs(backwardGaps) do
+        local dist = (playerPosition - bgap.Position).Magnitude
+        if dist < closestDist then
+            closestDist = dist
+            closestBackward = bgap
+        end
+    end
+    
+    return closestBackward
 end
 
 local function tweenToGap(hrp, targetPosition)
@@ -687,14 +713,17 @@ local function tweenToGap(hrp, targetPosition)
     local upPosition = Vector3.new(currentPos.X, currentPos.Y + 3, currentPos.Z)
     local targetUpPosition = Vector3.new(targetPosition.X, targetPosition.Y + 3, targetPosition.Z)
     
-    local tweenInfo = TweenInfo.new(0.3, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut)
-    
+    local distance = (currentPos - targetPosition).Magnitude
+    local speed = distance < 50 and 0.5 or (distance < 100 and 0.7 or 1.0)
+
+    local tweenInfo = TweenInfo.new(0.2, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut)
+
     local tween1 = TweenService:Create(hrp, tweenInfo, {CFrame = CFrame.new(upPosition)})
-    
+
     tween1.Completed:Connect(function()
         if not States.AntiTsunami then return end
-        
-        local tweenInfo2 = TweenInfo.new(0.4, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut)
+    
+        local tweenInfo2 = TweenInfo.new(speed, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut)
         local tween2 = TweenService:Create(hrp, tweenInfo2, {CFrame = CFrame.new(targetUpPosition)})
         
         tween2.Completed:Connect(function()
@@ -734,8 +763,13 @@ local function toggleAntiTsunami(state)
                 local nearestWave = findNearestWave(playerPosition)
                 if not nearestWave then return end
                 
-                if nearestWave.Distance > 115 then return end
-                
+                if nearestWave.Distance > 90 then return end
+
+                local playerPosition = hrp.Position
+                if playerPosition.Y <= 2 and playerPosition.X < 153 then
+                    return
+                end
+                        
                 local gaps = getAllGaps()
                 if #gaps == 0 then return end
                 
