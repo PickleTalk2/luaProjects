@@ -645,6 +645,7 @@ local function findNearestWave(playerPosition)
                         nearestWave = {
                             Wave = wave,
                             XPosition = hitbox.Position.X,
+                            Position = hitbox.Position,
                             Distance = distance
                         }
                     end
@@ -763,8 +764,7 @@ local function toggleAntiTsunami(state)
                 
                 if nearestWave.Distance > 100 then return end
 
-                local playerPosition = hrp.Position
-                if playerPosition.Y >= -2 and playerPosition.Y <= -3 and playerPosition.X < 150 then
+                if playerPosition.Y >= -2 and playerPosition.Y >= -3 and playerPosition.X < 150 then
                     return
                 end
                         
