@@ -759,11 +759,12 @@ local function findBestGapToRetreat(playerPosition, wavePosition, gaps, allWaves
             local isSafe = true
             for _, wave in ipairs(allWaves) do
                 local distToGap = math.abs(wave.XPosition - nearestForward.XPosition)
+                local distToPlayer = math.abs(wave.XPosition - playerX)
                 
-                if distToGap < 25 then
+                if distToGap < 30 then
                     isSafe = false
                     if States.DebugMode then
-                        print(string.format("Forward gap unsafe: Wave %.1f studs from gap", distToGap))
+                        print(string.format("Forward gap UNSAFE: Wave %.1f studs from gap", distToGap))
                     end
                     break
                 end
@@ -771,22 +772,37 @@ local function findBestGapToRetreat(playerPosition, wavePosition, gaps, allWaves
                 if wave.XPosition > playerX and wave.XPosition < nearestForward.XPosition then
                     isSafe = false
                     if States.DebugMode then
-                        print("Forward gap blocked: Wave between player and gap")
+                        print("Forward gap BLOCKED: Wave between player and gap")
                     end
                     break
                 end
                 
-                if nearestForward.XPosition > playerX and wave.XPosition > nearestForward.XPosition and wave.XPosition < playerX + 50 then
+                if wave.XPosition < playerX and distToPlayer < 40 then
                     isSafe = false
                     if States.DebugMode then
-                        print("Forward gap blocked: Wave has passed gap")
+                        print(string.format("Forward gap UNSAFE: Wave just passed (%.1f studs behind)", distToPlayer))
+                    end
+                    break
+                end
+                
+                if wave.XPosition > nearestForward.XPosition and wave.XPosition < nearestForward.XPosition + 40 then
+                    isSafe = false
+                    if States.DebugMode then
+                        print("Forward gap BLOCKED: Wave has passed gap and still close")
                     end
                     break
                 end
             end
             
             if isSafe then
+                if States.DebugMode then
+                    print("Forward gap is SAFE - proceeding forward")
+                end
                 return nearestForward, true
+            else
+                if States.DebugMode then
+                    print("Forward gap rejected - switching to backward retreat")
+                end
             end
         end
     end
@@ -798,8 +814,15 @@ local function findBestGapToRetreat(playerPosition, wavePosition, gaps, allWaves
         local nearestBackward = backwardGaps[1]
         
         if not isWaveBlockingGap(playerX, nearestBackward.XPosition, allWaves) then
+            if States.DebugMode then
+                print("Using backward gap - safest option")
+            end
             return nearestBackward, false
         end
+    end
+    
+    if States.DebugMode then
+        print("No safe gaps found - using farthest gap as last resort")
     end
     
     local farthestGap = gaps[1]
@@ -867,7 +890,7 @@ local function tweenToGap(hrp, targetGap, isForward)
         currentPos = hrp.Position
     end
     
-    local speed = 220
+    local speed = 2602
     local timeNeeded = horizontalDist / speed
     
     local tweenInfo = TweenInfo.new(timeNeeded, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut)
