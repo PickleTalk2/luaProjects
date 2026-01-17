@@ -256,6 +256,7 @@ local States = {
     DodgeButton = nil,
     CurrentTween = nil,
     AntiTsunamiDebounce = false,
+    DebugMode = true,
 }
 
 local Connections = {
@@ -346,7 +347,9 @@ local function setupGodModeForCharacter(character)
     for _, part in pairs(character:GetDescendants()) do
         if part:IsA("BasePart") then
             part.CanTouch = false
-            part.CanCollide = false
+            if not States.AntiTsunami then
+                part.CanCollide = false
+            end
         end
     end
     
@@ -354,7 +357,9 @@ local function setupGodModeForCharacter(character)
     charAddedConn = character.DescendantAdded:Connect(function(descendant)
         if descendant:IsA("BasePart") and States.GodMode then
             descendant.CanTouch = false
-            descendant.CanCollide = false
+            if not States.AntiTsunami then
+                descendant.CanCollide = false
+            end
         end
     end)
     
@@ -811,32 +816,71 @@ local function toggleAntiTsunami(state)
     States.AntiTsunami = state
     
     if state then
+        if States.DebugMode then
+            WindUI:Notify({
+                Title = "Anti Tsunami Enabled",
+                Content = "Monitoring for waves...",
+                Duration = 2,
+                Icon = "shield",
+            })
+        end
+        
         Connections.AntiTsunami = RunService.Heartbeat:Connect(function()
             if not States.AntiTsunami then return end
             if States.AntiTsunamiDebounce then return end
             
-            pcall(function()
+            local success, err = pcall(function()
                 local character = LocalPlayer.Character
-                if not character then return end
+                if not character then 
+                    if States.DebugMode then
+                        warn("Anti Tsunami: No character")
+                    end
+                    return 
+                end
                 
                 local hrp = character:FindFirstChild("HumanoidRootPart")
-                if not hrp then return end
+                if not hrp then 
+                    if States.DebugMode then
+                        warn("Anti Tsunami: No HRP")
+                    end
+                    return 
+                end
+                
+                for _, part in pairs(character:GetDescendants()) do
+                    if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then
+                        part.CanCollide = true
+                    end
+                end
                 
                 local playerPosition = hrp.Position
                 
+                local gaps = getAllGaps()
+                if #gaps == 0 then 
+                    if States.DebugMode then
+                        warn("Anti Tsunami: No gaps found in Workspace.Misc.Gaps")
+                    end
+                    return 
+                end
+                
                 local nearestWave = findNearestWave(playerPosition)
-                if not nearestWave then return end
+                if not nearestWave then 
+                    return 
+                end
+                
+                if States.DebugMode then
+                    print(string.format("Wave detected: Distance %.1f, X: %.1f", nearestWave.Distance, nearestWave.XPosition))
+                end
                 
                 if nearestWave.Distance > 120 then return end
-                
-                local gaps = getAllGaps()
-                if #gaps == 0 then return end
                 
                 local playerInSafeGap = false
                 for _, gap in ipairs(gaps) do
                     local distToGap = math.abs(playerPosition.X - gap.XPosition)
-                    if distToGap < 15 and playerPosition.Y < 0 then
+                    if distToGap < 20 and playerPosition.Y < 0 then
                         playerInSafeGap = true
+                        if States.DebugMode then
+                            print(string.format("Already in safe gap: %s", gap.Name))
+                        end
                         break
                     end
                 end
@@ -848,7 +892,21 @@ local function toggleAntiTsunami(state)
                 local allWaves = getAllWaves(playerPosition)
                 
                 local bestGap = findBestGapToRetreat(playerPosition, nearestWave.Position, gaps)
-                if not bestGap then return end
+                if not bestGap then 
+                    if States.DebugMode then
+                        warn("Anti Tsunami: No best gap found")
+                    end
+                    return 
+                end
+                
+                if States.DebugMode then
+                    WindUI:Notify({
+                        Title = "Moving to Safety",
+                        Content = string.format("Target: %s (X: %.1f)", bestGap.Name, bestGap.XPosition),
+                        Duration = 1.5,
+                        Icon = "zap",
+                    })
+                end
                 
                 if isWaveBlockingGap(playerPosition.X, bestGap.XPosition, allWaves) then
                     local forwardBlocked = false
@@ -880,6 +938,11 @@ local function toggleAntiTsunami(state)
                         if closestFrontWave and closestDist <= 40 then
                             States.AntiTsunamiDebounce = true
                             hrp.CFrame = CFrame.new(playerPosition.X + 80, 3, -1)
+                            
+                            if States.DebugMode then
+                                print("Emergency jump forward")
+                            end
+                            
                             task.delay(1, function()
                                 States.AntiTsunamiDebounce = false
                             end)
@@ -896,6 +959,10 @@ local function toggleAntiTsunami(state)
                     States.AntiTsunamiDebounce = false
                 end)
             end)
+            
+            if not success and States.DebugMode then
+                warn("Anti Tsunami Error:", err)
+            end
         end)
     else
         if Connections.AntiTsunami then
@@ -973,14 +1040,14 @@ local function toggleNoclip(state)
         
         local function setNoclip()
             for _, part in pairs(character:GetDescendants()) do
-                if part:IsA("BasePart") then
+                if part:IsA("BasePart") and not States.AntiTsunami then
                     part.CanCollide = false
                 end
             end
         end
         
         Connections.Noclip = RunService.Stepped:Connect(function()
-            if States.Noclip then
+            if States.Noclip and not States.AntiTsunami then
                 setNoclip()
             end
         end)
