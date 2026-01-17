@@ -789,8 +789,8 @@ local function tweenToGap(hrp, targetGap)
     
     local horizontalDist = math.abs(currentPos.X - targetX)
     
-    if horizontalDist <= 25 then
-        hrp.CFrame = CFrame.new(targetX, -2, -1)
+    if horizontalDist <= 35 then
+        hrp.CFrame = CFrame.new(targetX, -3, -1)
         if States.DebugMode then
             print("Teleported to gap (close distance)")
         end
@@ -803,7 +803,7 @@ local function tweenToGap(hrp, targetGap)
         currentPos = hrp.Position
     end
     
-    local speed = 120
+    local speed = 200
     local timeNeeded = horizontalDist / speed
     
     local tweenInfo = TweenInfo.new(timeNeeded, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut)
@@ -892,7 +892,14 @@ local function toggleAntiTsunami(state)
                 end
                 
                 if nearestWave.Distance > 150 then return end
-                
+
+                if (playerPosition.Y >= -4 and playerPosition.Y <= -1) or playerPosition.X < 152 then
+                    if States.DebugMode then
+                         print(string.format("In safe zone: Y=%.1f, X=%.1f", playerPosition.Y, playerPosition.X))
+                    end
+                    return
+                end
+                        
                 local playerInSafeGap = false
                 local currentGap = nil
                 for _, gap in ipairs(gaps) do
