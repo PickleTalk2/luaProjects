@@ -732,34 +732,42 @@ end
 local function findBestGapToRetreat(playerPosition, wavePosition, gaps)
     if #gaps == 0 then return nil end
     
+    local playerX = playerPosition.X
+    local waveX = wavePosition.X
+    local waveDirection = waveX > playerX and 1 or -1
+    
     local safeGaps = {}
     
     for _, gap in ipairs(gaps) do
-        if gap.XPosition > wavePosition.X then
-            table.insert(safeGaps, gap)
+        if waveDirection == 1 then
+            if gap.XPosition < playerX then
+                table.insert(safeGaps, gap)
+            end
+        else
+            if gap.XPosition > playerX then
+                table.insert(safeGaps, gap)
+            end
         end
     end
     
     if #safeGaps == 0 then
-        local closest = gaps[1]
-        local closestDist = math.huge
+        local farthestGap = gaps[1]
+        local farthestDist = 0
         for _, gap in ipairs(gaps) do
-            local gapPos = Vector3.new(gap.XPosition, playerPosition.Y, playerPosition.Z)
-            local dist = (playerPosition - gapPos).Magnitude
-            if dist < closestDist then
-                closestDist = dist
-                closest = gap
+            local dist = math.abs(gap.XPosition - waveX)
+            if dist > farthestDist then
+                farthestDist = dist
+                farthestGap = gap
             end
         end
-        return closest
+        return farthestGap
     end
     
     local closestGap = nil
     local closestDist = math.huge
     
     for _, gap in ipairs(safeGaps) do
-        local gapPos = Vector3.new(gap.XPosition, playerPosition.Y, playerPosition.Z)
-        local dist = (playerPosition - gapPos).Magnitude
+        local dist = math.abs(playerX - gap.XPosition)
         if dist < closestDist then
             closestDist = dist
             closestGap = gap
@@ -781,8 +789,11 @@ local function tweenToGap(hrp, targetGap)
     
     local horizontalDist = math.abs(currentPos.X - targetX)
     
-    if horizontalDist <= 20 then
+    if horizontalDist <= 25 then
         hrp.CFrame = CFrame.new(targetX, -2, -1)
+        if States.DebugMode then
+            print("Teleported to gap (close distance)")
+        end
         return
     end
     
@@ -792,23 +803,27 @@ local function tweenToGap(hrp, targetGap)
         currentPos = hrp.Position
     end
     
-    if math.abs(currentPos.Y - 3) < 1 then
-        local timeNeeded = horizontalDist / 60
-        
-        local tweenInfo = TweenInfo.new(timeNeeded, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut)
-        local tween = TweenService:Create(hrp, tweenInfo, {CFrame = CFrame.new(targetX, 3, -1)})
-        
-        tween.Completed:Connect(function()
-            if not States.AntiTsunami then return end
-            
-            local downTweenInfo = TweenInfo.new(0.15, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut)
+    local speed = 120
+    local timeNeeded = horizontalDist / speed
+    
+    local tweenInfo = TweenInfo.new(timeNeeded, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut)
+    local tween = TweenService:Create(hrp, tweenInfo, {CFrame = CFrame.new(targetX, 3, -1)})
+    
+    tween.Completed:Connect(function(playbackState)
+        if not States.AntiTsunami then return end
+        if playbackState == Enum.PlaybackState.Completed then
+            local downTweenInfo = TweenInfo.new(0.1, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut)
             local downTween = TweenService:Create(hrp, downTweenInfo, {CFrame = CFrame.new(targetX, -2, -1)})
             downTween:Play()
             States.CurrentTween = downTween
-        end)
-        
-        tween:Play()
-        States.CurrentTween = tween
+        end
+    end)
+    
+    tween:Play()
+    States.CurrentTween = tween
+    
+    if States.DebugMode then
+        print(string.format("Tweening to gap: Distance %.1f, Speed %d, Time %.2fs", horizontalDist, speed, timeNeeded))
     end
 end
 
@@ -825,9 +840,13 @@ local function toggleAntiTsunami(state)
             })
         end
         
+        local lastMoveTime = 0
+        
         Connections.AntiTsunami = RunService.Heartbeat:Connect(function()
             if not States.AntiTsunami then return end
-            if States.AntiTsunamiDebounce then return end
+            
+            local currentTime = tick()
+            if currentTime - lastMoveTime < 0.5 then return end
             
             local success, err = pcall(function()
                 local character = LocalPlayer.Character
@@ -867,25 +886,28 @@ local function toggleAntiTsunami(state)
                     return 
                 end
                 
-                if States.DebugMode then
-                    print(string.format("Wave detected: Distance %.1f, X: %.1f", nearestWave.Distance, nearestWave.XPosition))
+                if States.DebugMode and nearestWave.Distance < 200 then
+                    print(string.format("Wave: Dist %.1f, PlayerX %.1f, WaveX %.1f", 
+                        nearestWave.Distance, playerPosition.X, nearestWave.XPosition))
                 end
                 
-                if nearestWave.Distance > 120 then return end
+                if nearestWave.Distance > 150 then return end
                 
                 local playerInSafeGap = false
+                local currentGap = nil
                 for _, gap in ipairs(gaps) do
                     local distToGap = math.abs(playerPosition.X - gap.XPosition)
                     if distToGap < 20 and playerPosition.Y < 0 then
                         playerInSafeGap = true
-                        if States.DebugMode then
-                            print(string.format("Already in safe gap: %s", gap.Name))
-                        end
+                        currentGap = gap
                         break
                     end
                 end
                 
-                if playerInSafeGap and nearestWave.Distance > 50 then
+                if playerInSafeGap and nearestWave.Distance > 40 then
+                    if States.DebugMode then
+                        print(string.format("Safe in %s, wave dist %.1f", currentGap.Name, nearestWave.Distance))
+                    end
                     return
                 end
                 
@@ -899,65 +921,52 @@ local function toggleAntiTsunami(state)
                     return 
                 end
                 
-                if States.DebugMode then
-                    WindUI:Notify({
-                        Title = "Moving to Safety",
-                        Content = string.format("Target: %s (X: %.1f)", bestGap.Name, bestGap.XPosition),
-                        Duration = 1.5,
-                        Icon = "zap",
-                    })
-                end
-                
-                if isWaveBlockingGap(playerPosition.X, bestGap.XPosition, allWaves) then
-                    local forwardBlocked = false
-                    local backwardBlocked = false
-                    
-                    for _, wave in ipairs(allWaves) do
-                        if wave.XPosition > playerPosition.X and wave.XPosition < playerPosition.X + 100 then
-                            forwardBlocked = true
-                        end
-                        if wave.XPosition < playerPosition.X and wave.XPosition > playerPosition.X - 100 then
-                            backwardBlocked = true
-                        end
+                local distToBestGap = math.abs(playerPosition.X - bestGap.XPosition)
+                if distToBestGap < 15 and playerPosition.Y < 0 then
+                    if States.DebugMode then
+                        print("Already at target gap")
                     end
-                    
-                    if forwardBlocked and backwardBlocked then
-                        local closestFrontWave = nil
-                        local closestDist = math.huge
-                        
-                        for _, wave in ipairs(allWaves) do
-                            if wave.XPosition > playerPosition.X then
-                                local dist = wave.XPosition - playerPosition.X
-                                if dist < closestDist then
-                                    closestDist = dist
-                                    closestFrontWave = wave
-                                end
-                            end
-                        end
-                        
-                        if closestFrontWave and closestDist <= 40 then
-                            States.AntiTsunamiDebounce = true
-                            hrp.CFrame = CFrame.new(playerPosition.X + 80, 3, -1)
-                            
-                            if States.DebugMode then
-                                print("Emergency jump forward")
-                            end
-                            
-                            task.delay(1, function()
-                                States.AntiTsunamiDebounce = false
-                            end)
-                        end
-                        return
-                    end
-                    
                     return
                 end
                 
-                States.AntiTsunamiDebounce = true
+                if States.DebugMode then
+                    WindUI:Notify({
+                        Title = "Moving to Safety",
+                        Content = string.format("%s | Wave %.0f studs away", bestGap.Name, nearestWave.Distance),
+                        Duration = 1,
+                        Icon = "zap",
+                    })
+                    print(string.format("TARGET: %s (X: %.1f) | Player X: %.1f | Wave X: %.1f", 
+                        bestGap.Name, bestGap.XPosition, playerPosition.X, nearestWave.XPosition))
+                end
+                
+                if isWaveBlockingGap(playerPosition.X, bestGap.XPosition, allWaves) then
+                    if States.DebugMode then
+                        print("Wave blocking path, checking alternatives...")
+                    end
+                    
+                    local emergencyJump = false
+                    for _, wave in ipairs(allWaves) do
+                        local distToWave = math.abs(playerPosition.X - wave.XPosition)
+                        if distToWave < 30 then
+                            emergencyJump = true
+                            break
+                        end
+                    end
+                    
+                    if emergencyJump then
+                        local jumpDir = nearestWave.XPosition > playerPosition.X and -100 or 100
+                        hrp.CFrame = CFrame.new(playerPosition.X + jumpDir, 3, -1)
+                        lastMoveTime = currentTime
+                        if States.DebugMode then
+                            print("Emergency jump!")
+                        end
+                    end
+                    return
+                end
+                
+                lastMoveTime = currentTime
                 tweenToGap(hrp, bestGap)
-                task.delay(1.5, function()
-                    States.AntiTsunamiDebounce = false
-                end)
             end)
             
             if not success and States.DebugMode then
