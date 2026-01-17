@@ -294,6 +294,117 @@ local OldNamecallHook = nil
 local OldIndexHook = nil
 local OldNewIndexHook = nil
 
+local function findPlayerBase()
+    local success, result = pcall(function()
+        if not Workspace:FindFirstChild("Bases") then
+            return nil
+        end
+        
+        local bases = Workspace.Bases
+        
+        for i = 1, 5 do
+            local baseName = "Base" .. i
+            local base = bases:FindFirstChild(baseName)
+            
+            if base then
+                local titlePath = base:FindFirstChild("Title")
+                if titlePath then
+                    local titleGui = titlePath:FindFirstChild("TitleGui")
+                    if titleGui then
+                        local frame = titleGui:FindFirstChild("Frame")
+                        if frame then
+                            local playerNameLabel = frame:FindFirstChild("PlayerName")
+                            if playerNameLabel and playerNameLabel.Text == LocalPlayer.DisplayName then
+                                return baseName
+                            end
+                        end
+                    end
+                end
+            end
+        end
+        
+        return nil
+    end)
+    
+    if success then
+        return result
+    else
+        warn("Error finding player base: " .. tostring(result))
+        return nil
+    end
+end
+
+local function fireCollect()
+    if not States.AutoCollect then return end
+    
+    pcall(function()
+        if not States.PlayerBase then
+            States.PlayerBase = findPlayerBase()
+            if not States.PlayerBase then
+                return
+            end
+        end
+        
+        local bases = Workspace:FindFirstChild("Bases")
+        if not bases then return end
+        
+        local playerBase = bases:FindFirstChild(States.PlayerBase)
+        if not playerBase then
+            States.PlayerBase = findPlayerBase()
+            return
+        end
+        
+        local slots = playerBase:FindFirstChild("Slots")
+        if not slots then return end
+        
+        for i = 1, 30 do
+            local slotName = "Slot" .. i
+            local slot = slots:FindFirstChild(slotName)
+            
+            if slot then
+                local collect = slot:FindFirstChild("Collect")
+                if collect then
+                    local touchInterest = collect:FindFirstChild("TouchInterest")
+                    if touchInterest then
+                        firetouchinterest(LocalPlayer.Character.HumanoidRootPart, collect, 0)
+                        task.wait(0.05)
+                        firetouchinterest(LocalPlayer.Character.HumanoidRootPart, collect, 1)
+                    end
+                end
+            end
+        end
+    end)
+end
+
+local function toggleAutoCollect(state)
+    States.AutoCollect = state
+    
+    if state then
+        States.PlayerBase = findPlayerBase()
+        
+        if not States.PlayerBase then
+            WindUI:Notify({
+                Title = "Auto Collect Error",
+                Content = "Could not find your base!",
+                Duration = 3,
+                Icon = "x",
+            })
+            return
+        end
+        
+        Connections.AutoCollect = RunService.Heartbeat:Connect(function()
+            if States.AutoCollect and os.clock() % 5 < 0.1 then
+                fireCollect()
+            end
+        end)
+    else
+        if Connections.AutoCollect then
+            Connections.AutoCollect:Disconnect()
+            Connections.AutoCollect = nil
+        end
+    end
+end
+
 local function disableWaveHitboxes()
     if not States.GodMode then return end
     
@@ -1926,13 +2037,6 @@ local function toggleCameraZoom(state)
                 end
             end)
         end)
-        
-        WindUI:Notify({
-            Title = "Camera Zoom Enabled",
-            Content = "You can now zoom out much further!",
-            Duration = 3,
-            Icon = "maximize-2",
-        })
     else
         if Connections.CameraZoom then
             Connections.CameraZoom:Disconnect()
@@ -1943,13 +2047,6 @@ local function toggleCameraZoom(state)
             LocalPlayer.CameraMaxZoomDistance = 128
             LocalPlayer.CameraMinZoomDistance = 0.5
         end)
-        
-        WindUI:Notify({
-            Title = "Camera Zoom Disabled",
-            Content = "Camera zoom reset to normal.",
-            Duration = 3,
-            Icon = "minimize-2",
-        })
     end
 end
 
@@ -2160,6 +2257,16 @@ local AntiTsunamiToggle = MainTab:Toggle({
     end
 })
 
+local AutoCollectToggle = MainTab:Toggle({
+    Title = "Auto Collect",
+    Desc = "Automatically collect from your base slots",
+    Default = false,
+    Callback = function(state)
+        toggleAutoCollect(state)
+        saveConfiguration()
+    end
+})
+
 local FastInteractionToggle = MainTab:Toggle({
     Title = "Fast Interaction",
     Desc = "All interactions become 1 click",
@@ -2200,6 +2307,7 @@ local SlapAuraToggle = MainTab:Toggle({
     end
 })
 
+myConfig:Register("AutoCollect", AutoCollectToggle)
 myConfig:Register("StealUI", StealUIToggle)
 myConfig:Register("AntiSlap", AntiSlapToggle)
 myConfig:Register("SlapAura", SlapAuraToggle)
