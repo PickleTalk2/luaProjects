@@ -281,6 +281,8 @@ local OldIndexHook = nil
 local OldNewIndexHook = nil
 
 local function disableWaveHitboxes()
+    if not States.GodMode then return end
+    
     pcall(function()
         local activeTsunamis = Workspace:FindFirstChild("ActiveTsunamis")
         if not activeTsunamis then return end
@@ -291,15 +293,30 @@ local function disableWaveHitboxes()
             
             if wave then
                 local hitbox = wave:FindFirstChild("Hitbox")
-                if hitbox then
-                    local touchInterest = hitbox:FindFirstChild("TouchInterest")
-                    if touchInterest then
-                        touchInterest:Destroy()
-                    end
+                if hitbox and hitbox:IsA("BasePart") then
+                    pcall(function()
+                        for _, child in pairs(hitbox:GetChildren()) do
+                            if child:IsA("TouchTransmitter") or child.Name == "TouchInterest" then
+                                child:Destroy()
+                            end
+                        end
+                    end)
                     
-                    if hitbox:IsA("BasePart") then
-                        hitbox.CanTouch = false
-                        hitbox.CanCollide = false
+                    hitbox.CanTouch = false
+                    hitbox.CanCollide = false
+                    hitbox.CanQuery = false
+                    hitbox.Massless = true
+                    
+                    local character = LocalPlayer.Character
+                    if character then
+                        for _, part in pairs(character:GetDescendants()) do
+                            if part:IsA("BasePart") then
+                                pcall(function()
+                                    game:GetService("PhysicsService"):SetPartCollisionGroup(hitbox, "GodMode")
+                                    game:GetService("PhysicsService"):SetPartCollisionGroup(part, "GodMode")
+                                end)
+                            end
+                        end
                     end
                 end
             end
@@ -323,22 +340,26 @@ local function setupGodModeForCharacter(character)
         Connections.GodMode:Disconnect()
     end
     
-    Connections.GodMode = humanoid.HealthChanged:Connect(function(health)
-        if health < math.huge then
+    Connections.GodMode = RunService.Heartbeat:Connect(function()
+        if not States.GodMode then return end
+        if humanoid.Health < math.huge then
             humanoid.Health = math.huge
+        end
+        if humanoid.MaxHealth < math.huge then
+            humanoid.MaxHealth = math.huge
         end
     end)
     
     for _, part in pairs(character:GetDescendants()) do
         if part:IsA("BasePart") then
-            part.CanTouch = true
+            part.CanTouch = false
         end
     end
     
     local charAddedConn
     charAddedConn = character.DescendantAdded:Connect(function(descendant)
-        if descendant:IsA("BasePart") then
-            descendant.CanTouch = true
+        if descendant:IsA("BasePart") and States.GodMode then
+            descendant.CanTouch = false
         end
     end)
     
@@ -349,6 +370,14 @@ local function setupGodModeForCharacter(character)
 end
 
 local function initializeAntiCheat()
+    pcall(function()
+        local PhysicsService = game:GetService("PhysicsService")
+        if not PhysicsService:IsCollisionGroupRegistered("GodMode") then
+            PhysicsService:RegisterCollisionGroup("GodMode")
+        end
+        PhysicsService:CollisionGroupSetCollidable("GodMode", "GodMode", false)
+    end)
+
     disableWaveHitboxes()
     
     if Connections.WaveMonitor then
@@ -637,7 +666,7 @@ local function findNearestWave(playerPosition)
             if wave and wave:IsA("Model") then
                 local hitbox = wave:FindFirstChild("Hitbox")
                 
-                if hitbox and hitbox:IsA("BasePart") then
+                if hitbox and hitbox:IsA("BasePart") and hitbox.Position.X > playerPosition.X then
                     local distance = (playerPosition - hitbox.Position).Magnitude
                     
                     if distance < nearestDistance then
@@ -657,53 +686,87 @@ local function findNearestWave(playerPosition)
     return nearestWave
 end
 
+local function getAllWaves(playerPosition)
+    local waves = {}
+    
+    pcall(function()
+        local activeTsunamis = Workspace:FindFirstChild("ActiveTsunamis")
+        if not activeTsunamis then return end
+        
+        for i = 1, 20 do
+            local waveName = "Wave" .. i
+            local wave = activeTsunamis:FindFirstChild(waveName)
+            
+            if wave and wave:IsA("Model") then
+                local hitbox = wave:FindFirstChild("Hitbox")
+                
+                if hitbox and hitbox:IsA("BasePart") then
+                    table.insert(waves, {
+                        Wave = wave,
+                        Position = hitbox.Position,
+                        XPosition = hitbox.Position.X
+                    })
+                end
+            end
+        end
+    end)
+    
+    return waves
+end
+
+local function isWaveBlockingGap(playerXPos, gapXPos, waves)
+    for _, wave in ipairs(waves) do
+        if playerXPos < gapXPos then
+            if wave.XPosition > playerXPos and wave.XPosition < gapXPos then
+                return true
+            end
+        else
+            if wave.XPosition < playerXPos and wave.XPosition > gapXPos then
+                return true
+            end
+        end
+    end
+    return false
+end
+
 local function findBestGapToRetreat(playerPosition, wavePosition, gaps)
     if #gaps == 0 then return nil end
     
-    local forwardGaps = {}
-    local backwardGaps = {}
+    local safeGaps = {}
     
     for _, gap in ipairs(gaps) do
-        if gap.XPosition > playerPosition.X then
-            table.insert(forwardGaps, gap)
-        else
-            table.insert(backwardGaps, gap)
+        if gap.XPosition > wavePosition.X then
+            table.insert(safeGaps, gap)
         end
     end
     
-    for _, gap in ipairs(forwardGaps) do
-        local gapPos = Vector3.new(gap.XPosition, playerPosition.Y, playerPosition.Z)
-        local gapToWave = (wavePosition - gapPos).Magnitude
-        if gapToWave > 150 then
-            local closestForward = nil
-            local closestDist = math.huge
-            
-            for _, fgap in ipairs(forwardGaps) do
-                local fgapPos = Vector3.new(fgap.XPosition, playerPosition.Y, playerPosition.Z)
-                local dist = (playerPosition - fgapPos).Magnitude
-                if dist < closestDist then
-                    closestDist = dist
-                    closestForward = fgap
-                end
+    if #safeGaps == 0 then
+        local closest = gaps[1]
+        local closestDist = math.huge
+        for _, gap in ipairs(gaps) do
+            local gapPos = Vector3.new(gap.XPosition, playerPosition.Y, playerPosition.Z)
+            local dist = (playerPosition - gapPos).Magnitude
+            if dist < closestDist then
+                closestDist = dist
+                closest = gap
             end
-            
-            return closestForward
         end
+        return closest
     end
     
-    local closestBackward = nil
+    local closestGap = nil
     local closestDist = math.huge
     
-    for _, bgap in ipairs(backwardGaps) do
-        local bgapPos = Vector3.new(bgap.XPosition, playerPosition.Y, playerPosition.Z)
-        local dist = (playerPosition - bgapPos).Magnitude
+    for _, gap in ipairs(safeGaps) do
+        local gapPos = Vector3.new(gap.XPosition, playerPosition.Y, playerPosition.Z)
+        local dist = (playerPosition - gapPos).Magnitude
         if dist < closestDist then
             closestDist = dist
-            closestBackward = bgap
+            closestGap = gap
         end
     end
     
-    return closestBackward
+    return closestGap
 end
 
 local function tweenToGap(hrp, targetGap)
@@ -716,15 +779,21 @@ local function tweenToGap(hrp, targetGap)
     local targetX = targetGap.XPosition
     local targetPosition = Vector3.new(targetX, -2, -1)
     
+    local horizontalDist = math.abs(currentPos.X - targetX)
+    
+    if horizontalDist <= 20 then
+        hrp.CFrame = CFrame.new(targetX, -2, -1)
+        return
+    end
+    
     if currentPos.Y > 3 then
-        hrp.CFrame = CFrame.new(targetX, 3, -1)
+        hrp.CFrame = CFrame.new(currentPos.X, 3, -1)
         task.wait(0.05)
         currentPos = hrp.Position
     end
     
     if math.abs(currentPos.Y - 3) < 1 then
-        local horizontalDist = math.abs(currentPos.X - targetX)
-        local timeNeeded = horizontalDist / 30
+        local timeNeeded = horizontalDist / 60
         
         local tweenInfo = TweenInfo.new(timeNeeded, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut)
         local tween = TweenService:Create(hrp, tweenInfo, {CFrame = CFrame.new(targetX, 3, -1)})
@@ -732,7 +801,7 @@ local function tweenToGap(hrp, targetGap)
         tween.Completed:Connect(function()
             if not States.AntiTsunami then return end
             
-            local downTweenInfo = TweenInfo.new(0.17, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut)
+            local downTweenInfo = TweenInfo.new(0.15, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut)
             local downTween = TweenService:Create(hrp, downTweenInfo, {CFrame = CFrame.new(targetX, -2, -1)})
             downTween:Play()
             States.CurrentTween = downTween
@@ -764,19 +833,57 @@ local function toggleAntiTsunami(state)
                 
                 if nearestWave.Distance > 100 then return end
 
-                if playerPosition.Y >= -2 and playerPosition.Y >= -3 and playerPosition.X < 150 then
+                if playerPosition.Y <= -2 and playerPosition.Y >= -3 and playerPosition.X < 150 then
                     return
                 end
                         
                 local gaps = getAllGaps()
                 if #gaps == 0 then return end
                 
+                local allWaves = getAllWaves(playerPosition)
+                
                 local bestGap = findBestGapToRetreat(playerPosition, nearestWave.Position, gaps)
                 if not bestGap then return end
                 
+                if isWaveBlockingGap(playerPosition.X, bestGap.XPosition, allWaves) then
+                    local forwardBlocked = false
+                    local backwardBlocked = false
+                    
+                    for _, wave in ipairs(allWaves) do
+                        if wave.XPosition > playerPosition.X and wave.XPosition < playerPosition.X + 100 then
+                            forwardBlocked = true
+                        end
+                        if wave.XPosition < playerPosition.X and wave.XPosition > playerPosition.X - 100 then
+                            backwardBlocked = true
+                        end
+                    end
+                    
+                    if forwardBlocked and backwardBlocked then
+                        local closestFrontWave = nil
+                        local closestDist = math.huge
+                        
+                        for _, wave in ipairs(allWaves) do
+                            if wave.XPosition > playerPosition.X then
+                                local dist = wave.XPosition - playerPosition.X
+                                if dist < closestDist then
+                                    closestDist = dist
+                                    closestFrontWave = wave
+                                end
+                            end
+                        end
+                        
+                        if closestFrontWave and closestDist <= 40 then
+                            hrp.CFrame = CFrame.new(playerPosition.X + 80, 3, -1)
+                        end
+                        return
+                    end
+                    
+                    return
+                end
+                
                 tweenToGap(hrp, bestGap)
                 
-                task.wait(1.2)
+                task.wait(0.8)
             end)
         end)
     else
@@ -800,6 +907,16 @@ local function toggleGodMode(state)
         if character then
             setupGodModeForCharacter(character)
         end
+        
+        if Connections.WaveMonitor then
+            Connections.WaveMonitor:Disconnect()
+        end
+        
+        Connections.WaveMonitor = RunService.Heartbeat:Connect(function()
+            if States.GodMode then
+                disableWaveHitboxes()
+            end
+        end)
     else
         if Connections.GodMode then
             Connections.GodMode:Disconnect()
@@ -811,12 +928,23 @@ local function toggleGodMode(state)
             Connections.CharPartMonitor = nil
         end
         
+        if Connections.WaveMonitor then
+            Connections.WaveMonitor:Disconnect()
+            Connections.WaveMonitor = nil
+        end
+        
         local character = LocalPlayer.Character
         if character then
             local humanoid = character:FindFirstChildOfClass("Humanoid")
             if humanoid and OriginalCharacterProperties.MaxHealth then
                 humanoid.MaxHealth = OriginalCharacterProperties.MaxHealth
                 humanoid.Health = OriginalCharacterProperties.Health
+            end
+            
+            for _, part in pairs(character:GetDescendants()) do
+                if part:IsA("BasePart") then
+                    part.CanTouch = true
+                end
             end
         end
     end
