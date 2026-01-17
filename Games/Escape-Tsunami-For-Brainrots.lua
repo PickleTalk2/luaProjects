@@ -879,32 +879,18 @@ local function tweenToGap(hrp, targetGap, isForward)
                 local downTweenInfo = TweenInfo.new(0.1, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut)
                 local downTween = TweenService:Create(hrp, downTweenInfo, {CFrame = CFrame.new(targetX, -2, -1)})
                 downTween.Completed:Connect(function()
+                    task.wait(1.5)
                     States.MovementDisabled = false
-                    if humanoid and not States.Speed then
-                        humanoid.WalkSpeed = 16
-                    end
-                    if humanoid and not States.JumpPower then
-                        humanoid.JumpPower = 50
-                    end
                 end)
                 downTween:Play()
                 States.CurrentTween = downTween
             else
+                task.wait(1.5)
                 States.MovementDisabled = false
-                if humanoid and not States.Speed then
-                    humanoid.WalkSpeed = 16
-                end
-                if humanoid and not States.JumpPower then
-                    humanoid.JumpPower = 50
-                end
             end
         else
+            task.wait(1.5)
             States.MovementDisabled = false
-            if humanoid and not States.Speed then
-                humanoid.WalkSpeed = 16
-            end
-            if humanoid and not States.JumpPower then
-                humanoid.JumpPower = 50
             end
         end
     end)
