@@ -891,7 +891,6 @@ local function tweenToGap(hrp, targetGap, isForward)
         else
             task.wait(1.5)
             States.MovementDisabled = false
-            end
         end
     end)
     
