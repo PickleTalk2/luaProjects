@@ -714,6 +714,21 @@ local function getAllWaves(playerPosition)
     return waves
 end
 
+local function isWaveBlockingGap(playerXPos, gapXPos, waves)
+    for _, wave in ipairs(waves) do
+        if playerXPos < gapXPos then
+            if wave.XPosition > playerXPos and wave.XPosition < gapXPos then
+                return true
+            end
+        else
+            if wave.XPosition < playerXPos and wave.XPosition > gapXPos then
+                return true
+            end
+        end
+    end
+    return false
+end
+
 local function findBestGapToRetreat(playerPosition, wavePosition, gaps)
     if #gaps == 0 then return nil end
     
