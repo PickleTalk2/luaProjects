@@ -256,6 +256,7 @@ local States = {
     DodgeButton = nil,
     CurrentTween = nil,
     AntiTsunamiDebounce = false,
+    MovementDisabled = false,
     DebugMode = true,
 }
 
@@ -729,72 +730,102 @@ local function isWaveBlockingGap(playerXPos, gapXPos, waves)
     return false
 end
 
-local function findBestGapToRetreat(playerPosition, wavePosition, gaps)
-    if #gaps == 0 then return nil end
+local function findBestGapToRetreat(playerPosition, wavePosition, gaps, allWaves)
+    if #gaps == 0 then return nil, false end
     
     local playerX = playerPosition.X
     local waveX = wavePosition.X
-    local waveDirection = waveX > playerX and 1 or -1
     
-    local safeGaps = {}
+    local forwardGaps = {}
+    local backwardGaps = {}
     
     for _, gap in ipairs(gaps) do
-        if waveDirection == 1 then
-            if gap.XPosition < playerX then
-                table.insert(safeGaps, gap)
-            end
+        if gap.XPosition > playerX then
+            table.insert(forwardGaps, gap)
         else
-            if gap.XPosition > playerX then
-                table.insert(safeGaps, gap)
-            end
+            table.insert(backwardGaps, gap)
         end
     end
     
-    if #safeGaps == 0 then
-        local farthestGap = gaps[1]
-        local farthestDist = 0
-        for _, gap in ipairs(gaps) do
-            local dist = math.abs(gap.XPosition - waveX)
-            if dist > farthestDist then
-                farthestDist = dist
-                farthestGap = gap
-            end
-        end
-        return farthestGap
-    end
-    
-    local closestGap = nil
-    local closestDist = math.huge
-    
-    for _, gap in ipairs(safeGaps) do
-        local dist = math.abs(playerX - gap.XPosition)
-        if dist < closestDist then
-            closestDist = dist
-            closestGap = gap
+    if #forwardGaps > 0 then
+        table.sort(forwardGaps, function(a, b)
+            return a.XPosition < b.XPosition
+        end)
+        local nearestForward = forwardGaps[1]
+        
+        if not isWaveBlockingGap(playerX, nearestForward.XPosition, allWaves) then
+            return nearestForward, true
         end
     end
     
-    return closestGap
+    if #backwardGaps > 0 then
+        table.sort(backwardGaps, function(a, b)
+            return b.XPosition < a.XPosition
+        end)
+        local nearestBackward = backwardGaps[1]
+        
+        if not isWaveBlockingGap(playerX, nearestBackward.XPosition, allWaves) then
+            return nearestBackward, false
+        end
+    end
+    
+    local farthestGap = gaps[1]
+    local farthestDist = 0
+    for _, gap in ipairs(gaps) do
+        local dist = math.abs(gap.XPosition - waveX)
+        if dist > farthestDist then
+            farthestDist = dist
+            farthestGap = gap
+        end
+    end
+    return farthestGap, false
 end
 
-local function tweenToGap(hrp, targetGap)
+local function tweenToGap(hrp, targetGap, isForward)
     if States.CurrentTween then
         States.CurrentTween:Cancel()
         States.CurrentTween = nil
     end
     
+    local character = LocalPlayer.Character
+    if not character then return end
+    
+    local humanoid = character:FindFirstChildOfClass("Humanoid")
+    if not humanoid then return end
+    
     local currentPos = hrp.Position
     local targetX = targetGap.XPosition
-    local targetPosition = Vector3.new(targetX, -2, -1)
-    
     local horizontalDist = math.abs(currentPos.X - targetX)
     
     if horizontalDist <= 35 then
+        States.MovementDisabled = true
+        if humanoid then
+            humanoid.WalkSpeed = 0
+            humanoid.JumpPower = 0
+        end
+        
         hrp.CFrame = CFrame.new(targetX, -3, -1)
+        
+        task.wait(0.1)
+        
+        if humanoid and not States.Speed then
+            humanoid.WalkSpeed = 16
+        end
+        if humanoid and not States.JumpPower then
+            humanoid.JumpPower = 50
+        end
+        States.MovementDisabled = false
+        
         if States.DebugMode then
             print("Teleported to gap (close distance)")
         end
         return
+    end
+    
+    States.MovementDisabled = true
+    if humanoid then
+        humanoid.WalkSpeed = 0
+        humanoid.JumpPower = 0
     end
     
     if currentPos.Y > 3 then
@@ -803,19 +834,45 @@ local function tweenToGap(hrp, targetGap)
         currentPos = hrp.Position
     end
     
-    local speed = 210
+    local speed = 220
     local timeNeeded = horizontalDist / speed
     
     local tweenInfo = TweenInfo.new(timeNeeded, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut)
     local tween = TweenService:Create(hrp, tweenInfo, {CFrame = CFrame.new(targetX, 3, -1)})
     
     tween.Completed:Connect(function(playbackState)
-        if not States.AntiTsunami then return end
         if playbackState == Enum.PlaybackState.Completed then
-            local downTweenInfo = TweenInfo.new(0.1, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut)
-            local downTween = TweenService:Create(hrp, downTweenInfo, {CFrame = CFrame.new(targetX, -2, -1)})
-            downTween:Play()
-            States.CurrentTween = downTween
+            if States.AntiTsunami then
+                local downTweenInfo = TweenInfo.new(0.1, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut)
+                local downTween = TweenService:Create(hrp, downTweenInfo, {CFrame = CFrame.new(targetX, -2, -1)})
+                downTween.Completed:Connect(function()
+                    States.MovementDisabled = false
+                    if humanoid and not States.Speed then
+                        humanoid.WalkSpeed = 16
+                    end
+                    if humanoid and not States.JumpPower then
+                        humanoid.JumpPower = 50
+                    end
+                end)
+                downTween:Play()
+                States.CurrentTween = downTween
+            else
+                States.MovementDisabled = false
+                if humanoid and not States.Speed then
+                    humanoid.WalkSpeed = 16
+                end
+                if humanoid and not States.JumpPower then
+                    humanoid.JumpPower = 50
+                end
+            end
+        else
+            States.MovementDisabled = false
+            if humanoid and not States.Speed then
+                humanoid.WalkSpeed = 16
+            end
+            if humanoid and not States.JumpPower then
+                humanoid.JumpPower = 50
+            end
         end
     end)
     
@@ -823,7 +880,8 @@ local function tweenToGap(hrp, targetGap)
     States.CurrentTween = tween
     
     if States.DebugMode then
-        print(string.format("Tweening to gap: Distance %.1f, Speed %d, Time %.2fs", horizontalDist, speed, timeNeeded))
+        local direction = isForward and "FORWARD" or "BACKWARD"
+        print(string.format("Tweening %s to gap: Distance %.1f, Speed %d, Time %.2fs", direction, horizontalDist, speed, timeNeeded))
     end
 end
 
@@ -834,7 +892,7 @@ local function toggleAntiTsunami(state)
         if States.DebugMode then
             WindUI:Notify({
                 Title = "Anti Tsunami Enabled",
-                Content = "Monitoring for waves...",
+                Content = "Monitoring for wavs...",
                 Duration = 2,
                 Icon = "shield",
             })
@@ -920,7 +978,7 @@ local function toggleAntiTsunami(state)
                 
                 local allWaves = getAllWaves(playerPosition)
                 
-                local bestGap = findBestGapToRetreat(playerPosition, nearestWave.Position, gaps)
+                local bestGap, isForward = findBestGapToRetreat(playerPosition, nearestWave.Position, gaps, allWaves)
                 if not bestGap then 
                     if States.DebugMode then
                         warn("Anti Tsunami: No best gap found")
@@ -971,7 +1029,15 @@ local function toggleAntiTsunami(state)
         
                         bestGap = alternativeGaps[1]
                         if States.DebugMode then
-                            print(string.format("Using alternative gap: %s (X: %.1f)", bestGap.Name, bestGap.XPosition))
+                            local direction = isForward and "FORWARD ⬆️" or "BACKWARD ⬇️"
+                            WindUI:Notify({
+                                Title = "Moving to Safety",
+                                Content = string.format("%s %s | Wave %.0f studs away", direction, bestGap.Name, nearestWave.Distance),
+                                Duration = 1,
+                                Icon = "zap",
+                            })
+                            print(string.format("TARGET: %s (X: %.1f) %s | Player X: %.1f | Wave X: %.1f", 
+                                bestGap.Name, bestGap.XPosition, direction, playerPosition.X, nearestWave.XPosition))
                         end
                     else
                         if States.DebugMode then
@@ -982,7 +1048,7 @@ local function toggleAntiTsunami(state)
                 end
                 
                 lastMoveTime = currentTime
-                tweenToGap(hrp, bestGap)
+                tweenToGap(hrp, bestGap, isForward)
             end)
             
             if not success and States.DebugMode then
