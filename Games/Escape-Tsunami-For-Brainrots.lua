@@ -714,19 +714,38 @@ local function getAllWaves(playerPosition)
     return waves
 end
 
-local function isWaveBlockingGap(playerXPos, gapXPos, waves)
-    for _, wave in ipairs(waves) do
-        if playerXPos < gapXPos then
-            if wave.XPosition > playerXPos and wave.XPosition < gapXPos then
-                return true
-            end
-        else
-            if wave.XPosition < playerXPos and wave.XPosition > gapXPos then
-                return true
+if isWaveBlockingGap(playerPosition.X, bestGap.XPosition, allWaves) then
+    if States.DebugMode then
+        print("Wave blocking path to " .. bestGap.Name .. ", finding alternative...")
+    end
+    
+    local alternativeGaps = {}
+    local targetDirection = bestGap.XPosition > playerPosition.X and 1 or -1
+    
+    for _, gap in ipairs(gaps) do
+        local gapDirection = gap.XPosition > playerPosition.X and 1 or -1
+        if gapDirection ~= targetDirection then
+            if not isWaveBlockingGap(playerPosition.X, gap.XPosition, allWaves) then
+                table.insert(alternativeGaps, gap)
             end
         end
     end
-    return false
+    
+    if #alternativeGaps > 0 then
+        table.sort(alternativeGaps, function(a, b)
+            return math.abs(playerPosition.X - a.XPosition) < math.abs(playerPosition.X - b.XPosition)
+        end)
+        
+        bestGap = alternativeGaps[1]
+        if States.DebugMode then
+            print(string.format("Using alternative gap: %s (X: %.1f)", bestGap.Name, bestGap.XPosition))
+        end
+    else
+        if States.DebugMode then
+            print("No safe gaps available, staying in place")
+        end
+        return
+    end
 end
 
 local function findBestGapToRetreat(playerPosition, wavePosition, gaps)
@@ -803,7 +822,7 @@ local function tweenToGap(hrp, targetGap)
         currentPos = hrp.Position
     end
     
-    local speed = 200
+    local speed = 210
     local timeNeeded = horizontalDist / speed
     
     local tweenInfo = TweenInfo.new(timeNeeded, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut)
@@ -893,7 +912,7 @@ local function toggleAntiTsunami(state)
                 
                 if nearestWave.Distance > 150 then return end
 
-                if (playerPosition.Y >= -4 and playerPosition.Y <= -1) or playerPosition.X < 152 then
+                if (playerPosition.Y >= -4 and playerPosition.Y <= 2) or playerPosition.X < 152 then
                     if States.DebugMode then
                          print(string.format("In safe zone: Y=%.1f, X=%.1f", playerPosition.Y, playerPosition.X))
                     end
