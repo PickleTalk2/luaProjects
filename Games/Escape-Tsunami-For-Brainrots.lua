@@ -260,6 +260,10 @@ local States = {
     AntiSlap = false,
     SlapAura = false,
     DebugMode = false,
+    StealUI = false,
+    StealButton = nil,
+    IsStealing = false,
+    SavedStealPosition = nil,
 }
 
 local Connections = {
@@ -275,6 +279,7 @@ local Connections = {
     JumpPower = nil,
     AntiSlap = nil,
     SlapAura = nil,
+    StealUI = nil,
 }
 
 local LowGFXStorage = {
@@ -462,23 +467,23 @@ end
 local function toggleInfJump(state)
     States.InfJump = state
     
+    if Connections.InfJump then
+        Connections.InfJump:Disconnect()
+        Connections.InfJump = nil
+    end
+    
     if state then
-        local character = LocalPlayer.Character
-        if not character then return end
-        
-        local humanoid = character:FindFirstChildOfClass("Humanoid")
-        if humanoid then
-            Connections.InfJump = UserInputService.JumpRequest:Connect(function()
-                if States.InfJump and humanoid then
-                    humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
-                end
-            end)
-        end
-    else
-        if Connections.InfJump then
-            Connections.InfJump:Disconnect()
-            Connections.InfJump = nil
-        end
+        Connections.InfJump = UserInputService.JumpRequest:Connect(function()
+            if not States.InfJump then return end
+            
+            local character = LocalPlayer.Character
+            if not character then return end
+            
+            local humanoid = character:FindFirstChildOfClass("Humanoid")
+            if humanoid then
+                humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+            end
+        end)
     end
 end
 
@@ -623,6 +628,251 @@ local function toggleManualDodge(state)
         createDodgeButton()
     else
         removeDodgeButton()
+    end
+end
+
+local function createStealButton()
+    local screenGui = Instance.new("ScreenGui")
+    screenGui.Name = "StealUI"
+    screenGui.ResetOnSpawn = false
+    screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+
+    local button = Instance.new("TextButton")
+    button.Name = "StealButton"
+    button.Size = UDim2.new(0, 70, 0, 70)
+    button.Position = UDim2.new(0.5, 80, 0.83, -35)
+    button.BackgroundColor3 = Color3.fromRGB(67, 160, 71)
+    button.Text = "💰"
+    button.TextColor3 = Color3.fromRGB(255, 255, 255)
+    button.TextSize = 32
+    button.Font = Enum.Font.GothamBold
+    button.BorderSizePixel = 0
+    button.AutoButtonColor = false
+    button.Parent = screenGui
+
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0.2, 0)
+    corner.Parent = button
+
+    local stroke = Instance.new("UIStroke")
+    stroke.Color = Color3.fromRGB(255, 255, 255)
+    stroke.Thickness = 2
+    stroke.Transparency = 0.3
+    stroke.Parent = button
+
+    local shadow = Instance.new("Frame")
+    shadow.Size = UDim2.new(1, 0, 1, 0)
+    shadow.Position = UDim2.new(0, 3, 0, 3)
+    shadow.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    shadow.BackgroundTransparency = 0.6
+    shadow.ZIndex = 0
+    shadow.Parent = button
+
+    local shadowCorner = Instance.new("UICorner")
+    shadowCorner.CornerRadius = UDim.new(0.2, 0)
+    shadowCorner.Parent = shadow
+    
+    local dragging = false
+    local dragStart = nil
+    local startPos = nil
+    local hasMoved = false
+    
+    button.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            dragStart = input.Position
+            startPos = button.Position
+            hasMoved = false
+            
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                    
+                    if not hasMoved and not States.IsStealing then
+                        task.spawn(function()
+                            executeSteal()
+                        end)
+                    end
+                end
+            end)
+        end
+    end)
+    
+    button.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+            if dragging and dragStart then
+                local delta = input.Position - dragStart
+                
+                if delta.Magnitude > 5 then
+                    hasMoved = true
+                    button.Position = UDim2.new(
+                        startPos.X.Scale,
+                        startPos.X.Offset + delta.X,
+                        startPos.Y.Scale,
+                        startPos.Y.Offset + delta.Y
+                    )
+                end
+            end
+        end
+    end)
+    
+    States.StealButton = screenGui
+end
+
+local function removeStealButton()
+    if States.StealButton then
+        States.StealButton:Destroy()
+        States.StealButton = nil
+    end
+end
+
+local function tweenToPositionSafely(hrp, targetPos, checkWaves)
+    if not hrp then return false end
+    
+    local currentPos = hrp.Position
+    local distance = (Vector3.new(targetPos.X, currentPos.Y, targetPos.Z) - Vector3.new(currentPos.X, currentPos.Y, currentPos.Z)).Magnitude
+    
+    if distance < 10 then
+        hrp.CFrame = CFrame.new(targetPos)
+        return true
+    end
+    
+    local tweenSpeed = 220
+    local tweenTime = distance / tweenSpeed
+    
+    local tweenInfo = TweenInfo.new(tweenTime, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut)
+    local tween = TweenService:Create(hrp, tweenInfo, {CFrame = CFrame.new(targetPos.X, targetPos.Y, targetPos.Z)})
+    
+    local completed = false
+    local interrupted = false
+    
+    tween.Completed:Connect(function(playbackState)
+        if playbackState == Enum.PlaybackState.Completed then
+            completed = true
+        end
+    end)
+    
+    tween:Play()
+    
+    if checkWaves then
+        task.spawn(function()
+            while not completed and States.IsStealing do
+                task.wait(0.1)
+                
+                if not hrp or not hrp.Parent then
+                    tween:Cancel()
+                    interrupted = true
+                    break
+                end
+                
+                local gaps = getAllGaps()
+                local nearestWave = findNearestWave(hrp.Position)
+                
+                if nearestWave and nearestWave.Distance < 60 and #gaps > 0 then
+                    tween:Cancel()
+                    interrupted = true
+                    
+                    local allWaves = getAllWaves(hrp.Position)
+                    local bestGap, _ = findBestGapToRetreat(hrp.Position, nearestWave.Position, gaps, allWaves)
+                    
+                    if bestGap then
+                        hrp.CFrame = CFrame.new(bestGap.XPosition, -2, -1)
+                        
+                        if States.DebugMode then
+                            WindUI:Notify({
+                                Title = "Steal - Hiding",
+                                Content = string.format("Wave detected! Hiding in %s", bestGap.Name),
+                                Duration = 1.5,
+                                Icon = "shield",
+                            })
+                        end
+                        
+                        task.wait(2)
+                        
+                        while States.IsStealing do
+                            local waveCheck = findNearestWave(hrp.Position)
+                            if not waveCheck or waveCheck.Distance > 80 then
+                                break
+                            end
+                            task.wait(0.5)
+                        end
+                        
+                        if States.IsStealing then
+                            tweenToPositionSafely(hrp, targetPos, true)
+                        end
+                    end
+                    break
+                end
+            end
+        end)
+    end
+    
+    while not completed and not interrupted and States.IsStealing do
+        task.wait(0.1)
+    end
+    
+    return completed
+end
+
+function executeSteal()
+    if States.IsStealing then
+        WindUI:Notify({
+            Title = "Steal In Progress",
+            Content = "Already stealing, please wait!",
+            Duration = 2,
+            Icon = "alert-circle",
+        })
+        return
+    end
+    
+    local character = LocalPlayer.Character
+    if not character then return end
+    
+    local hrp = character:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+    
+    States.IsStealing = true
+    States.SavedStealPosition = hrp.Position
+    
+    WindUI:Notify({
+        Title = "Steal Started",
+        Content = "Going to steal location...",
+        Duration = 2,
+        Icon = "zap",
+    })
+    
+    local success = tweenToPositionSafely(hrp, Vector3.new(125, 7, -1), true)
+    
+    if not States.IsStealing then
+        return
+    end
+    
+    if success then
+        task.wait(0.5)
+        
+        WindUI:Notify({
+            Title = "Steal Complete",
+            Content = "Returning to original position...",
+            Duration = 2,
+            Icon = "corner-down-left",
+        })
+        
+        tweenToPositionSafely(hrp, States.SavedStealPosition, true)
+    end
+    
+    States.IsStealing = false
+    States.SavedStealPosition = nil
+end
+
+local function toggleStealUI(state)
+    States.StealUI = state
+    
+    if state then
+        createStealButton()
+    else
+        removeStealButton()
+        States.IsStealing = false
     end
 end
 
@@ -1121,7 +1371,10 @@ local function toggleAntiTsunami(state)
                 
                 for _, part in pairs(character:GetDescendants()) do
                     if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then
-                        part.CanCollide = true
+                        local isToolPart = part:FindFirstAncestorOfClass("Tool") or part:FindFirstAncestorOfClass("Accessory") or part:FindFirstAncestorOfClass("ToolTip")
+                        if not isToolPart then
+                            part.CanCollide = true
+                        end
                     end
                 end
                 
@@ -1767,6 +2020,16 @@ local SettingsTab = Window:Tab({
     Icon = "settings",
 })
 
+local StealUIToggle = MainTab:Toggle({
+    Title = "Steal UI",
+    Desc = "Show button to steal from designated location",
+    Default = false,
+    Callback = function(state)
+        toggleStealUI(state)
+        saveConfiguration()
+    end
+})
+
 local AntiTsunamiToggle = MainTab:Toggle({
     Title = "Anti Tsunami",
     Desc = "Auto tween to safe gap when wave detected",
@@ -1817,6 +2080,7 @@ local SlapAuraToggle = MainTab:Toggle({
     end
 })
 
+myConfig:Register("StealUI", StealUIToggle)
 myConfig:Register("AntiSlap", AntiSlapToggle)
 myConfig:Register("SlapAura", SlapAuraToggle)
 myConfig:Register("AntiTsunami", AntiTsunamiToggle)
