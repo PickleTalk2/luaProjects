@@ -611,7 +611,7 @@ local function getAllGaps()
                 if mud and mud:IsA("BasePart") then
                     table.insert(gaps, {
                         Name = gapName,
-                        Position = mud.Position,
+                        XPosition = mud.Position.X,
                         Part = mud
                     })
                 end
@@ -644,7 +644,7 @@ local function findNearestWave(playerPosition)
                         nearestDistance = distance
                         nearestWave = {
                             Wave = wave,
-                            Position = hitbox.Position,
+                            XPosition = hitbox.Position.X,
                             Distance = distance
                         }
                     end
@@ -663,7 +663,7 @@ local function findBestGapToRetreat(playerPosition, wavePosition, gaps)
     local backwardGaps = {}
     
     for _, gap in ipairs(gaps) do
-        if gap.Position.X > playerPosition.X then
+        if gap.XPosition > playerPosition.X then
             table.insert(forwardGaps, gap)
         else
             table.insert(backwardGaps, gap)
@@ -671,14 +671,15 @@ local function findBestGapToRetreat(playerPosition, wavePosition, gaps)
     end
     
     for _, gap in ipairs(forwardGaps) do
-        local gapToWave = (wavePosition - gap.Position).Magnitude
-        
+        local gapPos = Vector3.new(gap.XPosition, playerPosition.Y, playerPosition.Z)
+        local gapToWave = (wavePosition - gapPos).Magnitude
         if gapToWave > 150 then
             local closestForward = nil
             local closestDist = math.huge
             
             for _, fgap in ipairs(forwardGaps) do
-                local dist = (playerPosition - fgap.Position).Magnitude
+                local fgapPos = Vector3.new(fgap.XPosition, playerPosition.Y, playerPosition.Z)
+                local dist = (playerPosition - fgapPos).Magnitude
                 if dist < closestDist then
                     closestDist = dist
                     closestForward = fgap
@@ -693,7 +694,8 @@ local function findBestGapToRetreat(playerPosition, wavePosition, gaps)
     local closestDist = math.huge
     
     for _, bgap in ipairs(backwardGaps) do
-        local dist = (playerPosition - bgap.Position).Magnitude
+        local bgapPos = Vector3.new(bgap.XPosition, playerPosition.Y, playerPosition.Z)
+        local dist = (playerPosition - bgapPos).Magnitude
         if dist < closestDist then
             closestDist = dist
             closestBackward = bgap
@@ -703,45 +705,41 @@ local function findBestGapToRetreat(playerPosition, wavePosition, gaps)
     return closestBackward
 end
 
-local function tweenToGap(hrp, targetPosition)
+local function tweenToGap(hrp, targetGap)
     if States.CurrentTween then
         States.CurrentTween:Cancel()
         States.CurrentTween = nil
     end
     
     local currentPos = hrp.Position
-    local upPosition = Vector3.new(currentPos.X, currentPos.Y + 3, currentPos.Z)
-    local targetUpPosition = Vector3.new(targetPosition.X, targetPosition.Y + 3, targetPosition.Z)
+    local targetX = targetGap.XPosition
+    local targetPosition = Vector3.new(targetX, -2, -1)
     
-    local distance = (currentPos - targetPosition).Magnitude
-    local speed = distance < 50 and 0.5 or (distance < 100 and 0.7 or 1.0)
-
-    local tweenInfo = TweenInfo.new(0.2, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut)
-
-    local tween1 = TweenService:Create(hrp, tweenInfo, {CFrame = CFrame.new(upPosition)})
-
-    tween1.Completed:Connect(function()
-        if not States.AntiTsunami then return end
+    if currentPos.Y > 3 then
+        hrp.CFrame = CFrame.new(targetX, 3, -1)
+        task.wait(0.05)
+        currentPos = hrp.Position
+    end
     
-        local tweenInfo2 = TweenInfo.new(speed, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut)
-        local tween2 = TweenService:Create(hrp, tweenInfo2, {CFrame = CFrame.new(targetUpPosition)})
+    if math.abs(currentPos.Y - 3) < 1 then
+        local horizontalDist = math.abs(currentPos.X - targetX)
+        local timeNeeded = horizontalDist / 30
         
-        tween2.Completed:Connect(function()
+        local tweenInfo = TweenInfo.new(timeNeeded, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut)
+        local tween = TweenService:Create(hrp, tweenInfo, {CFrame = CFrame.new(targetX, 3, -1)})
+        
+        tween.Completed:Connect(function()
             if not States.AntiTsunami then return end
             
-            local tweenInfo3 = TweenInfo.new(0.3, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut)
-            local tween3 = TweenService:Create(hrp, tweenInfo3, {CFrame = CFrame.new(targetPosition)})
-            
-            tween3:Play()
-            States.CurrentTween = tween3
+            local downTweenInfo = TweenInfo.new(0.17, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut)
+            local downTween = TweenService:Create(hrp, downTweenInfo, {CFrame = CFrame.new(targetX, -2, -1)})
+            downTween:Play()
+            States.CurrentTween = downTween
         end)
         
-        tween2:Play()
-        States.CurrentTween = tween2
-    end)
-    
-    tween1:Play()
-    States.CurrentTween = tween1
+        tween:Play()
+        States.CurrentTween = tween
+    end
 end
 
 local function toggleAntiTsunami(state)
@@ -763,10 +761,10 @@ local function toggleAntiTsunami(state)
                 local nearestWave = findNearestWave(playerPosition)
                 if not nearestWave then return end
                 
-                if nearestWave.Distance > 90 then return end
+                if nearestWave.Distance > 100 then return end
 
                 local playerPosition = hrp.Position
-                if playerPosition.Y <= 2 and playerPosition.X < 153 then
+                if playerPosition.Y >= -2 and playerPosition.Y <= -3 and playerPosition.X < 150 then
                     return
                 end
                         
@@ -776,7 +774,7 @@ local function toggleAntiTsunami(state)
                 local bestGap = findBestGapToRetreat(playerPosition, nearestWave.Position, gaps)
                 if not bestGap then return end
                 
-                tweenToGap(hrp, bestGap.Position)
+                tweenToGap(hrp, bestGap)
                 
                 task.wait(1.2)
             end)
