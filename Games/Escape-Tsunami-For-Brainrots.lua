@@ -264,6 +264,7 @@ local States = {
     StealButton = nil,
     IsStealing = false,
     SavedStealPosition = nil,
+    CameraZoom = false,
 }
 
 local Connections = {
@@ -280,6 +281,7 @@ local Connections = {
     AntiSlap = nil,
     SlapAura = nil,
     StealUI = nil,
+    CameraZoom = nil,
 }
 
 local LowGFXStorage = {
@@ -738,8 +740,113 @@ local function tweenToPositionSafely(hrp, targetPos, checkWaves)
         return true
     end
     
+    while States.IsStealing and checkWaves do
+        local gaps = getAllGaps()
+        local allWaves = getAllWaves(hrp.Position)
+        local nearestWave = findNearestWave(hrp.Position)
+        
+        if nearestWave and nearestWave.Distance < 80 and #gaps > 0 then
+            local playerX = hrp.Position.X
+            local targetX = targetPos.X
+            local isBlocked = false
+            
+            for _, wave in ipairs(allWaves) do
+                if playerX < targetX then
+                    if wave.XPosition > playerX and wave.XPosition < targetX then
+                        isBlocked = true
+                        break
+                    end
+                else
+                    if wave.XPosition < playerX and wave.XPosition > targetX then
+                        isBlocked = true
+                        break
+                    end
+                end
+            end
+            
+            if isBlocked or nearestWave.Distance < 50 then
+                local bestGap, _ = findBestGapToRetreat(hrp.Position, nearestWave.Position, gaps, allWaves)
+                
+                if bestGap then
+                    hrp.CFrame = CFrame.new(bestGap.XPosition, -2, -1)
+                    
+                    if States.DebugMode then
+                        WindUI:Notify({
+                            Title = "Steal - Hiding",
+                            Content = string.format("Wave detected! Hiding in %s", bestGap.Name),
+                            Duration = 1.5,
+                            Icon = "shield",
+                        })
+                    end
+                    
+                    while States.IsStealing do
+                        task.wait(0.5)
+                        local waveCheck = findNearestWave(hrp.Position)
+                        
+                        if not waveCheck or waveCheck.Distance > 100 then
+                            local pathClear = true
+                            local currentWaves = getAllWaves(hrp.Position)
+                            local currentX = hrp.Position.X
+                            
+                            for _, wave in ipairs(currentWaves) do
+                                if currentX < targetPos.X then
+                                    if wave.XPosition > currentX and wave.XPosition < targetPos.X and math.abs(wave.XPosition - currentX) < 60 then
+                                        pathClear = false
+                                        break
+                                    end
+                                else
+                                    if wave.XPosition < currentX and wave.XPosition > targetPos.X and math.abs(wave.XPosition - currentX) < 60 then
+                                        pathClear = false
+                                        break
+                                    end
+                                end
+                            end
+                            
+                            if pathClear then
+                                if States.DebugMode then
+                                    WindUI:Notify({
+                                        Title = "Steal - Resuming",
+                                        Content = "Wave passed! Continuing...",
+                                        Duration = 1,
+                                        Icon = "arrow-up",
+                                    })
+                                end
+                                break
+                            end
+                        end
+                    end
+                    
+                    if not States.IsStealing then
+                        return false
+                    end
+                    
+                    hrp.CFrame = CFrame.new(hrp.Position.X, 7, -1)
+                    task.wait(0.2)
+                else
+                    task.wait(1)
+                end
+            else
+                break
+            end
+        else
+            break
+        end
+    end
+    
+    if not States.IsStealing then
+        return false
+    end
+    
+    local currentPos = hrp.Position
+    local horizontalDist = math.abs(currentPos.X - targetPos.X)
+    
+    if horizontalDist < 10 then
+        hrp.CFrame = CFrame.new(targetPos)
+        return true
+    end
+    
     local tweenSpeed = 220
-    local tweenTime = distance / tweenSpeed
+    local tweenTime = horizontalDist / tweenSpeed
     
     local tweenInfo = TweenInfo.new(tweenTime, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut)
     local tween = TweenService:Create(hrp, tweenInfo, {CFrame = CFrame.new(targetPos.X, targetPos.Y, targetPos.Z)})
@@ -758,7 +865,7 @@ local function tweenToPositionSafely(hrp, targetPos, checkWaves)
     if checkWaves then
         task.spawn(function()
             while not completed and States.IsStealing do
-                task.wait(0.1)
+                task.wait(0.2)
                 
                 if not hrp or not hrp.Parent then
                     tween:Cancel()
@@ -766,42 +873,22 @@ local function tweenToPositionSafely(hrp, targetPos, checkWaves)
                     break
                 end
                 
-                local gaps = getAllGaps()
                 local nearestWave = findNearestWave(hrp.Position)
                 
-                if nearestWave and nearestWave.Distance < 60 and #gaps > 0 then
+                if nearestWave and nearestWave.Distance < 60 then
                     tween:Cancel()
                     interrupted = true
                     
-                    local allWaves = getAllWaves(hrp.Position)
-                    local bestGap, _ = findBestGapToRetreat(hrp.Position, nearestWave.Position, gaps, allWaves)
-                    
-                    if bestGap then
-                        hrp.CFrame = CFrame.new(bestGap.XPosition, -2, -1)
-                        
-                        if States.DebugMode then
-                            WindUI:Notify({
-                                Title = "Steal - Hiding",
-                                Content = string.format("Wave detected! Hiding in %s", bestGap.Name),
-                                Duration = 1.5,
-                                Icon = "shield",
-                            })
-                        end
-                        
-                        task.wait(2)
-                        
-                        while States.IsStealing do
-                            local waveCheck = findNearestWave(hrp.Position)
-                            if not waveCheck or waveCheck.Distance > 80 then
-                                break
-                            end
-                            task.wait(0.5)
-                        end
-                        
-                        if States.IsStealing then
-                            tweenToPositionSafely(hrp, targetPos, true)
-                        end
+                    if States.DebugMode then
+                        WindUI:Notify({
+                            Title = "Steal - Wave Detected",
+                            Content = "Pausing for wave...",
+                            Duration = 1,
+                            Icon = "pause",
+                        })
                     end
+                    
+                    tweenToPositionSafely(hrp, targetPos, true)
                     break
                 end
             end
@@ -1833,6 +1920,48 @@ local function toggleLowGFX(state)
     end
 end
 
+local function toggleCameraZoom(state)
+    States.CameraZoom = state
+    
+    if state then
+        Connections.CameraZoom = RunService.Heartbeat:Connect(function()
+            if not States.CameraZoom then return end
+            
+            pcall(function()
+                local camera = Workspace.CurrentCamera
+                if camera then
+                    LocalPlayer.CameraMaxZoomDistance = 999999
+                    LocalPlayer.CameraMinZoomDistance = 0.5
+                end
+            end)
+        end)
+        
+        WindUI:Notify({
+            Title = "Camera Zoom Enabled",
+            Content = "You can now zoom out much further!",
+            Duration = 3,
+            Icon = "maximize-2",
+        })
+    else
+        if Connections.CameraZoom then
+            Connections.CameraZoom:Disconnect()
+            Connections.CameraZoom = nil
+        end
+        
+        pcall(function()
+            LocalPlayer.CameraMaxZoomDistance = 128
+            LocalPlayer.CameraMinZoomDistance = 0.5
+        end)
+        
+        WindUI:Notify({
+            Title = "Camera Zoom Disabled",
+            Content = "Camera zoom reset to normal.",
+            Duration = 3,
+            Icon = "minimize-2",
+        })
+    end
+end
+
 local function clearFogs()
     for _, obj in pairs(Lighting:GetDescendants()) do
         if obj:IsA("Atmosphere") then
@@ -2387,6 +2516,7 @@ WindUI:Popup({
     }
 })
 
+toggleCameraZoom(true)
 loadConfiguration()
 MainTab:Select()
 
@@ -2407,5 +2537,34 @@ LocalPlayer.CharacterAdded:Connect(function(character)
         toggleAntiTsunami(false)
         task.wait(0.1)
         toggleAntiTsunami(true)
+    end
+
+    if States.AntiSlap then
+        toggleAntiSlap(false)
+        task.wait(0.1)
+        toggleAntiSlap(true)
+    end
+    
+    if States.SlapAura then
+        toggleSlapAura(false)
+        task.wait(0.1)
+        toggleSlapAura(true)
+    end
+    
+    if States.InfJump then
+        toggleInfJump(false)
+        task.wait(0.1)
+        toggleInfJump(true)
+    end
+    
+    if States.StealUI then
+        removeStealButton()
+        createStealButton()
+    end
+    
+    if States.CameraZoom then
+        toggleCameraZoom(false)
+        task.wait(0.1)
+        toggleCameraZoom(true)
     end
 end)
