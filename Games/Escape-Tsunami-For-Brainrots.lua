@@ -1456,15 +1456,6 @@ local function toggleAntiTsunami(state)
                     return 
                 end
                 
-                for _, part in pairs(character:GetDescendants()) do
-                    if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then
-                        local isToolPart = part:FindFirstAncestorOfClass("Tool") or part:FindFirstAncestorOfClass("Accessory") or part:FindFirstAncestorOfClass("ToolTip")
-                        if not isToolPart then
-                            part.CanCollide = true
-                        end
-                    end
-                end
-                
                 local playerPosition = hrp.Position
                 
                 local gaps = getAllGaps()
