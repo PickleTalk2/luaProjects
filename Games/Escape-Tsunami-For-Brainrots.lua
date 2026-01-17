@@ -262,6 +262,7 @@ local States = {
     DebugMode = false,
     StealUI = false,
     StealButton = nil,
+    AutoCollect = false,
     IsStealing = false,
     SavedStealPosition = nil,
     CameraZoom = false,
@@ -281,6 +282,7 @@ local Connections = {
     AntiSlap = nil,
     SlapAura = nil,
     StealUI = nil,
+    AutoCollect = nil,
     CameraZoom = nil,
 }
 
