@@ -256,7 +256,7 @@ local States = {
     DodgeButton = nil,
     CurrentTween = nil,
     AntiTsunamiDebounce = false,
-    DebugMode = true,
+    DebugMode = false,
 }
 
 local Connections = {
