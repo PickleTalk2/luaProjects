@@ -294,28 +294,15 @@ local function disableWaveHitboxes()
             if wave then
                 local hitbox = wave:FindFirstChild("Hitbox")
                 if hitbox and hitbox:IsA("BasePart") then
-                    pcall(function()
-                        for _, child in pairs(hitbox:GetChildren()) do
-                            if child:IsA("TouchTransmitter") or child.Name == "TouchInterest" then
-                                child:Destroy()
-                            end
-                        end
-                    end)
-                    
                     hitbox.CanTouch = false
                     hitbox.CanCollide = false
                     hitbox.CanQuery = false
                     hitbox.Massless = true
+                    hitbox.Transparency = 1
                     
-                    local character = LocalPlayer.Character
-                    if character then
-                        for _, part in pairs(character:GetDescendants()) do
-                            if part:IsA("BasePart") then
-                                pcall(function()
-                                    game:GetService("PhysicsService"):SetPartCollisionGroup(hitbox, "GodMode")
-                                    game:GetService("PhysicsService"):SetPartCollisionGroup(part, "GodMode")
-                                end)
-                            end
+                    for _, child in pairs(hitbox:GetDescendants()) do
+                        if child:IsA("TouchTransmitter") then
+                            child:Destroy()
                         end
                     end
                 end
@@ -350,9 +337,15 @@ local function setupGodModeForCharacter(character)
         end
     end)
     
+    local hrp = character:FindFirstChild("HumanoidRootPart")
+    if hrp then
+        hrp.Anchored = false
+    end
+    
     for _, part in pairs(character:GetDescendants()) do
         if part:IsA("BasePart") then
             part.CanTouch = false
+            part.CanCollide = false
         end
     end
     
@@ -360,6 +353,7 @@ local function setupGodModeForCharacter(character)
     charAddedConn = character.DescendantAdded:Connect(function(descendant)
         if descendant:IsA("BasePart") and States.GodMode then
             descendant.CanTouch = false
+            descendant.CanCollide = false
         end
     end)
     
@@ -882,9 +876,9 @@ local function toggleAntiTsunami(state)
                 end
                 
                 tweenToGap(hrp, bestGap)
-                
-                task.wait(0.8)
             end)
+            
+            task.wait(0.8)
         end)
     else
         if Connections.AntiTsunami then
@@ -944,6 +938,7 @@ local function toggleGodMode(state)
             for _, part in pairs(character:GetDescendants()) do
                 if part:IsA("BasePart") then
                     part.CanTouch = true
+                    part.CanCollide = true
                 end
             end
         end
