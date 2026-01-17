@@ -729,240 +729,6 @@ local function removeStealButton()
     end
 end
 
-local function tweenToPositionSafely(hrp, targetPos, checkWaves)
-    if not hrp then return false end
-    
-    local currentPos = hrp.Position
-    local distance = (Vector3.new(targetPos.X, currentPos.Y, targetPos.Z) - Vector3.new(currentPos.X, currentPos.Y, currentPos.Z)).Magnitude
-    
-    if distance < 10 then
-        hrp.CFrame = CFrame.new(targetPos)
-        return true
-    end
-    
-    while States.IsStealing and checkWaves do
-        local gaps = getAllGaps()
-        local allWaves = getAllWaves(hrp.Position)
-        local nearestWave = findNearestWave(hrp.Position)
-        
-        if nearestWave and nearestWave.Distance < 80 and #gaps > 0 then
-            local playerX = hrp.Position.X
-            local targetX = targetPos.X
-            local isBlocked = false
-            
-            for _, wave in ipairs(allWaves) do
-                if playerX < targetX then
-                    if wave.XPosition > playerX and wave.XPosition < targetX then
-                        isBlocked = true
-                        break
-                    end
-                else
-                    if wave.XPosition < playerX and wave.XPosition > targetX then
-                        isBlocked = true
-                        break
-                    end
-                end
-            end
-            
-            if isBlocked or nearestWave.Distance < 50 then
-                local bestGap, _ = findBestGapToRetreat(hrp.Position, nearestWave.Position, gaps, allWaves)
-                
-                if bestGap then
-                    hrp.CFrame = CFrame.new(bestGap.XPosition, -2, -1)
-                    
-                    if States.DebugMode then
-                        WindUI:Notify({
-                            Title = "Steal - Hiding",
-                            Content = string.format("Wave detected! Hiding in %s", bestGap.Name),
-                            Duration = 1.5,
-                            Icon = "shield",
-                        })
-                    end
-                    
-                    while States.IsStealing do
-                        task.wait(0.5)
-                        local waveCheck = findNearestWave(hrp.Position)
-                        
-                        if not waveCheck or waveCheck.Distance > 100 then
-                            local pathClear = true
-                            local currentWaves = getAllWaves(hrp.Position)
-                            local currentX = hrp.Position.X
-                            
-                            for _, wave in ipairs(currentWaves) do
-                                if currentX < targetPos.X then
-                                    if wave.XPosition > currentX and wave.XPosition < targetPos.X and math.abs(wave.XPosition - currentX) < 60 then
-                                        pathClear = false
-                                        break
-                                    end
-                                else
-                                    if wave.XPosition < currentX and wave.XPosition > targetPos.X and math.abs(wave.XPosition - currentX) < 60 then
-                                        pathClear = false
-                                        break
-                                    end
-                                end
-                            end
-                            
-                            if pathClear then
-                                if States.DebugMode then
-                                    WindUI:Notify({
-                                        Title = "Steal - Resuming",
-                                        Content = "Wave passed! Continuing...",
-                                        Duration = 1,
-                                        Icon = "arrow-up",
-                                    })
-                                end
-                                break
-                            end
-                        end
-                    end
-                    
-                    if not States.IsStealing then
-                        return false
-                    end
-                    
-                    hrp.CFrame = CFrame.new(hrp.Position.X, 7, -1)
-                    task.wait(0.2)
-                else
-                    task.wait(1)
-                end
-            else
-                break
-            end
-        else
-            break
-        end
-    end
-    
-    if not States.IsStealing then
-        return false
-    end
-    
-    local currentPos = hrp.Position
-    local horizontalDist = math.abs(currentPos.X - targetPos.X)
-    
-    if horizontalDist < 10 then
-        hrp.CFrame = CFrame.new(targetPos)
-        return true
-    end
-    
-    local tweenSpeed = 220
-    local tweenTime = horizontalDist / tweenSpeed
-    
-    local tweenInfo = TweenInfo.new(tweenTime, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut)
-    local tween = TweenService:Create(hrp, tweenInfo, {CFrame = CFrame.new(targetPos.X, targetPos.Y, targetPos.Z)})
-    
-    local completed = false
-    local interrupted = false
-    
-    tween.Completed:Connect(function(playbackState)
-        if playbackState == Enum.PlaybackState.Completed then
-            completed = true
-        end
-    end)
-    
-    tween:Play()
-    
-    if checkWaves then
-        task.spawn(function()
-            while not completed and States.IsStealing do
-                task.wait(0.2)
-                
-                if not hrp or not hrp.Parent then
-                    tween:Cancel()
-                    interrupted = true
-                    break
-                end
-                
-                local nearestWave = findNearestWave(hrp.Position)
-                
-                if nearestWave and nearestWave.Distance < 60 then
-                    tween:Cancel()
-                    interrupted = true
-                    
-                    if States.DebugMode then
-                        WindUI:Notify({
-                            Title = "Steal - Wave Detected",
-                            Content = "Pausing for wave...",
-                            Duration = 1,
-                            Icon = "pause",
-                        })
-                    end
-                    
-                    tweenToPositionSafely(hrp, targetPos, true)
-                    break
-                end
-            end
-        end)
-    end
-    
-    while not completed and not interrupted and States.IsStealing do
-        task.wait(0.1)
-    end
-    
-    return completed
-end
-
-function executeSteal()
-    if States.IsStealing then
-        WindUI:Notify({
-            Title = "Steal In Progress",
-            Content = "Already stealing, please wait!",
-            Duration = 2,
-            Icon = "alert-circle",
-        })
-        return
-    end
-    
-    local character = LocalPlayer.Character
-    if not character then return end
-    
-    local hrp = character:FindFirstChild("HumanoidRootPart")
-    if not hrp then return end
-    
-    States.IsStealing = true
-    States.SavedStealPosition = hrp.Position
-    
-    WindUI:Notify({
-        Title = "Steal Started",
-        Content = "Going to steal location...",
-        Duration = 2,
-        Icon = "zap",
-    })
-    
-    local success = tweenToPositionSafely(hrp, Vector3.new(125, 7, -1), true)
-    
-    if not States.IsStealing then
-        return
-    end
-    
-    if success then
-        task.wait(0.5)
-        
-        WindUI:Notify({
-            Title = "Steal Complete",
-            Content = "Returning to original position...",
-            Duration = 2,
-            Icon = "corner-down-left",
-        })
-        
-        tweenToPositionSafely(hrp, States.SavedStealPosition, true)
-    end
-    
-    States.IsStealing = false
-    States.SavedStealPosition = nil
-end
-
-local function toggleStealUI(state)
-    States.StealUI = state
-    
-    if state then
-        createStealButton()
-    else
-        removeStealButton()
-        States.IsStealing = false
-    end
-end
-
 local function getAllGaps()
     local gaps = {}
     
@@ -1415,6 +1181,240 @@ local function tweenToGap(hrp, targetGap, isForward)
     if States.DebugMode then
         local direction = isForward and "FORWARD" or "BACKWARD"
         print(string.format("Tweening %s to gap: Distance %.1f, Speed %d, Time %.2fs", direction, horizontalDist, speed, timeNeeded))
+    end
+end
+
+local function tweenToPositionSafely(hrp, targetPos, checkWaves)
+    if not hrp then return false end
+    
+    local currentPos = hrp.Position
+    local distance = (Vector3.new(targetPos.X, currentPos.Y, targetPos.Z) - Vector3.new(currentPos.X, currentPos.Y, currentPos.Z)).Magnitude
+    
+    if distance < 10 then
+        hrp.CFrame = CFrame.new(targetPos)
+        return true
+    end
+    
+    while States.IsStealing and checkWaves do
+        local gaps = getAllGaps()
+        local allWaves = getAllWaves(hrp.Position)
+        local nearestWave = findNearestWave(hrp.Position)
+        
+        if nearestWave and nearestWave.Distance < 80 and #gaps > 0 then
+            local playerX = hrp.Position.X
+            local targetX = targetPos.X
+            local isBlocked = false
+            
+            for _, wave in ipairs(allWaves) do
+                if playerX < targetX then
+                    if wave.XPosition > playerX and wave.XPosition < targetX then
+                        isBlocked = true
+                        break
+                    end
+                else
+                    if wave.XPosition < playerX and wave.XPosition > targetX then
+                        isBlocked = true
+                        break
+                    end
+                end
+            end
+            
+            if isBlocked or nearestWave.Distance < 50 then
+                local bestGap, _ = findBestGapToRetreat(hrp.Position, nearestWave.Position, gaps, allWaves)
+                
+                if bestGap then
+                    hrp.CFrame = CFrame.new(bestGap.XPosition, -2, -1)
+                    
+                    if States.DebugMode then
+                        WindUI:Notify({
+                            Title = "Steal - Hiding",
+                            Content = string.format("Wave detected! Hiding in %s", bestGap.Name),
+                            Duration = 1.5,
+                            Icon = "shield",
+                        })
+                    end
+                    
+                    while States.IsStealing do
+                        task.wait(0.5)
+                        local waveCheck = findNearestWave(hrp.Position)
+                        
+                        if not waveCheck or waveCheck.Distance > 100 then
+                            local pathClear = true
+                            local currentWaves = getAllWaves(hrp.Position)
+                            local currentX = hrp.Position.X
+                            
+                            for _, wave in ipairs(currentWaves) do
+                                if currentX < targetPos.X then
+                                    if wave.XPosition > currentX and wave.XPosition < targetPos.X and math.abs(wave.XPosition - currentX) < 60 then
+                                        pathClear = false
+                                        break
+                                    end
+                                else
+                                    if wave.XPosition < currentX and wave.XPosition > targetPos.X and math.abs(wave.XPosition - currentX) < 60 then
+                                        pathClear = false
+                                        break
+                                    end
+                                end
+                            end
+                            
+                            if pathClear then
+                                if States.DebugMode then
+                                    WindUI:Notify({
+                                        Title = "Steal - Resuming",
+                                        Content = "Wave passed! Continuing...",
+                                        Duration = 1,
+                                        Icon = "arrow-up",
+                                    })
+                                end
+                                break
+                            end
+                        end
+                    end
+                    
+                    if not States.IsStealing then
+                        return false
+                    end
+                    
+                    hrp.CFrame = CFrame.new(hrp.Position.X, 7, -1)
+                    task.wait(0.2)
+                else
+                    task.wait(1)
+                end
+            else
+                break
+            end
+        else
+            break
+        end
+    end
+    
+    if not States.IsStealing then
+        return false
+    end
+    
+    local currentPos = hrp.Position
+    local horizontalDist = math.abs(currentPos.X - targetPos.X)
+    
+    if horizontalDist < 10 then
+        hrp.CFrame = CFrame.new(targetPos)
+        return true
+    end
+    
+    local tweenSpeed = 220
+    local tweenTime = horizontalDist / tweenSpeed
+    
+    local tweenInfo = TweenInfo.new(tweenTime, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut)
+    local tween = TweenService:Create(hrp, tweenInfo, {CFrame = CFrame.new(targetPos.X, targetPos.Y, targetPos.Z)})
+    
+    local completed = false
+    local interrupted = false
+    
+    tween.Completed:Connect(function(playbackState)
+        if playbackState == Enum.PlaybackState.Completed then
+            completed = true
+        end
+    end)
+    
+    tween:Play()
+    
+    if checkWaves then
+        task.spawn(function()
+            while not completed and States.IsStealing do
+                task.wait(0.2)
+                
+                if not hrp or not hrp.Parent then
+                    tween:Cancel()
+                    interrupted = true
+                    break
+                end
+                
+                local nearestWave = findNearestWave(hrp.Position)
+                
+                if nearestWave and nearestWave.Distance < 60 then
+                    tween:Cancel()
+                    interrupted = true
+                    
+                    if States.DebugMode then
+                        WindUI:Notify({
+                            Title = "Steal - Wave Detected",
+                            Content = "Pausing for wave...",
+                            Duration = 1,
+                            Icon = "pause",
+                        })
+                    end
+                    
+                    tweenToPositionSafely(hrp, targetPos, true)
+                    break
+                end
+            end
+        end)
+    end
+    
+    while not completed and not interrupted and States.IsStealing do
+        task.wait(0.1)
+    end
+    
+    return completed
+end
+
+function executeSteal()
+    if States.IsStealing then
+        WindUI:Notify({
+            Title = "Steal In Progress",
+            Content = "Already stealing, please wait!",
+            Duration = 2,
+            Icon = "alert-circle",
+        })
+        return
+    end
+    
+    local character = LocalPlayer.Character
+    if not character then return end
+    
+    local hrp = character:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+    
+    States.IsStealing = true
+    States.SavedStealPosition = hrp.Position
+    
+    WindUI:Notify({
+        Title = "Steal Started",
+        Content = "Going to steal location...",
+        Duration = 2,
+        Icon = "zap",
+    })
+    
+    local success = tweenToPositionSafely(hrp, Vector3.new(125, 7, -1), true)
+    
+    if not States.IsStealing then
+        return
+    end
+    
+    if success then
+        task.wait(0.5)
+        
+        WindUI:Notify({
+            Title = "Steal Complete",
+            Content = "Returning to original position...",
+            Duration = 2,
+            Icon = "corner-down-left",
+        })
+        
+        tweenToPositionSafely(hrp, States.SavedStealPosition, true)
+    end
+    
+    States.IsStealing = false
+    States.SavedStealPosition = nil
+end
+
+local function toggleStealUI(state)
+    States.StealUI = state
+    
+    if state then
+        createStealButton()
+    else
+        removeStealButton()
+        States.IsStealing = false
     end
 end
 
