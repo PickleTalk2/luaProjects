@@ -853,7 +853,7 @@ local function tweenToGap(hrp, targetGap, isForward)
     local targetX = targetGap.XPosition
     local horizontalDist = math.abs(currentPos.X - targetX)
     
-    if horizontalDist <= 35 then
+    if horizontalDist <= 50 then
         States.MovementDisabled = true
         if humanoid then
             humanoid.WalkSpeed = 0
