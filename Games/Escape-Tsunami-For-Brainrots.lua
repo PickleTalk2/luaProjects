@@ -316,8 +316,12 @@ local function findPlayerBase()
                         local frame = titleGui:FindFirstChild("Frame")
                         if frame then
                             local playerNameLabel = frame:FindFirstChild("PlayerName")
-                            if playerNameLabel and playerNameLabel.Text == LocalPlayer.DisplayName then
-                                return baseName
+                            if playerNameLabel then
+                                if playerNameLabel.Text == LocalPlayer.DisplayName or 
+                                   playerNameLabel.Text == LocalPlayer.Name or
+                                   playerNameLabel.Text == "@" .. LocalPlayer.Name then
+                                    return baseName
+                                end
                             end
                         end
                     end
@@ -343,6 +347,12 @@ local function fireCollect()
         if not States.PlayerBase then
             States.PlayerBase = findPlayerBase()
             if not States.PlayerBase then
+                WindUI:Notify({
+                    Title = "Auto Collect",
+                    Content = "Searching for your base...",
+                    Duration = 2,
+                    Icon = "search",
+                })
                 return
             end
         end
@@ -359,6 +369,12 @@ local function fireCollect()
         local slots = playerBase:FindFirstChild("Slots")
         if not slots then return end
         
+        local character = LocalPlayer.Character
+        if not character then return end
+        
+        local hrp = character:FindFirstChild("HumanoidRootPart")
+        if not hrp then return end
+        
         for i = 1, 30 do
             local slotName = "Slot" .. i
             local slot = slots:FindFirstChild(slotName)
@@ -366,12 +382,9 @@ local function fireCollect()
             if slot then
                 local collect = slot:FindFirstChild("Collect")
                 if collect then
-                    local touchInterest = collect:FindFirstChild("TouchInterest")
-                    if touchInterest then
-                        firetouchinterest(LocalPlayer.Character.HumanoidRootPart, collect, 0)
-                        task.wait(0.05)
-                        firetouchinterest(LocalPlayer.Character.HumanoidRootPart, collect, 1)
-                    end
+                    firetouchinterest(hrp, collect, 0)
+                    task.wait(0.05)
+                    firetouchinterest(hrp, collect, 1)
                 end
             end
         end
@@ -391,6 +404,7 @@ local function toggleAutoCollect(state)
                 Duration = 3,
                 Icon = "x",
             })
+            States.AutoCollect = false
             return
         end
         
@@ -468,30 +482,6 @@ local function setupGodModeForCharacter(character)
     if hrp then
         hrp.Anchored = false
     end
-    
-    for _, part in pairs(character:GetDescendants()) do
-        if part:IsA("BasePart") then
-            part.CanTouch = false
-            if not States.AntiTsunami then
-                part.CanCollide = false
-            end
-        end
-    end
-    
-    local charAddedConn
-    charAddedConn = character.DescendantAdded:Connect(function(descendant)
-        if descendant:IsA("BasePart") and States.GodMode then
-            descendant.CanTouch = false
-            if not States.AntiTsunami then
-                descendant.CanCollide = false
-            end
-        end
-    end)
-    
-    if Connections.CharPartMonitor then
-        Connections.CharPartMonitor:Disconnect()
-    end
-    Connections.CharPartMonitor = charAddedConn
 end
 
 local function initializeAntiCheat()
@@ -1333,15 +1323,15 @@ local function tweenToPositionSafely(hrp, targetPos, checkWaves)
             end
             
             if isBlocked or nearestWave.Distance < 50 then
-                local bestGap, _ = findBestGapToRetreat(hrp.Position, nearestWave.Position, gaps, allWaves)
-                
-                if bestGap then
-                    hrp.CFrame = CFrame.new(bestGap.XPosition, -2, -1)
-                    
+                local nearestGap = findNearestGap(hrp.Position, gaps)
+
+                if nearestGap then
+                    hrp.CFrame = CFrame.new(nearestGap.XPosition, -2, -1)
+    
                     if States.DebugMode then
                         WindUI:Notify({
                             Title = "Steal - Hiding",
-                            Content = string.format("Wave detected! Hiding in %s", bestGap.Name),
+                            Content = string.format("Wave detected! Hiding in %s", nearestGap.Name),
                             Duration = 1.5,
                             Icon = "shield",
                         })
@@ -1468,6 +1458,23 @@ local function tweenToPositionSafely(hrp, targetPos, checkWaves)
     end
     
     return completed
+end
+
+local function findNearestGap(playerPosition, gaps)
+    if #gaps == 0 then return nil end
+    
+    local nearestGap = nil
+    local nearestDist = math.huge
+    
+    for _, gap in ipairs(gaps) do
+        local dist = math.abs(playerPosition.X - gap.XPosition)
+        if dist < nearestDist then
+            nearestDist = dist
+            nearestGap = gap
+        end
+    end
+    
+    return nearestGap
 end
 
 function executeSteal()
