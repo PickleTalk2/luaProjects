@@ -738,46 +738,28 @@ end
 
 local function createStealButton()
     local screenGui = Instance.new("ScreenGui")
-    screenGui.Name = "StealUI"
+    screenGui.Name = "StealHighestUI"
     screenGui.ResetOnSpawn = false
     screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
     screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
 
     local button = Instance.new("TextButton")
     button.Name = "StealButton"
-    button.Size = UDim2.new(0, 70, 0, 70)
-    button.Position = UDim2.new(0.5, 80, 0.83, -35)
-    button.BackgroundColor3 = Color3.fromRGB(67, 160, 71)
-    button.Text = "💰"
+    button.Size = UDim2.new(0, 100, 0, 50)
+    button.Position = UDim2.new(0.5, -50, 0.85, -25)
+    button.BackgroundColor3 = Color3.fromRGB(255, 60, 120)
+    button.Text = "Steal Highest"
     button.TextColor3 = Color3.fromRGB(255, 255, 255)
-    button.TextSize = 32
+    button.TextSize = 16
     button.Font = Enum.Font.GothamBold
     button.BorderSizePixel = 0
     button.AutoButtonColor = false
     button.Parent = screenGui
 
     local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0.2, 0)
+    corner.CornerRadius = UDim.new(0.15, 0)
     corner.Parent = button
 
-    local stroke = Instance.new("UIStroke")
-    stroke.Color = Color3.fromRGB(255, 255, 255)
-    stroke.Thickness = 2
-    stroke.Transparency = 0.3
-    stroke.Parent = button
-
-    local shadow = Instance.new("Frame")
-    shadow.Size = UDim2.new(1, 0, 1, 0)
-    shadow.Position = UDim2.new(0, 3, 0, 3)
-    shadow.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-    shadow.BackgroundTransparency = 0.6
-    shadow.ZIndex = 0
-    shadow.Parent = button
-
-    local shadowCorner = Instance.new("UICorner")
-    shadowCorner.CornerRadius = UDim.new(0.2, 0)
-    shadowCorner.Parent = shadow
-    
     local dragging = false
     local dragStart = nil
     local startPos = nil
@@ -1477,6 +1459,31 @@ local function findNearestGap(playerPosition, gaps)
     return nearestGap
 end
 
+local function parseRateValue(rateText)
+    if not rateText then return 0 end
+    
+    local cleanText = rateText:gsub("%$", ""):gsub("/s", ""):gsub(",", "")
+    local multiplier = 1
+    
+    if cleanText:find("k") or cleanText:find("K") then
+        multiplier = 1000
+        cleanText = cleanText:gsub("k", ""):gsub("K", "")
+    elseif cleanText:find("m") or cleanText:find("M") then
+        multiplier = 1000000
+        cleanText = cleanText:gsub("m", ""):gsub("M", "")
+    elseif cleanText:find("b") or cleanText:find("B") then
+        multiplier = 1000000000
+        cleanText = cleanText:gsub("b", ""):gsub("B", "")
+    end
+    
+    local number = tonumber(cleanText)
+    if number then
+        return number * multiplier
+    end
+    
+    return 0
+end
+
 function executeSteal()
     if States.IsStealing then
         WindUI:Notify({
@@ -1498,28 +1505,138 @@ function executeSteal()
     States.SavedStealPosition = hrp.Position
     
     WindUI:Notify({
-        Title = "Steal Started",
-        Content = "Going to steal location...",
+        Title = "Steal Highest",
+        Content = "Scanning for highest value...",
         Duration = 2,
-        Icon = "zap",
+        Icon = "search",
     })
     
-    local success = tweenToPositionSafely(hrp, Vector3.new(125, 7, -1), true)
+    local highestBrainrot = nil
+    local highestValue = 0
+    local highestFolder = nil
+    
+    pcall(function()
+        local activeBrainrots = Workspace:FindFirstChild("ActiveBrainrots")
+        if not activeBrainrots then
+            if States.DebugMode then
+                print("[DEBUG] ActiveBrainrots folder not found")
+            end
+            return
+        end
+        
+        for _, folderName in ipairs({"Secret", "Celestial"}) do
+            local folder = activeBrainrots:FindFirstChild(folderName)
+            if folder then
+                if States.DebugMode then
+                    print("[DEBUG] Checking folder:", folderName)
+                end
+                
+                for _, child in pairs(folder:GetChildren()) do
+                    if child.Name == "RenderedBrainrot" and child:IsA("Model") then
+                        local success, rate = pcall(function()
+                            local modelExtents = child:FindFirstChild("ModelExtents")
+                            if not modelExtents then return nil end
+                            
+                            local statsGui = modelExtents:FindFirstChild("StatsGui")
+                            if not statsGui then return nil end
+                            
+                            local frame = statsGui:FindFirstChild("Frame")
+                            if not frame then return nil end
+                            
+                            local rateLabel = frame:FindFirstChild("Rate")
+                            if not rateLabel then return nil end
+                            
+                            return rateLabel.Text
+                        end)
+                        
+                        if success and rate then
+                            local value = parseRateValue(rate)
+                            
+                            if States.DebugMode then
+                                print(string.format("[DEBUG] %s - Rate: %s = %d", folderName, rate, value))
+                            end
+                            
+                            if value > highestValue then
+                                highestValue = value
+                                highestBrainrot = child
+                                highestFolder = folderName
+                            end
+                        end
+                    end
+                end
+            else
+                if States.DebugMode then
+                    print("[DEBUG] Folder not found:", folderName)
+                end
+            end
+        end
+    end)
+    
+    if not highestBrainrot then
+        WindUI:Notify({
+            Title = "Steal Failed",
+            Content = "No brainrots found!",
+            Duration = 3,
+            Icon = "x",
+        })
+        States.IsStealing = false
+        return
+    end
+    
+    local root = highestBrainrot:FindFirstChild("Root")
+    if not root then
+        WindUI:Notify({
+            Title = "Steal Failed",
+            Content = "Root not found!",
+            Duration = 3,
+            Icon = "x",
+        })
+        States.IsStealing = false
+        return
+    end
+    
+    if States.DebugMode then
+        WindUI:Notify({
+            Title = "Highest Found",
+            Content = string.format("%s - Value: %d", highestFolder, highestValue),
+            Duration = 3,
+            Icon = "trending-up",
+        })
+        print(string.format("[DEBUG] Highest: %s in %s, Value: %d", highestBrainrot.Name, highestFolder, highestValue))
+        print(string.format("[DEBUG] Target Position: %s", tostring(root.Position)))
+    end
+    
+    local targetPos = root.Position
+    local success = tweenToPositionSafely(hrp, targetPos, true)
     
     if not States.IsStealing then
         return
     end
     
     if success then
+        task.wait(0.3)
+        
+        local takePrompt = root:FindFirstChild("TakePrompt")
+        if takePrompt and takePrompt:IsA("ProximityPrompt") then
+            if States.DebugMode then
+                print("[DEBUG] Firing TakePrompt")
+            end
+            
+            fireproximityprompt(takePrompt)
+            
+            WindUI:Notify({
+                Title = "Steal Success",
+                Content = "Collected! Returning...",
+                Duration = 2,
+                Icon = "check",
+            })
+        else
+            if States.DebugMode then
+                print("[DEBUG] TakePrompt not found or not ProximityPrompt")
+            end
+        end
+        
         task.wait(0.5)
-        
-        WindUI:Notify({
-            Title = "Steal Complete",
-            Content = "Returning to original position...",
-            Duration = 2,
-            Icon = "corner-down-left",
-        })
-        
         tweenToPositionSafely(hrp, States.SavedStealPosition, true)
     end
     
@@ -1757,13 +1874,6 @@ local function toggleGodMode(state)
             if humanoid and OriginalCharacterProperties.MaxHealth then
                 humanoid.MaxHealth = OriginalCharacterProperties.MaxHealth
                 humanoid.Health = OriginalCharacterProperties.Health
-            end
-            
-            for _, part in pairs(character:GetDescendants()) do
-                if part:IsA("BasePart") then
-                    part.CanTouch = true
-                    part.CanCollide = true
-                end
             end
         end
     end
@@ -2247,8 +2357,8 @@ local SettingsTab = Window:Tab({
 })
 
 local StealUIToggle = MainTab:Toggle({
-    Title = "Steal UI",
-    Desc = "Show button to steal from designated location",
+    Title = "Steal Highest Button",
+    Desc = "Show button to steal highest value brainrot",
     Default = false,
     Callback = function(state)
         toggleStealUI(state)
@@ -2268,10 +2378,12 @@ local AntiTsunamiToggle = MainTab:Toggle({
 
 local AutoCollectToggle = MainTab:Toggle({
     Title = "Auto Collect",
-    Desc = "Automatically collect from your base slots",
+    Desc = "Automatically collect from your local StealUIToggle = MainTab:Toggle({
+    Title = "Steal Highest Button",
+    Desc = "Show button to steal highest value brainrot",
     Default = false,
     Callback = function(state)
-        toggleAutoCollect(state)
+        toggleStealUI(state)
         saveConfiguration()
     end
 })
