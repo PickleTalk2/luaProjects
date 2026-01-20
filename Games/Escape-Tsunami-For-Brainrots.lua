@@ -2378,12 +2378,10 @@ local AntiTsunamiToggle = MainTab:Toggle({
 
 local AutoCollectToggle = MainTab:Toggle({
     Title = "Auto Collect",
-    Desc = "Automatically collect from your local StealUIToggle = MainTab:Toggle({
-    Title = "Steal Highest Button",
-    Desc = "Show button to steal highest value brainrot",
+    Desc = "Automatically collect from your base slots",
     Default = false,
     Callback = function(state)
-        toggleStealUI(state)
+        toggleAutoCollect(state)
         saveConfiguration()
     end
 })
