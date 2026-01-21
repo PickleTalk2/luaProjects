@@ -1527,7 +1527,6 @@ function executeSteal()
     local foundBrainrots = 0
     
     pcall(function()
-        -- Try multiple possible parent folder names
         local possibleParents = {"ActiveBrainrots", "Brainrots"}
         local activeBrainrots = nil
         
@@ -1541,7 +1540,6 @@ function executeSteal()
             end
         end
         
-        -- If no parent found, search directly in workspace
         if not activeBrainrots then
             if States.DebugMode then
                 print("[DEBUG] No parent folder found, searching workspace root")
@@ -1549,7 +1547,6 @@ function executeSteal()
             activeBrainrots = Workspace
         end
         
-        -- Check all rarity folders
         local rarityFolders = {"Celestial", "Secret", "Cosmic", "Legendary", "Mythical", "Rare", "Uncommon"}
         
         for _, folderName in ipairs(rarityFolders) do
@@ -1578,7 +1575,7 @@ function executeSteal()
                                     print("[DEBUG] No ModelExtents in", brainrotModel.Name)
                                 end
                                 return nil 
-                            wend
+                            end
                             
                             local statsGui = modelExtents:FindFirstChild("StatsGui")
                             if not statsGui then 
