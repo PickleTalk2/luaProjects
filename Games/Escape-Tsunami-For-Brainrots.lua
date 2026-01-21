@@ -1728,10 +1728,6 @@ function executeSteal()
             end
         end
     end     
-        task.wait(0.5)
-        tweenToPositionSafely(hrp, States.SavedStealPosition, true)
-    end
-    
     States.IsStealing = false
     States.SavedStealPosition = nil
 end
