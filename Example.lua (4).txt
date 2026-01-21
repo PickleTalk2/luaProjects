@@ -194,6 +194,10 @@ local Window = WindUI:CreateWindow({
     Transparent = true,
     Theme = "Dark",
 })
+-- Always debugmode States and all lines of code must have debug mode incase there's any error its easy to troubleshoot!
+local States = {
+    DebugMode = false,
+}
 
 -- Window must always transparent!
 Window:ToggleTransparency(true)
@@ -945,6 +949,16 @@ local ThemeColorPicker = SettingsTab:Colorpicker({
         
         WindUI:SetTheme("Custom")
         States.CurrentTheme = "Custom"
+    end
+})
+
+local DebugModeToggle = SettingsTab:Toggle({
+    Title = "Debug Mode (for devs)",
+    Desc = "Show detailed logs for steal and anti-tsunami",
+    Default = false,
+    Callback = function(state)
+        States.DebugMode = state
+        saveConfiguration()
     end
 })
 
