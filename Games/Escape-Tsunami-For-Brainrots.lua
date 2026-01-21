@@ -1496,10 +1496,20 @@ function executeSteal()
     end
     
     local character = LocalPlayer.Character
-    if not character then return end
+    if not character then 
+        if States.DebugMode then
+            print("[DEBUG] No character found")
+        end
+        return 
+    end
     
     local hrp = character:FindFirstChild("HumanoidRootPart")
-    if not hrp then return end
+    if not hrp then 
+        if States.DebugMode then
+            print("[DEBUG] No HumanoidRootPart found")
+        end
+        return 
+    end
     
     States.IsStealing = true
     States.SavedStealPosition = hrp.Position
@@ -1514,17 +1524,35 @@ function executeSteal()
     local highestBrainrot = nil
     local highestValue = 0
     local highestFolder = nil
+    local foundBrainrots = 0
     
     pcall(function()
-        local activeBrainrots = Workspace:FindFirstChild("ActiveBrainrots")
-        if not activeBrainrots then
-            if States.DebugMode then
-                print("[DEBUG] ActiveBrainrots folder not found")
+        -- Try multiple possible parent folder names
+        local possibleParents = {"ActiveBrainrots", "Brainrots"}
+        local activeBrainrots = nil
+        
+        for _, parentName in ipairs(possibleParents) do
+            activeBrainrots = Workspace:FindFirstChild(parentName)
+            if activeBrainrots then
+                if States.DebugMode then
+                    print("[DEBUG] Found parent folder:", parentName)
+                end
+                break
             end
-            return
         end
         
-        for _, folderName in ipairs({"Secret", "Celestial"}) do
+        -- If no parent found, search directly in workspace
+        if not activeBrainrots then
+            if States.DebugMode then
+                print("[DEBUG] No parent folder found, searching workspace root")
+            end
+            activeBrainrots = Workspace
+        end
+        
+        -- Check all rarity folders
+        local rarityFolders = {"Celestial", "Secret", "Cosmic", "Legendary", "Mythical", "Rare", "Uncommon"}
+        
+        for _, folderName in ipairs(rarityFolders) do
             local folder = activeBrainrots:FindFirstChild(folderName)
             if folder then
                 if States.DebugMode then
@@ -1533,18 +1561,40 @@ function executeSteal()
                 
                 for _, child in pairs(folder:GetChildren()) do
                     if child.Name == "RenderedBrainrot" and child:IsA("Model") then
+                        foundBrainrots = foundBrainrots + 1
+                        
                         local success, rate = pcall(function()
                             local modelExtents = child:FindFirstChild("ModelExtents")
-                            if not modelExtents then return nil end
+                            if not modelExtents then 
+                                if States.DebugMode then
+                                    print("[DEBUG] No ModelExtents in", child:GetFullName())
+                                end
+                                return nil 
+                            end
                             
                             local statsGui = modelExtents:FindFirstChild("StatsGui")
-                            if not statsGui then return nil end
+                            if not statsGui then 
+                                if States.DebugMode then
+                                    print("[DEBUG] No StatsGui in", modelExtents:GetFullName())
+                                end
+                                return nil 
+                            end
                             
                             local frame = statsGui:FindFirstChild("Frame")
-                            if not frame then return nil end
+                            if not frame then 
+                                if States.DebugMode then
+                                    print("[DEBUG] No Frame in", statsGui:GetFullName())
+                                end
+                                return nil 
+                            end
                             
                             local rateLabel = frame:FindFirstChild("Rate")
-                            if not rateLabel then return nil end
+                            if not rateLabel then 
+                                if States.DebugMode then
+                                    print("[DEBUG] No Rate label in", frame:GetFullName())
+                                end
+                                return nil 
+                            end
                             
                             return rateLabel.Text
                         end)
@@ -1570,13 +1620,28 @@ function executeSteal()
                 end
             end
         end
+        
+        if States.DebugMode then
+            print(string.format("[DEBUG] Total RenderedBrainrots found: %d", foundBrainrots))
+        end
     end)
+    
+    if foundBrainrots == 0 then
+        WindUI:Notify({
+            Title = "Steal Failed",
+            Content = "No RenderedBrainrot models found! Enable Debug Mode for details.",
+            Duration = 4,
+            Icon = "x",
+        })
+        States.IsStealing = false
+        return
+    end
     
     if not highestBrainrot then
         WindUI:Notify({
             Title = "Steal Failed",
-            Content = "No brainrots found!",
-            Duration = 3,
+            Content = string.format("Found %d brainrots but none had valid rates!", foundBrainrots),
+            Duration = 4,
             Icon = "x",
         })
         States.IsStealing = false
@@ -1587,7 +1652,7 @@ function executeSteal()
     if not root then
         WindUI:Notify({
             Title = "Steal Failed",
-            Content = "Root not found!",
+            Content = "Highest brainrot has no Root!",
             Duration = 3,
             Icon = "x",
         })
@@ -1597,13 +1662,14 @@ function executeSteal()
     
     if States.DebugMode then
         WindUI:Notify({
-            Title = "Highest Found",
-            Content = string.format("%s - Value: %d", highestFolder, highestValue),
+            Title = "Highest Found!",
+            Content = string.format("%s - $%d/s", highestFolder, highestValue),
             Duration = 3,
             Icon = "trending-up",
         })
-        print(string.format("[DEBUG] Highest: %s in %s, Value: %d", highestBrainrot.Name, highestFolder, highestValue))
-        print(string.format("[DEBUG] Target Position: %s", tostring(root.Position)))
+        print(string.format("[DEBUG] Stealing from: %s in %s", highestBrainrot:GetFullName(), highestFolder))
+        print(string.format("[DEBUG] Value: %d", highestValue))
+        print(string.format("[DEBUG] Root Position: %s", tostring(root.Position)))
     end
     
     local targetPos = root.Position
@@ -1632,7 +1698,7 @@ function executeSteal()
             })
         else
             if States.DebugMode then
-                print("[DEBUG] TakePrompt not found or not ProximityPrompt")
+                print("[DEBUG] TakePrompt not found or not a ProximityPrompt")
             end
         end
         
@@ -2703,6 +2769,18 @@ local LoadConfigButton = SettingsTab:Button({
         loadConfiguration()
     end
 })
+
+local DebugModeToggle = SettingsTab:Toggle({
+    Title = "Debug Mode (for devs)",
+    Desc = "Show detailed logs for steal and anti-tsunami",
+    Default = false,
+    Callback = function(state)
+        States.DebugMode = state
+        saveConfiguration()
+    end
+})
+
+myConfig:Register("DebugMode", DebugModeToggle)
 
 myConfig:Register("Theme", ThemeDropdown)
 myConfig:Register("ThemeColor", ThemeColorPicker)
