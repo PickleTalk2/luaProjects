@@ -1562,15 +1562,23 @@ function executeSteal()
                 for _, child in pairs(folder:GetChildren()) do
                     if child.Name == "RenderedBrainrot" and child:IsA("Model") then
                         foundBrainrots = foundBrainrots + 1
-                        
+        
                         local success, rate = pcall(function()
-                            local modelExtents = child:FindFirstChild("ModelExtents")
+                            local brainrotModel = child:GetChildren()[1]
+                            if not brainrotModel then 
+                                if States.DebugMode then
+                                    print("[DEBUG] No child model in RenderedBrainrot")
+                                end
+                                return nil
+                            end
+            
+                            local modelExtents = brainrotModel:FindFirstChild("ModelExtents")
                             if not modelExtents then 
                                 if States.DebugMode then
-                                    print("[DEBUG] No ModelExtents in", child:GetFullName())
+                                    print("[DEBUG] No ModelExtents in", brainrotModel.Name)
                                 end
                                 return nil 
-                            end
+                            wend
                             
                             local statsGui = modelExtents:FindFirstChild("StatsGui")
                             if not statsGui then 
@@ -1681,27 +1689,48 @@ function executeSteal()
     
     if success then
         task.wait(0.3)
-        
+    
         local takePrompt = root:FindFirstChild("TakePrompt")
         if takePrompt and takePrompt:IsA("ProximityPrompt") then
             if States.DebugMode then
                 print("[DEBUG] Firing TakePrompt")
             end
-            
+        
             fireproximityprompt(takePrompt)
-            
+        
             WindUI:Notify({
                 Title = "Steal Success",
-                Content = "Collected! Returning...",
+                Content = "Collected! Hiding in gap...",
                 Duration = 2,
                 Icon = "check",
             })
+        
+            task.wait(0.5)
+        
+            local gaps = getAllGaps()
+            if #gaps > 0 then
+                local nearestGap = findNearestGap(hrp.Position, gaps)
+                if nearestGap then
+                    hrp.CFrame = CFrame.new(nearestGap.XPosition, -2, -1)
+                
+                    if States.DebugMode then
+                        WindUI:Notify({
+                            Title = "Hiding in Gap",
+                            Content = string.format("Hiding in %s", nearestGap.Name),
+                            Duration = 2,
+                            Icon = "shield",
+                        })
+                    end
+                end
+            else
+                tweenToPositionSafely(hrp, States.SavedStealPosition, false)
+            end
         else
             if States.DebugMode then
-                print("[DEBUG] TakePrompt not found or not a ProximityPrompt")
+                print("[DEBUG] TakePrompt not found or not ProximityPrompt")
             end
         end
-        
+    end     
         task.wait(0.5)
         tweenToPositionSafely(hrp, States.SavedStealPosition, true)
     end
