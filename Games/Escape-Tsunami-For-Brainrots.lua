@@ -1634,7 +1634,7 @@ function executeSteal()
     if foundBrainrots == 0 then
         WindUI:Notify({
             Title = "Steal Failed",
-            Content = "No RenderedBrainrot models found! Enable Debug Mode for details.",
+            Content = "No RenderedBrainrot models found!",
             Duration = 4,
             Icon = "x",
         })
@@ -1678,13 +1678,13 @@ function executeSteal()
     end
     
     local targetPos = root.Position
-    local success = tweenToPositionSafely(hrp, targetPos, true)
+    local stealSuccess = tweenToPositionSafely(hrp, targetPos, true)
     
     if not States.IsStealing then
         return
     end
     
-    if success then
+    if stealSuccess then
         task.wait(0.3)
     
         local takePrompt = root:FindFirstChild("TakePrompt")
@@ -1727,7 +1727,8 @@ function executeSteal()
                 print("[DEBUG] TakePrompt not found or not ProximityPrompt")
             end
         end
-    end     
+    end
+    
     States.IsStealing = false
     States.SavedStealPosition = nil
 end
