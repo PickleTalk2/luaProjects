@@ -971,6 +971,7 @@ local function toggleSlapAura(state)
                         if targetHrp then
                             local hrp = character:FindFirstChild("HumanoidRootPart")
                             if hrp then
+                                task.wait(0.5)a
                                 hrp.CFrame = targetHrp.CFrame * CFrame.new(0, 0, 3)
                                 
                                 if States.DebugMode then
