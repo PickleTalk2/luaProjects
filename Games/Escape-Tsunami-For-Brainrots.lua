@@ -604,8 +604,18 @@ local function toggleFastInteraction(state)
                 if playerGui then
                     for _, gui in pairs(playerGui:GetDescendants()) do
                         if gui:IsA("ProximityPrompt") then
-                            local character = gui:FindFirstAncestorOfClass("Model")
-                            if not (character and character:FindFirstChildOfClass("Humanoid")) then
+                            local isPlayerPrompt = false
+                            local parent = gui.Parent
+                            
+                            while parent do
+                                if parent:IsA("Model") and Players:GetPlayerFromCharacter(parent) then
+                                    isPlayerPrompt = true
+                                    break
+                                end
+                                parent = parent.Parent
+                            end
+                            
+                            if not isPlayerPrompt then
                                 gui.HoldDuration = 0
                             end
                         end
@@ -614,8 +624,18 @@ local function toggleFastInteraction(state)
                 
                 for _, prompt in pairs(Workspace:GetDescendants()) do
                     if prompt:IsA("ProximityPrompt") then
-                        local character = prompt:FindFirstAncestorOfClass("Model")
-                        if not (character and character:FindFirstChildOfClass("Humanoid")) then
+                        local isPlayerPrompt = false
+                        local parent = prompt.Parent
+                        
+                        while parent do
+                            if parent:IsA("Model") and Players:GetPlayerFromCharacter(parent) then
+                                isPlayerPrompt = true
+                                break
+                            end
+                            parent = parent.Parent
+                        end
+                        
+                        if not isPlayerPrompt then
                             prompt.HoldDuration = 0
                         end
                     end
@@ -1333,11 +1353,18 @@ local function tweenToPositionSafely(hrp, targetPos, checkWaves)
                     while States.IsStealing do
                         task.wait(0.5)
                         local waveCheck = findNearestWave(hrp.Position)
+                        local currentWaves = getAllWaves(hrp.Position)
+                        local currentX = hrp.Position.X
                         
-                        if not waveCheck or waveCheck.Distance > 100 then
+                        local waveBehindPlayer = false
+                        if waveCheck then
+                            waveBehindPlayer = math.abs(waveCheck.XPosition - currentX) > 10 and 
+                                             ((currentX < targetPos.X and waveCheck.XPosition < currentX) or
+                                              (currentX > targetPos.X and waveCheck.XPosition > currentX))
+                        end
+                        
+                        if not waveCheck or waveCheck.Distance > 100 or waveBehindPlayer then
                             local pathClear = true
-                            local currentWaves = getAllWaves(hrp.Position)
-                            local currentX = hrp.Position.X
                             
                             for _, wave in ipairs(currentWaves) do
                                 if currentX < targetPos.X then
@@ -1371,7 +1398,7 @@ local function tweenToPositionSafely(hrp, targetPos, checkWaves)
                         return false
                     end
                     
-                    hrp.CFrame = CFrame.new(hrp.Position.X, 7, -1)
+                    hrp.CFrame = CFrame.new(hrp.Position.X, 3, hrp.Position.Z)
                     task.wait(0.2)
                 else
                     task.wait(1)
@@ -1524,7 +1551,14 @@ function executeSteal()
     
     States.IsStealing = true
     States.SavedStealPosition = hrp.Position
-    
+
+    local wasAntiTsunamiEnabled = States.AntiTsunami
+    if wasAntiTsunamiEnabled then
+        toggleAntiTsunami(false)
+        if States.DebugMode then
+            print("[DEBUG] Anti Tsunami disabled during steal")
+        end
+    end
     WindUI:Notify({
         Title = "Steal Highest",
         Content = "Scanning for highest value...",
@@ -1777,6 +1811,14 @@ function executeSteal()
     
     States.IsStealing = false
     States.SavedStealPosition = nil
+
+    if wasAntiTsunamiEnabled then
+        task.wait(0.5)
+        toggleAntiTsunami(true)
+        if States.DebugMode then
+            print("[DEBUG] Anti Tsunami re-enabled after steal")
+        end
+    end
 end
 
 local function toggleStealUI(state)
