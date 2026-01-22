@@ -604,14 +604,20 @@ local function toggleFastInteraction(state)
                 if playerGui then
                     for _, gui in pairs(playerGui:GetDescendants()) do
                         if gui:IsA("ProximityPrompt") then
-                            gui.HoldDuration = 0
+                            local character = gui:FindFirstAncestorOfClass("Model")
+                            if not (character and character:FindFirstChildOfClass("Humanoid")) then
+                                gui.HoldDuration = 0
+                            end
                         end
                     end
                 end
                 
                 for _, prompt in pairs(Workspace:GetDescendants()) do
                     if prompt:IsA("ProximityPrompt") then
-                        prompt.HoldDuration = 0
+                        local character = prompt:FindFirstAncestorOfClass("Model")
+                        if not (character and character:FindFirstChildOfClass("Humanoid")) then
+                            prompt.HoldDuration = 0
+                        end
                     end
                 end
             end)
@@ -857,7 +863,6 @@ local function toggleAntiSlap(state)
         if not humanoid or not hrp then return end
         
         local lastPosition = hrp.Position
-        local lastVelocity = Vector3.new(0, 0, 0)
         
         Connections.AntiSlap = RunService.Heartbeat:Connect(function()
             if not States.AntiSlap then return end
@@ -871,34 +876,39 @@ local function toggleAntiSlap(state)
                 
                 if not humanoid or not hrp then return end
                 
+                -- Force running state
                 if humanoid:GetState() == Enum.HumanoidStateType.Ragdoll or 
-                   humanoid:GetState() == Enum.HumanoidStateType.FallingDown then
+                   humanoid:GetState() == Enum.HumanoidStateType.FallingDown or
+                   humanoid:GetState() == Enum.HumanoidStateType.Flying or
+                   humanoid:GetState() == Enum.HumanoidStateType.Freefall then
                     humanoid:ChangeState(Enum.HumanoidStateType.Running)
                 end
                 
-                if hrp:FindFirstChild("BodyVelocity") then
-                    hrp.BodyVelocity:Destroy()
-                end
-                
-                if hrp:FindFirstChild("BodyGyro") then
-                    hrp.BodyGyro:Destroy()
+                -- Destroy all physics objects
+                for _, obj in pairs(hrp:GetChildren()) do
+                    if obj:IsA("BodyVelocity") or obj:IsA("BodyGyro") or 
+                       obj:IsA("BodyPosition") or obj:IsA("BodyAngularVelocity") then
+                        obj:Destroy()
+                    end
                 end
                 
                 local currentVelocity = hrp.AssemblyVelocity
                 
-                if currentVelocity.Magnitude > 100 and not States.Speed then
-                    hrp.AssemblyVelocity = Vector3.new(0, currentVelocity.Y, 0)
+                -- Stop all high velocity movement
+                if currentVelocity.Magnitude > 50 and not States.Speed then
+                    hrp.AssemblyVelocity = Vector3.new(0, 0, 0)
+                    hrp.CFrame = CFrame.new(lastPosition)
                 end
                 
-                if math.abs(hrp.Position.Y - lastPosition.Y) > 20 then
-                    hrp.CFrame = CFrame.new(lastPosition.X, lastPosition.Y, lastPosition.Z)
+                -- Prevent vertical displacement
+                if math.abs(hrp.Position.Y - lastPosition.Y) > 5 then
+                    hrp.CFrame = CFrame.new(hrp.Position.X, lastPosition.Y, hrp.Position.Z)
                 end
                 
-                if hrp.Position.Y > lastPosition.Y + 5 and currentVelocity.Y > 50 then
-                    hrp.AssemblyVelocity = Vector3.new(currentVelocity.X, 0, currentVelocity.Z)
+                -- Update last position if movement is normal
+                if currentVelocity.Magnitude < 50 then
+                    lastPosition = hrp.Position
                 end
-                
-                lastPosition = hrp.Position
             end)
         end)
     else
@@ -1562,7 +1572,13 @@ function executeSteal()
                         foundBrainrots = foundBrainrots + 1
         
                         local success, rate = pcall(function()
-                            local brainrotModel = child:GetChildren()[1]
+                            local brainrotModel = nil
+                            for _, modelChild in pairs(child:GetChildren()) do
+                                if modelChild:IsA("Model") then
+                                    brainrotModel = modelChild
+                                    break
+                                end
+                            end
                             if not brainrotModel then 
                                 if States.DebugMode then
                                     print("[DEBUG] No child model in RenderedBrainrot")
@@ -1719,9 +1735,38 @@ function executeSteal()
                             Icon = "shield",
                         })
                     end
+                    task.wait(2)
+
+                    local allWaves = getAllWaves(hrp.Position)
+                    local waveBehind = false
+                
+                    for _, wave in ipairs(allWaves) do
+                        local distanceToWave = wave.XPosition - hrp.Position.X
+                        if distanceToWave < -10 then
+                            waveBehind = true
+                            if States.DebugMode then
+                                print(string.format("[DEBUG] Wave behind player: %.1f studs", math.abs(distanceToWave)))
+                            end
+                            break
+                        end
+                    end
+                
+                    if waveBehind then
+                        hrp.CFrame = CFrame.new(hrp.Position.X, 3, -1)
+                        task.wait(0.3)
+
+                        if States.DebugMode then
+                            WindUI:Notify({
+                                Title = "Returning to Steal",
+                                Content = "Wave passed! Going back...",
+                                Duration = 2,
+                                Icon = "repeat",
+                            })
+                        end
+                    
+                        tweenToPositionSafely(hrp, targetPos, true)
+                    end
                 end
-            else
-                tweenToPositionSafely(hrp, States.SavedStealPosition, false)
             end
         else
             if States.DebugMode then
