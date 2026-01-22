@@ -1554,9 +1554,9 @@ function executeSteal()
 
     local wasAntiTsunamiEnabled = States.AntiTsunami
     if wasAntiTsunamiEnabled then
-        toggleAntiTsunami(false)
+        States.AntiTsunami = false
         if States.DebugMode then
-            print("[DEBUG] Anti Tsunami disabled during steal")
+            print("[DEBUG] Anti Tsunami paused during steal")
         end
     end
     WindUI:Notify({
@@ -1814,7 +1814,7 @@ function executeSteal()
 
     if wasAntiTsunamiEnabled then
         task.wait(0.5)
-        toggleAntiTsunami(true)
+        States.AntiTsunami = true
         if States.DebugMode then
             print("[DEBUG] Anti Tsunami re-enabled after steal")
         end
