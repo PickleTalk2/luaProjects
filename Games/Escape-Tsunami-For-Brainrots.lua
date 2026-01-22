@@ -1729,13 +1729,52 @@ function executeSteal()
     end
     
     local targetPos = root.Position
-    local stealSuccess = tweenToPositionSafely(hrp, targetPos, true)
+
+    while States.IsStealing do
+        local currentDist = (Vector3.new(hrp.Position.X, 0, hrp.Position.Z) - Vector3.new(targetPos.X, 0, targetPos.Z)).Magnitude
+    
+        if currentDist < 15 then
+            if States.DebugMode then
+                print("[DEBUG] Reached target position")
+            end
+            break
+        end
+     
+        if hrp.Position.Y < 0 then
+            if States.DebugMode then
+                WindUI:Notify({
+                    Title = "Steal - Waiting",
+                    Content = "In gap, waiting for safe moment...",
+                    Duration = 1,
+                    Icon = "clock",
+                })
+            end
+         
+            task.wait(1)
+        
+            local nearestWave = findNearestWave(hrp.Position)
+            if nearestWave and nearestWave.Distance < 60 then
+                task.wait(1)
+                continue
+            end
+        
+            hrp.CFrame = CFrame.new(hrp.Position.X, 3, hrp.Position.Z)
+            task.wait(0.3)
+        end
+     
+        if States.DebugMode then
+            print(string.format("[DEBUG] Tweening to target (Distance: %.1f)", currentDist))
+        end
+    
+        tweenToPositionSafely(hrp, targetPos, false)
+        task.wait(0.5)
+    end
     
     if not States.IsStealing then
         return
     end
     
-    if stealSuccess then
+    if States.IsStealing then
         task.wait(0.3)
     
         local takePrompt = root:FindFirstChild("TakePrompt")
@@ -1798,7 +1837,7 @@ function executeSteal()
                             })
                         end
                     
-                        tweenToPositionSafely(hrp, targetPos, false)
+                        tweenToPositionSafely(hrp, targetPos, true)
                     end
                 end
             end
