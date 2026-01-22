@@ -1553,7 +1553,7 @@ function executeSteal()
     States.SavedStealPosition = hrp.Position
 
     local wasAntiTsunamiEnabled = States.AntiTsunami
-    if wasAntiTsunamiEnabled then
+    if not wasAntiTsunamiEnabled then
         States.AntiTsunami = false
         if States.DebugMode then
             print("[DEBUG] Anti Tsunami paused during steal")
@@ -1798,7 +1798,7 @@ function executeSteal()
                             })
                         end
                     
-                        tweenToPositionSafely(hrp, targetPos, true)
+                        tweenToPositionSafely(hrp, targetPos, false)
                     end
                 end
             end
@@ -1812,7 +1812,7 @@ function executeSteal()
     States.IsStealing = false
     States.SavedStealPosition = nil
 
-    if wasAntiTsunamiEnabled then
+    if not wasAntiTsunamiEnabled then
         task.wait(0.5)
         States.AntiTsunami = true
         if States.DebugMode then
@@ -1892,6 +1892,23 @@ local function toggleAntiTsunami(state)
                 
                 if nearestWave.Distance > 150 then return end
 
+                local waveIsBehind = false
+                if nearestWave then
+                    if playerPosition.X < nearestWave.XPosition then
+                        waveIsBehind = false
+                    else
+                        if (playerPosition.X - nearestWave.XPosition) > 10 then
+                            waveIsBehind = true
+                        end
+                    end
+                end
+
+                if waveIsBehind then
+                    if States.DebugMode then
+                        print(string.format("Wave behind player - ignoring (Player: %.1f, Wave: %.1f)", playerPosition.X, nearestWave.XPosition))
+                    end
+                    return
+                end
                 if (playerPosition.Y >= -4 and playerPosition.Y <= 2) or playerPosition.X < 152 then
                     if States.DebugMode then
                          print(string.format("In safe zone: Y=%.1f, X=%.1f", playerPosition.Y, playerPosition.X))
