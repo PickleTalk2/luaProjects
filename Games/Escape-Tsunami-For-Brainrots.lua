@@ -2373,7 +2373,7 @@ local function toggleAutoTeleport(state)
                     
                     local nearestWave = findNearestWave(currentPos)
                     
-                    if nearestWave and nearestWave.Distance < 150 then
+                    if nearestWave and nearestWave.Distance < 180 then
                         local waveIsBehind = (currentPos.X - nearestWave.XPosition) > 30
     
                         if not waveIsBehind then
@@ -2398,10 +2398,41 @@ local function toggleAutoTeleport(state)
                 
                                     tweenToGap(hrp, bestGap, isForward)
                 
-                                    task.wait(3)
-                
                                     if States.DebugMode then
-                                        print("[Auto TP] Waited 2.5s, continuing to Gap9")
+                                        print("[Auto TP] In gap, checking for wave to pass...")
+                                    end
+                                            
+                                    repeat
+                                        task.wait(0.3)
+    
+                                        if not States.AutoTeleport then
+                                            return
+                                        end
+    
+                                        local character = LocalPlayer.Character
+                                        if not character then return end
+    
+                                        local hrp = character:FindFirstChild("HumanoidRootPart")
+                                        if not hrp then return end
+    
+                                        nearestWave = findNearestWave(hrp.Position)
+    
+                                        local wavePassed = false
+                                        if not nearestWave then
+                                            wavePassed = true
+                                        elseif nearestWave.XPosition < hrp.Position.X then
+                                            wavePassed = true
+                                        end
+    
+                                        if States.DebugMode and nearestWave then
+                                            print(string.format("[Auto TP] Wave X: %.1f | Player X: %.1f | Passed: %s", 
+                                                nearestWave.XPosition, hrp.Position.X, tostring(wavePassed)))
+                                        end
+    
+                                    until wavePassed or not States.AutoTeleport
+
+                                    if States.DebugMode then
+                                        print("[Auto TP] Wave passed, continuing to Gap9")
                                     end
                                 end
                             end
