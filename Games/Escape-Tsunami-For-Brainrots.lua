@@ -2310,23 +2310,28 @@ local function teleportToLastGap()
                 local hrp = character:FindFirstChild("HumanoidRootPart")
                 if not hrp then return end
                 
-                local distance = (hrp.Position - targetPos).Magnitude
+                if hrp.Position.Y > -3 then
+                    hrp.CFrame = CFrame.new(hrp.Position.X, -3, hrp.Position.Z)
+                    task.wait(0.1)
+                end
+                
+                local distance = math.abs(hrp.Position.X - targetPos.X)
                 
                 if States.DebugMode then
                     print(string.format("[Teleport] %s - Distance: %.1f studs", gapName, distance))
                 end
                 
-                if distance < 180 then
-                    hrp.CFrame = CFrame.new(targetPos.X, targetPos.Y, targetPos.Z)
+                if distance < 220 then
+                    hrp.CFrame = CFrame.new(targetPos.X, -3, targetPos.Z)
                     if States.DebugMode then
                         print(string.format("[Teleport] Teleported to %s (close)", gapName))
                     end
                 else
-                    local tweenSpeed = 500
+                    local tweenSpeed = 800
                     local tweenTime = distance / tweenSpeed
                     
                     local tweenInfo = TweenInfo.new(tweenTime, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut)
-                    local tween = TweenService:Create(hrp, tweenInfo, {CFrame = CFrame.new(targetPos.X, 3, targetPos.Z)})
+                    local tween = TweenService:Create(hrp, tweenInfo, {CFrame = CFrame.new(targetPos.X, -3, targetPos.Z)})
                     
                     local completed = false
                     local reachedThreshold = false
@@ -2348,11 +2353,15 @@ local function teleportToLastGap()
                         local hrp = character:FindFirstChild("HumanoidRootPart")
                         if not hrp then break end
                         
-                        local currentDist = (hrp.Position - targetPos).Magnitude
+                        if hrp.Position.Y > -3 then
+                            hrp.CFrame = CFrame.new(hrp.Position.X, -3, hrp.Position.Z)
+                        end
                         
-                        if currentDist < 180 then
+                        local currentDist = math.abs(hrp.Position.X - targetPos.X)
+                        
+                        if currentDist < 220 then
                             tween:Cancel()
-                            hrp.CFrame = CFrame.new(targetPos.X, targetPos.Y, targetPos.Z)
+                            hrp.CFrame = CFrame.new(targetPos.X, -3, targetPos.Z)
                             reachedThreshold = true
                             if States.DebugMode then
                                 print(string.format("[Teleport] Teleported to %s (threshold reached)", gapName))
@@ -2361,14 +2370,14 @@ local function teleportToLastGap()
                     end
                     
                     if completed and not reachedThreshold then
-                        hrp.CFrame = CFrame.new(targetPos.X, targetPos.Y, targetPos.Z)
+                        hrp.CFrame = CFrame.new(targetPos.X, -3, targetPos.Z)
                         if States.DebugMode then
                             print(string.format("[Teleport] Teleported to %s (tween complete)", gapName))
                         end
                     end
                 end
                 
-                task.wait(0.3)
+                task.wait(0.2)
             end)
             
             if not success then
