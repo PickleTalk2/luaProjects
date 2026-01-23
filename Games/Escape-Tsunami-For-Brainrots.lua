@@ -2397,13 +2397,15 @@ local function toggleAutoTeleport(state)
                                     end
                 
                                     tweenToGap(hrp, bestGap, isForward)
-                
+
+                                    task.wait(1)
+                                            
                                     if States.DebugMode then
                                         print("[Auto TP] In gap, checking for wave to pass...")
                                     end
                                             
                                     repeat
-                                        task.wait(2)
+                                        task.wait(1.5)
     
                                         if not States.AutoTeleport then
                                             return
