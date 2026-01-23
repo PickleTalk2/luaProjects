@@ -266,8 +266,6 @@ local States = {
     IsStealing = false,
     SavedStealPosition = nil,
     CameraZoom = false,
-    AutoTeleport = false,
-    AutoTeleportActive = false,
 }
 
 local Connections = {
@@ -2256,263 +2254,141 @@ local function toggleCameraZoom(state)
     end
 end
 
-local function toggleAutoTeleport(state)
-    States.AutoTeleport = state
+local function teleportToLastGap()
+    local character = LocalPlayer.Character
+    if not character then 
+        WindUI:Notify({
+            Title = "Teleport Failed",
+            Content = "No character found!",
+            Duration = 3,
+            Icon = "x",
+        })
+        return 
+    end
     
-    if state then
-        local gap1Target = nil
-        local gap9Target = nil
-        
-        local success = pcall(function()
-            local misc = Workspace:FindFirstChild("Misc")
-            if not misc then
-                error("Misc folder not found")
-            end
-            
-            local gapsFolder = misc:FindFirstChild("Gaps")
-            if not gapsFolder then
-                error("Gaps folder not found")
-            end
-            
-            local gap1 = gapsFolder:FindFirstChild("Gap1")
-            if not gap1 then
-                error("Gap1 not found")
-            end
-            
-            local gap1Children = gap1:GetChildren()
-            if #gap1Children < 2 then
-                error("Gap1 doesn't have enough children")
-            end
-            gap1Target = gap1Children[2]
-            
-            local gap9 = gapsFolder:FindFirstChild("Gap9")
-            if not gap9 then
-                error("Gap9 not found")
-            end
-            
-            local gap9Children = gap9:GetChildren()
-            if #gap9Children < 2 then
-                error("Gap9 doesn't have enough children")
-            end
-            gap9Target = gap9Children[2]
-        end)
-        
-        if not success or not gap1Target or not gap9Target then
-            WindUI:Notify({
-                Title = "Auto Teleport Error",
-                Content = "Could not find target locations!",
-                Duration = 3,
-                Icon = "x",
-            })
-            States.AutoTeleport = false
-            return
-        end
-        
-        task.spawn(function()
-            States.AutoTeleportActive = true
-            
-            local character = LocalPlayer.Character
-            if not character then
-                States.AutoTeleportActive = false
-                return
-            end
-            
-            local hrp = character:FindFirstChild("HumanoidRootPart")
-            if not hrp then
-                States.AutoTeleportActive = false
-                return
-            end
-            
-            WindUI:Notify({
-                Title = "Auto Teleport",
-                Content = "Teleporting to Gap1...",
-                Duration = 2,
-                Icon = "navigation",
-            })
-            
-            hrp.CFrame = CFrame.new(gap1Target.Position.X, gap1Target.Position.Y, gap1Target.Position.Z)
-            task.wait(0.5)
-            
-            if not States.AutoTeleport then
-                States.AutoTeleportActive = false
-                return
-            end
-            
-            WindUI:Notify({
-                Title = "Auto Teleport",
-                Content = "Starting journey to Gap9...",
-                Duration = 3,
-                Icon = "navigation",
-            })
-            
-            local targetX = gap9Target.Position.X
-            local targetY = -8
-            local targetZ = -1
-            
-            while States.AutoTeleport and States.AutoTeleportActive do
-                local success, err = pcall(function()
-                    local character = LocalPlayer.Character
-                    if not character then return end
-                    
-                    local hrp = character:FindFirstChild("HumanoidRootPart")
-                    if not hrp then return end
-                    
-                    local currentPos = hrp.Position
-                    local distanceToTarget = math.abs(currentPos.X - targetX)
-                    
-                    if distanceToTarget < 15 then
-                        WindUI:Notify({
-                            Title = "Auto Teleport Complete",
-                            Content = "Reached Gap9!",
-                            Duration = 3,
-                            Icon = "check",
-                        })
-                        States.AutoTeleportActive = false
-                        return
-                    end
-                    
-                    local nearestWave = findNearestWave(currentPos)
-                    
-                    if nearestWave and nearestWave.Distance < 210 then
-                        local waveIsBehind = (currentPos.X - nearestWave.XPosition) > 30
+    local hrp = character:FindFirstChild("HumanoidRootPart")
+    if not hrp then 
+        WindUI:Notify({
+            Title = "Teleport Failed",
+            Content = "No HumanoidRootPart found!",
+            Duration = 3,
+            Icon = "x",
+        })
+        return 
+    end
     
-                        if not waveIsBehind then
-                            if States.CurrentTween then
-                                States.CurrentTween:Cancel()
-                                States.CurrentTween = nil
-                            end
-        
-                            if States.DebugMode then
-                                print("[Auto TP] Wave detected, finding safe gap")
-                            end
-        
-                            local gaps = getAllGaps()
-                            if #gaps > 0 then
-                                local allWaves = getAllWaves(currentPos)
-                                local bestGap, isForward = findBestGapToRetreat(currentPos, nearestWave.Position, gaps, allWaves)
-            
-                                if bestGap then
-                                    if States.DebugMode then
-                                        print(string.format("[Auto TP] Hiding in %s", bestGap.Name))
-                                    end
+    local gapSequence = {"Gap1", "Gap2", "Gap3", "Gap4", "Gap5", "Gap6", "Gap7", "Gap8", "Gap9"}
+    
+    WindUI:Notify({
+        Title = "Teleport Last Gap",
+        Content = "Starting journey through all gaps...",
+        Duration = 3,
+        Icon = "navigation",
+    })
+    
+    task.spawn(function()
+        for i, gapName in ipairs(gapSequence) do
+            local success = pcall(function()
+                local misc = Workspace:FindFirstChild("Misc")
+                if not misc then error("Misc folder not found") end
                 
-                                    tweenToGap(hrp, bestGap, isForward)
-
-                                    task.wait(2)
-                                            
-                                    if States.DebugMode then
-                                        print("[Auto TP] In gap, checking for wave to pass...")
-                                    end
-                                            
-                                    repeat
-                                        task.wait(0.2)
-    
-                                        if not States.AutoTeleport then
-                                            return
-                                        end
-    
-                                        local character = LocalPlayer.Character
-                                        if not character then return end
-    
-                                        local hrp = character:FindFirstChild("HumanoidRootPart")
-                                        if not hrp then return end
-    
-                                        nearestWave = findNearestWave(hrp.Position)
-    
-                                        local wavePassed = false
-                                        if not nearestWave then
-                                            wavePassed = true
-                                        elseif nearestWave.XPosition < hrp.Position.X then
-                                            wavePassed = true
-                                        end
-    
-                                        if States.DebugMode and nearestWave then
-                                            print(string.format("[Auto TP] Wave X: %.1f | Player X: %.1f | Passed: %s", 
-                                                nearestWave.XPosition, hrp.Position.X, tostring(wavePassed)))
-                                        end
-    
-                                    until wavePassed or not States.AutoTeleport
-
-                                    if States.DebugMode then
-                                        print("[Auto TP] Wave passed, continuing to Gap9")
-                                    end
-                                end
-                            end
-                        end
-                    end
-                    
-                    if States.AutoTeleport and hrp then
-                        local currentPos = hrp.Position
-                        local horizontalDist = math.abs(currentPos.X - targetX)
-                        
-                        if horizontalDist > 10 then
-                            local tweenSpeed = 220
-                            local tweenTime = horizontalDist / tweenSpeed
-                            
-                            local tweenInfo = TweenInfo.new(tweenTime, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut)
-                            local tween = TweenService:Create(hrp, tweenInfo, {CFrame = CFrame.new(targetX, targetY, targetZ)})
-                            
-                            States.CurrentTween = tween
-                            
-                            local completed = false
-                            tween.Completed:Connect(function(playbackState)
-                                if playbackState == Enum.PlaybackState.Completed then
-                                    completed = true
-                                end
-                                States.CurrentTween = nil
-                            end)
-                            
-                            tween:Play()
-                            
-                            while not completed and States.AutoTeleport do
-                                task.wait(0.1)
-                                
-                                local checkWave = findNearestWave(hrp.Position)
-                                if checkWave and checkWave.Distance < 80 then
-                                    local waveAhead = (checkWave.XPosition - hrp.Position.X) > -20
-                                    if waveAhead then
-                                        tween:Cancel()
-                                        States.CurrentTween = nil
-                                        if States.DebugMode then
-                                            print("[Auto TP] Wave detected during tween, canceling")
-                                        end
-                                        break
-                                    end
-                                end
-                            end
-                        end
-                    end
-                end)
+                local gapsFolder = misc:FindFirstChild("Gaps")
+                if not gapsFolder then error("Gaps folder not found") end
                 
-                if not success and States.DebugMode then
-                    warn("[Auto TP] Error:", err)
+                local gap = gapsFolder:FindFirstChild(gapName)
+                if not gap then error(gapName .. " not found") end
+                
+                local gapChildren = gap:GetChildren()
+                if #gapChildren < 2 then error(gapName .. " doesn't have enough children") end
+                
+                local targetPart = gapChildren[2]
+                local targetPos = targetPart.Position
+                
+                local character = LocalPlayer.Character
+                if not character then return end
+                
+                local hrp = character:FindFirstChild("HumanoidRootPart")
+                if not hrp then return end
+                
+                local distance = (hrp.Position - targetPos).Magnitude
+                
+                if States.DebugMode then
+                    print(string.format("[Teleport] %s - Distance: %.1f studs", gapName, distance))
                 end
                 
-                task.wait(0.5)
-            end
+                if distance < 180 then
+                    hrp.CFrame = CFrame.new(targetPos.X, targetPos.Y, targetPos.Z)
+                    if States.DebugMode then
+                        print(string.format("[Teleport] Teleported to %s (close)", gapName))
+                    end
+                else
+                    local tweenSpeed = 500
+                    local tweenTime = distance / tweenSpeed
+                    
+                    local tweenInfo = TweenInfo.new(tweenTime, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut)
+                    local tween = TweenService:Create(hrp, tweenInfo, {CFrame = CFrame.new(targetPos.X, 3, targetPos.Z)})
+                    
+                    local completed = false
+                    local reachedThreshold = false
+                    
+                    tween.Completed:Connect(function(playbackState)
+                        if playbackState == Enum.PlaybackState.Completed then
+                            completed = true
+                        end
+                    end)
+                    
+                    tween:Play()
+                    
+                    while not completed and not reachedThreshold do
+                        task.wait(0.05)
+                        
+                        local character = LocalPlayer.Character
+                        if not character then break end
+                        
+                        local hrp = character:FindFirstChild("HumanoidRootPart")
+                        if not hrp then break end
+                        
+                        local currentDist = (hrp.Position - targetPos).Magnitude
+                        
+                        if currentDist < 180 then
+                            tween:Cancel()
+                            hrp.CFrame = CFrame.new(targetPos.X, targetPos.Y, targetPos.Z)
+                            reachedThreshold = true
+                            if States.DebugMode then
+                                print(string.format("[Teleport] Teleported to %s (threshold reached)", gapName))
+                            end
+                        end
+                    end
+                    
+                    if completed and not reachedThreshold then
+                        hrp.CFrame = CFrame.new(targetPos.X, targetPos.Y, targetPos.Z)
+                        if States.DebugMode then
+                            print(string.format("[Teleport] Teleported to %s (tween complete)", gapName))
+                        end
+                    end
+                end
+                
+                task.wait(0.3)
+            end)
             
-            States.AutoTeleportActive = false
-        end)
-    else
-        States.AutoTeleportActive = false
-        
-        if States.CurrentTween then
-            States.CurrentTween:Cancel()
-            States.CurrentTween = nil
-        end
-        
-        if Connections.AutoTeleport then
-            Connections.AutoTeleport:Disconnect()
-            Connections.AutoTeleport = nil
+            if not success then
+                WindUI:Notify({
+                    Title = "Teleport Error",
+                    Content = "Failed at " .. gapName,
+                    Duration = 2,
+                    Icon = "x",
+                })
+                return
+            end
         end
         
         WindUI:Notify({
-            Title = "Auto Teleport Stopped",
-            Content = "All tweens canceled!",
-            Duration = 2,
-            Icon = "x",
+            Title = "Teleport Complete",
+            Content = "Reached Gap9!",
+            Duration = 3,
+            Icon = "check",
         })
-    end
+    end)
 end
 
 local function clearFogs()
@@ -2702,6 +2578,14 @@ local SettingsTab = Window:Tab({
     Icon = "settings",
 })
 
+local TeleportLastGapButton = MainTab:Button({
+    Title = "Teleport Last Gap",
+    Desc = "Teleport through all gaps to Gap9",
+    Callback = function()
+        teleportToLastGap()
+    end
+})
+
 local StealUIToggle = MainTab:Toggle({
     Title = "Steal Highest Button",
     Desc = "Show button to steal highest value brainrot",
@@ -2718,16 +2602,6 @@ local AntiTsunamiToggle = MainTab:Toggle({
     Default = false,
     Callback = function(state)
         toggleAntiTsunami(state)
-        saveConfiguration()
-    end
-})
-
-local AutoTeleportToggle = MainTab:Toggle({
-    Title = "Auto Teleport to Gap9",
-    Desc = "Automatically tween to Gap9 while avoiding waves",
-    Default = false,
-    Callback = function(state)
-        toggleAutoTeleport(state)
         saveConfiguration()
     end
 })
@@ -2782,7 +2656,6 @@ local SlapAuraToggle = MainTab:Toggle({
     end
 })
 
-myConfig:Register("AutoTeleport", AutoTeleportToggle)
 myConfig:Register("AutoCollect", AutoCollectToggle)
 myConfig:Register("StealUI", StealUIToggle)
 myConfig:Register("AntiSlap", AntiSlapToggle)
@@ -3153,11 +3026,5 @@ LocalPlayer.CharacterAdded:Connect(function(character)
         toggleCameraZoom(false)
         task.wait(0.1)
         toggleCameraZoom(true)
-    end
-
-    if States.AutoTeleport then
-        toggleAutoTeleport(false)
-        task.wait(0.1)
-        toggleAutoTeleport(true)
     end
 end)
