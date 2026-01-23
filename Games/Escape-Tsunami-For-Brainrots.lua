@@ -2403,7 +2403,7 @@ local function toggleAutoTeleport(state)
                                     end
                                             
                                     repeat
-                                        task.wait(0.3)
+                                        task.wait(2)
     
                                         if not States.AutoTeleport then
                                             return
