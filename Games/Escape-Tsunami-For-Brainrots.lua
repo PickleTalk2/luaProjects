@@ -2373,50 +2373,37 @@ local function toggleAutoTeleport(state)
                     
                     local nearestWave = findNearestWave(currentPos)
                     
-                    if nearestWave and nearestWave.Distance < 100 then
+                    if nearestWave and nearestWave.Distance < 150 then
                         local waveIsBehind = (currentPos.X - nearestWave.XPosition) > 20
-                        
+    
                         if not waveIsBehind then
-                            if States.DebugMode then
-                                print("[Auto TP] Wave detected, hiding in gap")
+                            if States.CurrentTween then
+                                States.CurrentTween:Cancel()
+                                States.CurrentTween = nil
                             end
-                            
+        
+                            if States.DebugMode then
+                                print("[Auto TP] Wave detected, finding safe gap")
+                            end
+        
                             local gaps = getAllGaps()
-                            local nearestGap = findNearestGap(currentPos, gaps)
-                            
-                            if nearestGap then
-                                if States.CurrentTween then
-                                    States.CurrentTween:Cancel()
-                                    States.CurrentTween = nil
+                            if #gaps > 0 then
+                                local allWaves = getAllWaves(currentPos)
+                                local bestGap, isForward = findBestGapToRetreat(currentPos, nearestWave.Position, gaps, allWaves)
+            
+                                if bestGap then
+                                    if States.DebugMode then
+                                        print(string.format("[Auto TP] Hiding in %s", bestGap.Name))
+                                    end
+                
+                                    tweenToGap(hrp, bestGap, isForward)
+                
+                                    task.wait(2.5)
+                
+                                    if States.DebugMode then
+                                        print("[Auto TP] Waited 2.5s, continuing to Gap9")
+                                    end
                                 end
-                                
-                                hrp.CFrame = CFrame.new(nearestGap.XPosition, -3, -1)
-                                
-                                repeat
-                                    task.wait(0.5)
-                                    
-                                    if not States.AutoTeleport then
-                                        return
-                                    end
-                                    
-                                    nearestWave = findNearestWave(hrp.Position)
-                                    
-                                    if nearestWave then
-                                        waveIsBehind = (hrp.Position.X - nearestWave.XPosition) > 20
-                                    else
-                                        waveIsBehind = true
-                                    end
-                                    
-                                    if States.DebugMode and nearestWave then
-                                        print(string.format("[Auto TP] Waiting for wave to pass. Wave X: %.1f, Player X: %.1f", nearestWave.XPosition, hrp.Position.X))
-                                    end
-                                until waveIsBehind or not States.AutoTeleport
-                                
-                                if States.DebugMode then
-                                    print("[Auto TP] Wave passed, continuing")
-                                end
-                                
-                                task.wait(0.5)
                             end
                         end
                     end
