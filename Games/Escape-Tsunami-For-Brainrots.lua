@@ -2374,7 +2374,7 @@ local function toggleAutoTeleport(state)
                     local nearestWave = findNearestWave(currentPos)
                     
                     if nearestWave and nearestWave.Distance < 150 then
-                        local waveIsBehind = (currentPos.X - nearestWave.XPosition) > 20
+                        local waveIsBehind = (currentPos.X - nearestWave.XPosition) > 30
     
                         if not waveIsBehind then
                             if States.CurrentTween then
@@ -2398,7 +2398,7 @@ local function toggleAutoTeleport(state)
                 
                                     tweenToGap(hrp, bestGap, isForward)
                 
-                                    task.wait(2.5)
+                                    task.wait(3)
                 
                                     if States.DebugMode then
                                         print("[Auto TP] Waited 2.5s, continuing to Gap9")
