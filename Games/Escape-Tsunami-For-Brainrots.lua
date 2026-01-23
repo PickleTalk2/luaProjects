@@ -2346,7 +2346,7 @@ local function toggleAutoTeleport(state)
             })
             
             local targetX = gap9Target.Position.X
-            local targetY = -4
+            local targetY = -6
             local targetZ = -1
             
             while States.AutoTeleport and States.AutoTeleportActive do
