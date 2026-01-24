@@ -298,97 +298,42 @@ local OldNamecallHook = nil
 local OldIndexHook = nil
 local OldNewIndexHook = nil
 
-local function findPlayerBase()
-    local success, result = pcall(function()
-        if not Workspace:FindFirstChild("Bases") then
-            return nil
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Bases = Workspace:FindFirstChild("Bases")
+
+local function getMyBase()
+    if not Bases then return nil end
+    for _, base in pairs(Bases:GetChildren()) do
+        local holder = base:GetAttribute("Holder")
+        if holder and holder == LocalPlayer.UserId then
+            return base
         end
-        
-        local bases = Workspace.Bases
-        
-        for i = 1, 5 do
-            local baseName = "Base" .. i
-            local base = bases:FindFirstChild(baseName)
-            
-            if base then
-                local titlePath = base:FindFirstChild("Title")
-                if titlePath then
-                    local titleGui = titlePath:FindFirstChild("TitleGui")
-                    if titleGui then
-                        local frame = titleGui:FindFirstChild("Frame")
-                        if frame then
-                            local playerNameLabel = frame:FindFirstChild("PlayerName")
-                            if playerNameLabel then
-                                if playerNameLabel.Text == LocalPlayer.DisplayName or 
-                                   playerNameLabel.Text == LocalPlayer.Name or
-                                   playerNameLabel.Text == "@" .. LocalPlayer.Name then
-                                    return baseName
-                                end
-                            end
-                        end
-                    end
-                end
-            end
-        end
-        
-        return nil
-    end)
-    
-    if success then
-        return result
-    else
-        warn("Error finding player base: " .. tostring(result))
-        return nil
     end
+    return nil
 end
 
 local function fireCollect()
     if not States.AutoCollect then return end
     
     pcall(function()
-        if not States.PlayerBase then
-            States.PlayerBase = findPlayerBase()
-            if not States.PlayerBase then
-                WindUI:Notify({
-                    Title = "Auto Collect",
-                    Content = "Searching for your base...",
-                    Duration = 2,
-                    Icon = "search",
-                })
-                return
-            end
-        end
-        
-        local bases = Workspace:FindFirstChild("Bases")
-        if not bases then return end
-        
-        local playerBase = bases:FindFirstChild(States.PlayerBase)
-        if not playerBase then
-            States.PlayerBase = findPlayerBase()
+        local myBase = getMyBase()
+        if not myBase then
+            States.AutoCollect = false
+            WindUI:Notify({
+                Title = "Auto Collect Error",
+                Content = "Could not find your base!",
+                Duration = 3,
+                Icon = "x",
+            })
             return
         end
         
-        local slots = playerBase:FindFirstChild("Slots")
-        if not slots then return end
-        
-        local character = LocalPlayer.Character
-        if not character then return end
-        
-        local hrp = character:FindFirstChild("HumanoidRootPart")
-        if not hrp then return end
+        local plotId = myBase.Name
+        local remote = ReplicatedStorage:WaitForChild("Packages"):WaitForChild("Net"):WaitForChild("RF/Plot.PlotAction")
         
         for i = 1, 30 do
-            local slotName = "Slot" .. i
-            local slot = slots:FindFirstChild(slotName)
-            
-            if slot then
-                local collect = slot:FindFirstChild("Collect")
-                if collect then
-                    firetouchinterest(hrp, collect, 0)
-                    task.wait(0.05)
-                    firetouchinterest(hrp, collect, 1)
-                end
-            end
+            local args = {"Collect Money", plotId, tostring(i)}
+            remote:InvokeServer(unpack(args))
         end
     end)
 end
@@ -397,9 +342,7 @@ local function toggleAutoCollect(state)
     States.AutoCollect = state
     
     if state then
-        States.PlayerBase = findPlayerBase()
-        
-        if not States.PlayerBase then
+        if not getMyBase() then
             WindUI:Notify({
                 Title = "Auto Collect Error",
                 Content = "Could not find your base!",
@@ -682,61 +625,56 @@ local function toggleInfJump(state)
     end
 end
 
+local cachedPrompts = {}
+local lastPromptScan = 0
+
+local function updatePromptCache()
+    cachedPrompts = {}
+    for _, prompt in pairs(Workspace:GetDescendants()) do
+        if prompt:IsA("ProximityPrompt") then
+            table.insert(cachedPrompts, prompt)
+        end
+    end
+end
+
 local function toggleFastInteraction(state)
     States.FastInteraction = state
     
     if state then
+        updatePromptCache()
+        
         Connections.FastInteraction = RunService.Heartbeat:Connect(function()
             if not States.FastInteraction then return end
             
-            pcall(function()
-                local playerGui = LocalPlayer:FindFirstChild("PlayerGui")
-                if playerGui then
-                    for _, gui in pairs(playerGui:GetDescendants()) do
-                        if gui:IsA("ProximityPrompt") then
-                            local isPlayerPrompt = false
-                            local parent = gui.Parent
-                            
-                            while parent do
-                                if parent:IsA("Model") and Players:GetPlayerFromCharacter(parent) then
-                                    isPlayerPrompt = true
-                                    break
-                                end
-                                parent = parent.Parent
-                            end
-                            
-                            if not isPlayerPrompt then
-                                gui.HoldDuration = 0
-                            end
+            local currentTime = tick()
+            if currentTime - lastPromptScan > 2 then
+                updatePromptCache()
+                lastPromptScan = currentTime
+            end
+            
+            for _, prompt in pairs(cachedPrompts) do
+                if prompt.Parent then
+                    local isPlayerPrompt = false
+                    local parent = prompt.Parent
+                    while parent do
+                        if parent:IsA("Model") and Players:GetPlayerFromCharacter(parent) then
+                            isPlayerPrompt = true
+                            break
                         end
+                        parent = parent.Parent
+                    end
+                    if not isPlayerPrompt then
+                        prompt.HoldDuration = 0
                     end
                 end
-                
-                for _, prompt in pairs(Workspace:GetDescendants()) do
-                    if prompt:IsA("ProximityPrompt") then
-                        local isPlayerPrompt = false
-                        local parent = prompt.Parent
-                        
-                        while parent do
-                            if parent:IsA("Model") and Players:GetPlayerFromCharacter(parent) then
-                                isPlayerPrompt = true
-                                break
-                            end
-                            parent = parent.Parent
-                        end
-                        
-                        if not isPlayerPrompt then
-                            prompt.HoldDuration = 0
-                        end
-                    end
-                end
-            end)
+            end
         end)
     else
         if Connections.FastInteraction then
             Connections.FastInteraction:Disconnect()
             Connections.FastInteraction = nil
         end
+        cachedPrompts = {}
     end
 end
 
@@ -1632,15 +1570,15 @@ local function toggleAntiTsunami(state)
                 Icon = "shield",
             })
         end
-        
-        local lastMoveTime = 0
-        
+    
+        local lastAntiTsunamiCheck = 0
         Connections.AntiTsunami = RunService.Heartbeat:Connect(function()
             if not States.AntiTsunami then return end
             
             local currentTime = tick()
-            if currentTime - lastMoveTime < 0.5 then return end
-            
+            if currentTime - lastAntiTsunamiCheck < 0.2 then return end
+            lastAntiTsunamiCheck = currentTime
+                
             local success, err = pcall(function()
                 local character = LocalPlayer.Character
                 if not character then 
@@ -1832,6 +1770,7 @@ local function toggleGodMode(state)
         Connections.WaveMonitor = RunService.Heartbeat:Connect(function()
             if States.GodMode then
                 disableWaveHitboxes()
+                task.wait(0.4)
             end
         end)
     else
