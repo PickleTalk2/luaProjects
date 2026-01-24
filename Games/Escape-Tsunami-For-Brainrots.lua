@@ -267,6 +267,11 @@ local States = {
     SavedStealPosition = nil,
     CameraZoom = false,
     SavedButtonPosition = nil,
+    ESPCelestial = false,
+    ESPLuckyBlockSecret = false,
+    ESPLuckyBlockCosmic = false,
+    ESPLuckyBlockNormal = false,
+    AutoFarmCelestial = false,
 }
 
 local Connections = {
@@ -286,6 +291,11 @@ local Connections = {
     AutoCollect = nil,
     CameraZoom = nil,
     AutoTeleport = nil,
+    ESPCelestial = nil,
+    ESPLuckyBlockSecret = nil,
+    ESPLuckyBlockCosmic = nil,
+    ESPLuckyBlockNormal = nil,
+    AutoFarmCelestial = nil,
 }
 
 local LowGFXStorage = {
@@ -366,92 +376,104 @@ local function toggleAutoCollect(state)
     end
 end
 
-local function collectAllRadioactiveCoins()
-    local character = LocalPlayer.Character
-    if not character then
-        WindUI:Notify({
-            Title = "Collect Coins Failed",
-            Content = "No character found!",
-            Duration = 3,
-            Icon = "x",
-        })
-        return
-    end
+local ESPObjects = {}
+
+local function createESP(part, text, color)
+    if not part or not part:IsA("BasePart") then return end
     
-    local hrp = character:FindFirstChild("HumanoidRootPart")
-    if not hrp then
-        WindUI:Notify({
-            Title = "Collect Coins Failed",
-            Content = "No HumanoidRootPart found!",
-            Duration = 3,
-            Icon = "x",
-        })
-        return
-    end
-    
-    local eventParts = Workspace:FindFirstChild("EventParts")
-    if not eventParts then
-        WindUI:Notify({
-            Title = "Collect Coins Failed",
-            Content = "No EventParts folder found!",
-            Duration = 3,
-            Icon = "x",
-        })
-        return
-    end
-    
-    local coins = {}
-    for _, model in pairs(eventParts:GetChildren()) do
-        if model:IsA("Model") and model.Name == "Radioactive Coin" then
-            local coinPart = model:FindFirstChild("Radioactive Coin")
-            if coinPart and coinPart:IsA("MeshPart") then
-                local touchInterest = coinPart:FindFirstChild("TouchInterest")
-                if touchInterest then
-                    table.insert(coins, coinPart)
-                end
-            end
+    local billboardGui = Instance.new("BillboardGui")
+    billboardGui.Name = "ESP_" .. text
+    billboardGui.Adornee = part
+    billboardGui.Size = UDim2.new(0, 200, 0, 50)
+    billboardGui.StudsOffset = Vector3.new(0, 3, 0)
+    billboardGui.AlwaysOnTop = true
+    billboardGui.Parent = part
+
+    local textLabel = Instance.new("TextLabel")
+    textLabel.Size = UDim2.new(1, 0, 1, 0)
+    textLabel.BackgroundTransparency = 1
+    textLabel.Text = text
+    textLabel.TextColor3 = color
+    textLabel.TextSize = 18
+    textLabel.Font = Enum.Font.GothamBold
+    textLabel.TextStrokeTransparency = 0
+    textLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
+    textLabel.Parent = billboardGui
+
+    table.insert(ESPObjects, billboardGui)
+    return billboardGui
+end
+
+local function clearESP()
+    for _, esp in pairs(ESPObjects) do
+        if esp and esp.Parent then
+            esp:Destroy()
         end
     end
+    ESPObjects = {}
+end
+
+local function toggleESPCelestial(state)
+    States.ESPCelestial = state
     
-    if #coins == 0 then
-        WindUI:Notify({
-            Title = "Collect Coins",
-            Content = "No radioactive coins found!",
-            Duration = 3,
-            Icon = "x",
-        })
-        return
-    end
-    
-    WindUI:Notify({
-        Title = "Collect Coins",
-        Content = string.format("Collecting %d coins...", #coins),
-        Duration = 2,
-        Icon = "zap",
-    })
-    
-    local originalPos = hrp.CFrame
-    hrp.Anchored = true
-    
-    for i, coin in ipairs(coins) do
-        pcall(function()
-            hrp.CFrame = coin.CFrame
-            task.wait(0.05)
-            firetouchinterest(hrp, coin, 0)
-            task.wait(0.05)
-            firetouchinterest(hrp, coin, 1)
+    if state then
+        Connections.ESPCelestial = RunService.Heartbeat:Connect(function()
+            if not States.ESPCelestial then return end
+            
+            pcall(function()
+                local activeBrainrots = Workspace:FindFirstChild("ActiveBrainrots")
+                if not activeBrainrots then return end
+                
+                local celestialFolder = activeBrainrots:FindFirstChild("Celestial")
+                if not celestialFolder then return end
+                
+                local renderedBrainrot = celestialFolder:FindFirstChild("RenderedBrainrot")
+                if not renderedBrainrot then return end
+                
+                local root = renderedBrainrot:FindFirstChild("Root")
+                if root and not root:FindFirstChild("ESP_Celestial Brainrot") then
+                    createESP(root, "Celestial Brainrot", Color3.fromRGB(255, 215, 0))
+                end
+            end)
         end)
+    else
+        if Connections.ESPCelestial then
+            Connections.ESPCelestial:Disconnect()
+            Connections.ESPCelestial = nil
+        end
+        clearESP()
     end
+end
+
+local function toggleESPLuckyBlock(state, blockType)
+    local connectionName = "ESPLuckyBlock" .. blockType
+    States[connectionName] = state
     
-    hrp.CFrame = originalPos
-    hrp.Anchored = false
-    
-    WindUI:Notify({
-        Title = "Collect Complete",
-        Content = string.format("Collected %d radioactive coins!", #coins),
-        Duration = 3,
-        Icon = "check",
-    })
+    if state then
+        Connections[connectionName] = RunService.Heartbeat:Connect(function()
+            if not States[connectionName] then return end
+            
+            pcall(function()
+                local activeLuckyBlocks = Workspace:FindFirstChild("ActiveLuckyBlocks")
+                if not activeLuckyBlocks then return end
+                
+                for _, block in pairs(activeLuckyBlocks:GetChildren()) do
+                    if block:IsA("Model") and block.Name == "GlobalLuckyBlock_" .. blockType then
+                        local primary = block.PrimaryPart or block:FindFirstChildWhichIsA("BasePart")
+                        if primary and not primary:FindFirstChild("ESP_" .. blockType .. " Lucky Block") then
+                            createESP(primary, blockType .. " Lucky Block", Color3.fromRGB(0, 255, 255))
+                        end
+                    end
+                end
+            end)
+        end)
+    else
+        if Connections[connectionName] then
+            Connections[connectionName]:Disconnect()
+            Connections[connectionName] = nil
+        end
+        clearESP()
+    end
 end
 
 local function disableWaveHitboxes()
@@ -1451,7 +1473,6 @@ function executeCelestialSteal()
     end
     
     States.IsStealing = true
-    
     local stealingTextGui = createStealingText()
     
     WindUI:Notify({
@@ -1462,78 +1483,65 @@ function executeCelestialSteal()
     })
     
     task.spawn(function()
+        local waypoints = {
+            {X = 140, Y = 3, Z = 77},
+            {X = 240, Y = 3, Z = 77},
+            {X = 341, Y = 3, Z = 77},
+            {X = 470, Y = 3, Z = 77},
+            {X = 676, Y = 3, Z = 77},
+            {X = 760, Y = 66, Z = 65},
+            {X = 876, Y = 3, Z = 77},
+            {X = 948, Y = 3, Z = 77},
+            {X = 1073, Y = 66, Z = 65},
+            {X = 1257, Y = 3, Z = 77},
+            {X = 1364, Y = 3, Z = 77},
+            {X = 1536, Y = 66, Z = 65},
+            {X = 1812, Y = 3, Z = 77},
+            {X = 1884, Y = 3, Z = 77},
+            {X = 2226, Y = 66, Z = 65},
+            {X = 2276, Y = 66, Z = 65},
+            {X = 2581, Y = 66, Z = 65},
+            {X = 2605, Y = -3, Z = -1}
+        }
+        
         local currentPos = hrp.Position
+        local nearestIndex = 1
+        local nearestDist = math.huge
         
-        hrp.CFrame = CFrame.new(currentPos.X, 65, currentPos.Z)
-        hrp.Anchored = true
-        
-        local humanoid = character:FindFirstChildOfClass("Humanoid")
-        if humanoid then
-            humanoid:Move(Vector3.new(0, 0, -1))
-        end
-        
-        local celestialX = celestialRoot.Position.X
-        local celestialZ = celestialRoot.Position.Z
-        local distanceToCelestial = math.abs(currentPos.X - celestialX)
-        
-        local tweenSpeed = 220
-        local tweenTime = distanceToCelestial / tweenSpeed
-        
-        local tweenInfo = TweenInfo.new(tweenTime, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut)
-        local tween = TweenService:Create(hrp, tweenInfo, {CFrame = CFrame.new(celestialX, 65, celestialZ)})
-            
-        local tweenCompleted = false
-        tween.Completed:Connect(function()
-            tweenCompleted = true
-        end)
-        
-        tween:Play()
-        
-        while not tweenCompleted do
-            if humanoid then
-                humanoid:Move(Vector3.new(0, 0, -1))
+        for i, wp in ipairs(waypoints) do
+            local dist = (Vector3.new(wp.X, wp.Y, wp.Z) - currentPos).Magnitude
+            if dist < nearestDist then
+                nearestDist = dist
+                nearestIndex = i
             end
-            task.wait(0.03)
         end
-
-        task.wait(0.05)
-        hrp.Anchored = false
+        
+        for i = nearestIndex, #waypoints do
+            pcall(function()
+                hrp.CFrame = CFrame.new(waypoints[i].X, waypoints[i].Y, waypoints[i].Z)
+                task.wait(0.05)
+            end)
+        end
+        
+        task.wait(0.1)
         hrp.CFrame = celestialRoot.CFrame
-        task.wait(0.05)
+        task.wait(0.1)
+        
         local takePrompt = celestialRoot:FindFirstChild("TakePrompt")
         if takePrompt and takePrompt:IsA("ProximityPrompt") then
             fireproximityprompt(takePrompt)
         end
-        task.wait(0.05)
-        hrp.CFrame = CFrame.new(celestialX, 65, celestialZ)
-        task.wait(0.1)
-        local distanceToReturn = math.abs(celestialX - 120)
-        local returnTweenSpeed = 220
-        local returnTweenTime = distanceToReturn / returnTweenSpeed
         
-        local returnTweenInfo = TweenInfo.new(returnTweenTime, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut)
-        local returnTween = TweenService:Create(hrp, returnTweenInfo, {CFrame = CFrame.new(120, 65, -1)})
+        task.wait(0.2)
         
-        local returnTweenCompleted = false
-        returnTween.Completed:Connect(function()
-            returnTweenCompleted = true
-        end)
-        
-        returnTween:Play()
-        
-        while not returnTweenCompleted do
-            if humanoid then
-                humanoid:Move(Vector3.new(0, 0, -1))
-            end
-            task.wait(0.03)
+        for i = #waypoints, 1, -1 do
+            pcall(function()
+                hrp.CFrame = CFrame.new(waypoints[i].X, waypoints[i].Y, waypoints[i].Z)
+                task.wait(0.05)
+            end)
         end
         
-        task.wait(0.05)
-        hrp.CFrame = CFrame.new(120, 3, -1)
-        Anchored = false
-        if humanoid then
-            humanoid:Move(Vector3.new(0, 0, 0))
-        end
+        hrp.CFrame = CFrame.new(waypoints[1].X, waypoints[1].Y, waypoints[1].Z)
         
         removeStealingText()
         States.IsStealing = false
@@ -1555,6 +1563,34 @@ local function toggleStealUI(state)
     else
         removeStealButton()
         States.IsStealing = false
+    end
+end
+
+local function toggleAutoFarmCelestial(state)
+    States.AutoFarmCelestial = state
+    
+    if state then
+        Connections.AutoFarmCelestial = RunService.Heartbeat:Connect(function()
+            if not States.AutoFarmCelestial or States.IsStealing then return end
+            
+            pcall(function()
+                local activeBrainrots = Workspace:FindFirstChild("ActiveBrainrots")
+                if not activeBrainrots then return end
+                
+                local celestialFolder = activeBrainrots:FindFirstChild("Celestial")
+                if not celestialFolder then return end
+                
+                local renderedBrainrot = celestialFolder:FindFirstChild("RenderedBrainrot")
+                if renderedBrainrot and renderedBrainrot:FindFirstChild("Root") then
+                    executeCelestialSteal()
+                end
+            end)
+        end)
+    else
+        if Connections.AutoFarmCelestial then
+            Connections.AutoFarmCelestial:Disconnect()
+            Connections.AutoFarmCelestial = nil
+        end
     end
 end
 
@@ -2392,9 +2428,9 @@ local MainTab = Window:Tab({
     Icon = "home",
 })
 
-local RadioactiveEventTab= Window:Tab({
-    Title = "Radioactive Event",
-    Icon = "home",
+local VisualTab = Window:Tab({
+    Title = "Visual",
+    Icon = "eye",
 })
 
 local PlayerTab = Window:Tab({
@@ -2420,6 +2456,16 @@ local MiscTab = Window:Tab({
 local SettingsTab = Window:Tab({
     Title = "Settings",
     Icon = "settings",
+})
+
+local AutoFarmCelestialToggle = MainTab:Toggle({
+    Title = "Auto Farm Celestial",
+    Desc = "Automatically steal Celestial when it spawns",
+    Default = false,
+    Callback = function(state)
+        toggleAutoFarmCelestial(state)
+        saveConfiguration()
+    end
 })
 
 local TeleportLastGapButton = MainTab:Button({
@@ -2490,6 +2536,7 @@ local SlapAuraToggle = MainTab:Toggle({
     end
 })
 
+myConfig:Register("AutoFarmCelestial", AutoFarmCelestialToggle)
 myConfig:Register("AutoCollect", AutoCollectToggle)
 myConfig:Register("StealUI", StealUIToggle)
 myConfig:Register("AntiSlap", AntiSlapToggle)
@@ -2497,13 +2544,39 @@ myConfig:Register("SlapAura", SlapAuraToggle)
 myConfig:Register("AntiTsunami", AntiTsunamiToggle)
 myConfig:Register("FastInteraction", FastInteractionToggle)
 
-local CollectRadioactiveButton = RadioactiveEventTab:Button({
-    Title = "Collect All Radioactive Coins",
-    Desc = "Auto collect all radioactive coins",
-    Callback = function()
-        collectAllRadioactiveCoins()
+local ESPCelestialToggle = VisualTab:Toggle({
+    Title = "ESP Celestial",
+    Desc = "Show ESP for Celestial brainrot",
+    Default = false,
+    Callback = function(state)
+        toggleESPCelestial(state)
+        saveConfiguration()
     end
 })
+
+local ESPSecretToggle = VisualTab:Toggle({
+    Title = "ESP Secret Lucky Block",
+    Desc = "Show ESP for Secret lucky blocks",
+    Default = false,
+    Callback = function(state)
+        toggleESPLuckyBlock(state, "Secret")
+        saveConfiguration()
+    end
+})
+
+local ESPCosmicToggle = VisualTab:Toggle({
+    Title = "ESP Cosmic Lucky Block",
+    Desc = "Show ESP for Cosmic lucky blocks",
+    Default = false,
+    Callback = function(state)
+        toggleESPLuckyBlock(state, "Cosmic")
+        saveConfiguration()
+    end
+})
+
+myConfig:Register("ESPCelestial", ESPCelestialToggle)
+myConfig:Register("ESPSecret", ESPSecretToggle)
+myConfig:Register("ESPCosmic", ESPCosmicToggle)
 
 local GodModeToggle = PlayerTab:Toggle({
     Title = "God Mode",
