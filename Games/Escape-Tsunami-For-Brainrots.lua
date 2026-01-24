@@ -402,7 +402,7 @@ local function collectAllRadioactiveCoins()
     
     local coins = {}
     for _, model in pairs(eventParts:GetChildren()) do
-        if model:IsA("Model") and model.Name == "RadioactiveCoin" then
+        if model:IsA("Model") and model.Name == "Radioactive Coin" then
             local coinPart = model:FindFirstChild("Radioactive Coin")
             if coinPart and coinPart:IsA("MeshPart") then
                 local touchInterest = coinPart:FindFirstChild("TouchInterest")
