@@ -1526,7 +1526,7 @@ function executeCelestialSteal()
     
     local distance = (hrp.Position - celestialRoot.Position).Magnitude
     
-    if distance > 400 then
+    if distance > 280 then
         WindUI:Notify({
             Title = "Steal Celestial",
             Content = "You must be on celestial area on gap to do this!",
@@ -2157,8 +2157,11 @@ local function teleportToLastGap()
         {X = 649, Y = 3, Z = 75},
         {X = 876, Y = 3, Z = 75},
         {X = 948, Y = 3, Z = 75},
+        {X = 1073, Y = -3, Z = 65},
+        {X = 1257, Y = 3, Z = 75},
         {X = 1364, Y = 3, Z = 75},
-        {X = 1565, Y = -3, Z = 65},
+        {X = 1536, Y = -3, Z = 65},
+        {X = 1812, Y = 3, Z = 75},
         {X = 1884, Y = 3, Z = 75},
         {X = 2226, Y = -3, Z = 65},
         {X = 2276, Y = -3, Z = 65},
