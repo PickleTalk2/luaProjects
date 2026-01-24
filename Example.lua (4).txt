@@ -236,13 +236,6 @@ end
 
 local function loadConfiguration()
     myConfig:Load()
-    
-    WindUI:Notify({
-        Title = "Configuration Loaded",
-        Content = "All your saved settings have been loaded!",
-        Duration = 3,
-        Icon = "download",
-    })
 end
 
 local function changeTheme(themeName)
