@@ -266,6 +266,7 @@ local States = {
     IsStealing = false,
     SavedStealPosition = nil,
     CameraZoom = false,
+    SavedButtonPosition = nil,
 }
 
 local Connections = {
@@ -773,7 +774,7 @@ local function createStealButton()
     local button = Instance.new("TextButton")
     button.Name = "StealButton"
     button.Size = UDim2.new(0, 200, 0, 70)
-    button.Position = UDim2.new(0.5, -100, 0.85, -35)
+    button.Position = States.SavedButtonPosition or UDim2.new(1, -220, 0, 20)
     button.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
     button.Text = ""
     button.BorderSizePixel = 0
@@ -870,15 +871,17 @@ local function createStealButton()
         if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
             if dragging and dragStart then
                 local delta = input.Position - dragStart
-                
+            
                 if delta.Magnitude > 5 then
                     hasMoved = true
-                    button.Position = UDim2.new(
+                    local newPos = UDim2.new(
                         startPos.X.Scale,
                         startPos.X.Offset + delta.X,
                         startPos.Y.Scale,
                         startPos.Y.Offset + delta.Y
                     )
+                    button.Position = newPos
+                    States.SavedButtonPosition = newPos
                 end
             end
         end
@@ -2801,7 +2804,13 @@ MainTab:Select()
 
 LocalPlayer.CharacterAdded:Connect(function(character)
     task.wait(1)
-    
+
+    if States.IsStealing then
+        States.IsStealing = false
+        States.SavedStealPosition = nil
+        removeStealingText()
+    end
+        
     if States.GodMode then
         setupGodModeForCharacter(character)
     end
