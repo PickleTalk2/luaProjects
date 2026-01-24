@@ -1440,7 +1440,6 @@ function executeCelestialSteal()
         
         hrp.CFrame = CFrame.new(currentPos.X, 65, currentPos.Z)
         hrp.Anchored = true
-        task.wait(0.1)
         
         local humanoid = character:FindFirstChildOfClass("Humanoid")
         if humanoid then
@@ -1451,7 +1450,7 @@ function executeCelestialSteal()
         local celestialZ = celestialRoot.Position.Z
         local distanceToCelestial = math.abs(currentPos.X - celestialX)
         
-        local tweenSpeed = 210
+        local tweenSpeed = 220
         local tweenTime = distanceToCelestial / tweenSpeed
         
         local tweenInfo = TweenInfo.new(tweenTime, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut)
@@ -1471,21 +1470,17 @@ function executeCelestialSteal()
             task.wait(0.03)
         end
         
-        task.wait(0.05)
         hrp.CFrame = celestialRoot.CFrame
-        task.wait(0.05)
         
         local takePrompt = celestialRoot:FindFirstChild("TakePrompt")
         if takePrompt and takePrompt:IsA("ProximityPrompt") then
             fireproximityprompt(takePrompt)
         end
         
-        task.wait(0.05)
         hrp.CFrame = CFrame.new(celestialX, 65, celestialZ)
-        task.wait(0.1)
         
         local distanceToReturn = math.abs(celestialX - 120)
-        local returnTweenSpeed = 250
+        local returnTweenSpeed = 220
         local returnTweenTime = distanceToReturn / returnTweenSpeed
         
         local returnTweenInfo = TweenInfo.new(returnTweenTime, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut)
@@ -2125,8 +2120,8 @@ local function teleportToLastGap()
             task.wait(0.03)
         end
         
-        task.wait(0.05)
-        hrp.CFrame = CFrame.new(2605, -3, -1)
+        task.wait(2)
+        hrp.CFrame = CFrame.new(2605, -4, -1)
         hrp.Anchored = false
         
         if humanoid then
