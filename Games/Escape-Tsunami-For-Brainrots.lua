@@ -1512,8 +1512,11 @@ function executeCelestialSteal()
         
         for i = nearestIndex, #waypoints do
             pcall(function()
+                humanoid:Move(Vector3.new(2, 0, 0), true)
+                task.wait(0.1)
+                humanoid:Move(Vector3.zero, true)
                 hrp.CFrame = CFrame.new(waypoints[i].X, waypoints[i].Y, waypoints[i].Z)
-                task.wait(0.18)
+                task.wait(0.13)
             end)
         end
         
@@ -1530,8 +1533,11 @@ function executeCelestialSteal()
         
         for i = #waypoints, 1, -1 do
             pcall(function()
+                humanoid:Move(Vector3.new(2, 0, 0), true)
+                task.wait(0.1)
+                humanoid:Move(Vector3.zero, true)
                 hrp.CFrame = CFrame.new(waypoints[i].X, waypoints[i].Y, waypoints[i].Z)
-                task.wait(0.18)
+                task.wait(0.13)
             end)
         end
         
@@ -2216,14 +2222,16 @@ local function teleportToLastGap()
                 
                 local hrp = character:FindFirstChild("HumanoidRootPart")
                 if not hrp then return end
-                
+                humanoid:Move(Vector3.new(2, 0, 0), true)
+                task.wait(0.1)
+                humanoid:Move(Vector3.zero, true)
                 hrp.CFrame = CFrame.new(waypoint.X, waypoint.Y, waypoint.Z)
                 
                 if States.DebugMode then
                     print(string.format("[Celestial TP] Waypoint %d: X=%.1f, Y=%.1f, Z=%.1f", i, waypoint.X, waypoint.Y, waypoint.Z))
                 end
                 
-                task.wait(0.18)
+                task.wait(0.13)
             end)
             
             if not success then
