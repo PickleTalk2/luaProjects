@@ -2126,7 +2126,7 @@ local function teleportToLastGap()
     loadingText.Size = UDim2.new(0, 600, 0, 100)
     loadingText.Position = UDim2.new(0.5, -300, 0.5, -50)
     loadingText.BackgroundTransparency = 1
-    loadingText.Text = "TELEPORTING TO CELESTIAL AREA"
+    loadingText.Text = "TELEPORTING TO CELESTIAL AREA (1-3 tries)"
     loadingText.TextColor3 = Color3.fromRGB(80, 255, 120)
     loadingText.TextSize = 32
     loadingText.Font = Enum.Font.GothamBold
