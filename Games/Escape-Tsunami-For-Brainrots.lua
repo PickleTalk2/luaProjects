@@ -2092,36 +2092,41 @@ local function teleportToLastGap()
         local currentPos = hrp.Position
         
         hrp.CFrame = CFrame.new(currentPos.X, 65, -1)
-        hrp.Anchored = true
         task.wait(0.1)
-        
+
         if humanoid then
+            humanoid:ChangeState(Enum.HumanoidStateType.Physics)
             humanoid:Move(Vector3.new(0, 0, -1))
         end
-        
+
         local distanceToCelestial = math.abs(currentPos.X - 2605)
         local tweenSpeed = 250
         local tweenTime = distanceToCelestial / tweenSpeed
-        
+
         local tweenInfo = TweenInfo.new(tweenTime, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut)
         local tween = TweenService:Create(hrp, tweenInfo, {CFrame = CFrame.new(2605, 65, -1)})
-        
+
         local tweenCompleted = false
         tween.Completed:Connect(function()
             tweenCompleted = true
         end)
-        
+
         tween:Play()
         
         while not tweenCompleted do
+            hrp.CFrame = hrp.CFrame + Vector3.new(0, 0.1, 0)
             if humanoid then
                 humanoid:Move(Vector3.new(0, 0, -1))
             end
             task.wait(0.03)
         end
-        
-        task.wait(0.1)
-        hrp.Anchored = false
+
+        task.wait(0.2)
+        hrp.CFrame = CFrame.new(2605, -4, -1)
+
+        if humanoid then
+            humanoid:ChangeState(Enum.HumanoidStateType.Running)
+        end
         hrp.CFrame = CFrame.new(2605, -4, -1)
         
         if humanoid then
