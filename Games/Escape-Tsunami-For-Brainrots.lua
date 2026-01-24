@@ -652,118 +652,6 @@ local function toggleFastInteraction(state)
     end
 end
 
-local function createDodgeButton()
-    local screenGui = Instance.new("ScreenGui")
-    screenGui.Name = "ManualDodgeUI"
-    screenGui.ResetOnSpawn = false
-    screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-    screenGui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
-
-    local button = Instance.new("TextButton")
-    button.Name = "DodgeButton"
-    button.Size = UDim2.new(0, 56, 0, 56)
-    button.Position = UDim2.new(0.5, -28, 0.83, -28)
-    button.BackgroundColor3 = Color3.fromRGB(255, 60, 120)
-    button.Text = "D"
-    button.TextColor3 = Color3.fromRGB(255, 255, 255)
-    button.TextSize = 22
-    button.Font = Enum.Font.GothamBold
-    button.BorderSizePixel = 0
-    button.AutoButtonColor = false
-    button.Parent = screenGui
-
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(1, 0)
-    corner.Parent = button
-
-    local stroke = Instance.new("UIStroke")
-    stroke.Color = Color3.fromRGB(255, 255, 255)
-    stroke.Thickness = 1.5
-    stroke.Transparency = 0.2
-    stroke.Parent = button
-
-    local shadow = Instance.new("Frame")
-    shadow.Size = UDim2.new(1, 0, 1, 0)
-    shadow.Position = UDim2.new(0, 2, 0, 2)
-    shadow.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-    shadow.BackgroundTransparency = 0.7
-    shadow.ZIndex = 0
-    shadow.Parent = button
-
-    local shadowCorner = Instance.new("UICorner")
-    shadowCorner.CornerRadius = UDim.new(1, 0)
-    shadowCorner.Parent = shadow
-    
-    local dragging = false
-    local dragStart = nil
-    local startPos = nil
-    local hasMoved = false
-    
-    button.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = true
-            dragStart = input.Position
-            startPos = button.Position
-            hasMoved = false
-            
-            input.Changed:Connect(function()
-                if input.UserInputState == Enum.UserInputState.End then
-                    dragging = false
-                    
-                    if not hasMoved then
-                        local character = LocalPlayer.Character
-                        if character then
-                            local hrp = character:FindFirstChild("HumanoidRootPart")
-                            if hrp then
-                                local teleportPosition = hrp.Position + Vector3.new(165, 0, 0)
-                                hrp.CFrame = CFrame.new(teleportPosition)
-                            end
-                        end
-                    end
-                end
-            end)
-        end
-    end)
-    
-    button.InputChanged:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-            if dragging and dragStart then
-                local delta = input.Position - dragStart
-                
-                if delta.Magnitude > 5 then
-                    hasMoved = true
-                    button.Position = UDim2.new(
-                        startPos.X.Scale,
-                        startPos.X.Offset + delta.X,
-                        startPos.Y.Scale,
-                        startPos.Y.Offset + delta.Y
-                    )
-                end
-            end
-        end
-    end)
-    
-    screenGui.Parent = LocalPlayer:FindFirstChild("PlayerGui")
-    States.DodgeButton = screenGui
-end
-
-local function removeDodgeButton()
-    if States.DodgeButton then
-        States.DodgeButton:Destroy()
-        States.DodgeButton = nil
-    end
-end
-
-local function toggleManualDodge(state)
-    States.ManualDodge = state
-    
-    if state then
-        createDodgeButton()
-    else
-        removeDodgeButton()
-    end
-end
-
 local function createStealButton()
     local screenGui = Instance.new("ScreenGui")
     screenGui.Name = "StealCelestialUI"
@@ -1551,6 +1439,7 @@ function executeCelestialSteal()
         local currentPos = hrp.Position
         
         hrp.CFrame = CFrame.new(currentPos.X, 65, currentPos.Z)
+        hrp.Anchored = true
         task.wait(0.1)
         
         local humanoid = character:FindFirstChildOfClass("Humanoid")
@@ -1562,7 +1451,7 @@ function executeCelestialSteal()
         local celestialZ = celestialRoot.Position.Z
         local distanceToCelestial = math.abs(currentPos.X - celestialX)
         
-        local tweenSpeed = 250
+        local tweenSpeed = 210
         local tweenTime = distanceToCelestial / tweenSpeed
         
         local tweenInfo = TweenInfo.new(tweenTime, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut)
@@ -1618,7 +1507,7 @@ function executeCelestialSteal()
         
         task.wait(0.05)
         hrp.CFrame = CFrame.new(120, 3, -1)
-        
+        Anchored = false
         if humanoid then
             humanoid:Move(Vector3.new(0, 0, 0))
         end
@@ -2200,26 +2089,7 @@ local function teleportToLastGap()
         return 
     end
     
-    local celestialWaypoints = {
-        {X = 140, Y = 3, Z = 78},
-        {X = 240, Y = 3, Z = 78},
-        {X = 341, Y = 3, Z = 78},
-        {X = 470, Y = 3, Z = 78},
-        {X = 676, Y = 3, Z = 78},
-        {X = 760, Y = 65, Z = 65},
-        {X = 876, Y = 3, Z = 78},
-        {X = 948, Y = 3, Z = 78},
-        {X = 1073, Y = 65, Z = 65},
-        {X = 1257, Y = 3, Z = 78},
-        {X = 1364, Y = 3, Z = 78},
-        {X = 1536, Y = 65, Z = 65},
-        {X = 1812, Y = 3, Z = 78},
-        {X = 1884, Y = 3, Z = 78},
-        {X = 2226, Y = 65, Z = 65},
-        {X = 2276, Y = 65, Z = 65},
-        {X = 2581, Y = 65, Z = 65},
-        {X = 2605, Y = -3, Z = -1}
-    }
+    local humanoid = character:FindFirstChildOfClass("Humanoid")
     
     local loadingGui = Instance.new("ScreenGui")
     loadingGui.Name = "CelestialLoadingScreen"
@@ -2266,32 +2136,43 @@ local function teleportToLastGap()
     textTween:Play()
     
     task.spawn(function()
-        for i, waypoint in ipairs(celestialWaypoints) do
-            local success = pcall(function()
-                local character = LocalPlayer.Character
-                if not character then return end
-                
-                local hrp = character:FindFirstChild("HumanoidRootPart")
-                if not hrp then return end
-                
-                hrp.CFrame = CFrame.new(waypoint.X, waypoint.Y, waypoint.Z)
-                
-                if States.DebugMode then
-                    print(string.format("[Celestial TP] Waypoint %d: X=%.1f, Y=%.1f, Z=%.1f", i, waypoint.X, waypoint.Y, waypoint.Z))
-                end
-                
-                task.wait(0.1)
-            end)
-            
-            if not success then
-                WindUI:Notify({
-                    Title = "Teleport Error",
-                    Content = string.format("Failed at waypoint %d", i),
-                    Duration = 2,
-                    Icon = "x",
-                })
-                return
+        local currentPos = hrp.Position
+        
+        hrp.CFrame = CFrame.new(currentPos.X, 65, -1)
+        hrp.Anchored = true
+        task.wait(0.1)
+        
+        if humanoid then
+            humanoid:Move(Vector3.new(0, 0, -1))
+        end
+        
+        local distanceToCelestial = math.abs(currentPos.X - 2605)
+        local tweenSpeed = 210
+        local tweenTime = distanceToCelestial / tweenSpeed
+        
+        local tweenInfo = TweenInfo.new(tweenTime, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut)
+        local tween = TweenService:Create(hrp, tweenInfo, {CFrame = CFrame.new(2605, 65, -1)})
+        
+        local tweenCompleted = false
+        tween.Completed:Connect(function()
+            tweenCompleted = true
+        end)
+        
+        tween:Play()
+        
+        while not tweenCompleted do
+            if humanoid then
+                humanoid:Move(Vector3.new(0, 0, -1))
             end
+            task.wait(0.03)
+        end
+        
+        task.wait(0.05)
+        hrp.CFrame = CFrame.new(2605, -3, -1)
+        hrp.Anchored = false
+        
+        if humanoid then
+            humanoid:Move(Vector3.new(0, 0, 0))
         end
         
         local fadeOut = TweenService:Create(loadingFrame, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
@@ -2552,16 +2433,6 @@ local FastInteractionToggle = MainTab:Toggle({
     end
 })
 
-local ManualDodgeToggle = MainTab:Toggle({
-    Title = "Manual Dodge Wave",
-    Desc = "Show dodge button to teleport 165 studs forward",
-    Default = false,
-    Callback = function(state)
-        toggleManualDodge(state)
-        saveConfiguration()
-    end
-})
-
 local AntiSlapToggle = MainTab:Toggle({
     Title = "Anti Slap",
     Desc = "Prevents ragdoll and fling from slaps",
@@ -2588,7 +2459,6 @@ myConfig:Register("AntiSlap", AntiSlapToggle)
 myConfig:Register("SlapAura", SlapAuraToggle)
 myConfig:Register("AntiTsunami", AntiTsunamiToggle)
 myConfig:Register("FastInteraction", FastInteractionToggle)
-myConfig:Register("ManualDodge", ManualDodgeToggle)
 
 local GodModeToggle = PlayerTab:Toggle({
     Title = "God Mode",
