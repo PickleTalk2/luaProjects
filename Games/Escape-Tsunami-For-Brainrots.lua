@@ -1519,7 +1519,7 @@ function executeCelestialSteal()
         for i = nearestIndex, #waypoints do
             pcall(function()
                 hrp.CFrame = CFrame.new(waypoints[i].X, waypoints[i].Y, waypoints[i].Z)
-                task.wait(0.1)
+                task.wait(0.2)
             end)
         end
         
@@ -1537,7 +1537,7 @@ function executeCelestialSteal()
         for i = #waypoints, 1, -1 do
             pcall(function()
                 hrp.CFrame = CFrame.new(waypoints[i].X, waypoints[i].Y, waypoints[i].Z)
-                task.wait(0.1)
+                task.wait(0.2)
             end)
         end
         
