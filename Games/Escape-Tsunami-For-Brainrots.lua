@@ -1469,14 +1469,14 @@ function executeCelestialSteal()
             end
             task.wait(0.03)
         end
-        
+        task.wait(0.05)
         hrp.CFrame = celestialRoot.CFrame
-        
+        task.wait(0.05)
         local takePrompt = celestialRoot:FindFirstChild("TakePrompt")
         if takePrompt and takePrompt:IsA("ProximityPrompt") then
             fireproximityprompt(takePrompt)
         end
-        
+        task.wait(0.05)
         hrp.CFrame = CFrame.new(celestialX, 65, celestialZ)
         
         local distanceToReturn = math.abs(celestialX - 120)
@@ -2120,9 +2120,9 @@ local function teleportToLastGap()
             task.wait(0.03)
         end
         
-        task.wait(2)
-        hrp.CFrame = CFrame.new(2605, -4, -1)
+        task.wait(0.1)
         hrp.Anchored = false
+        hrp.CFrame = CFrame.new(2605, -4, -1)
         
         if humanoid then
             humanoid:Move(Vector3.new(0, 0, 0))
