@@ -1489,18 +1489,18 @@ function executeCelestialSteal()
             {X = 341, Y = 3, Z = 77},
             {X = 470, Y = 3, Z = 77},
             {X = 676, Y = 3, Z = 77},
-            {X = 760, Y = 66, Z = 65},
+            {X = 760, Y = -4, Z = 65},
             {X = 876, Y = 3, Z = 77},
             {X = 948, Y = 3, Z = 77},
-            {X = 1073, Y = 66, Z = 65},
+            {X = 1073, Y = -4, Z = 65},
             {X = 1257, Y = 3, Z = 77},
             {X = 1364, Y = 3, Z = 77},
-            {X = 1536, Y = 66, Z = 65},
+            {X = 1536, Y = -4, Z = 65},
             {X = 1812, Y = 3, Z = 77},
             {X = 1884, Y = 3, Z = 77},
-            {X = 2226, Y = 66, Z = 65},
-            {X = 2276, Y = 66, Z = 65},
-            {X = 2581, Y = 66, Z = 65},
+            {X = 2226, Y = -4, Z = 65},
+            {X = 2276, Y = -4, Z = 65},
+            {X = 2581, Y = -4, Z = 65},
             {X = 2605, Y = -3, Z = -1}
         }
         
@@ -1537,7 +1537,7 @@ function executeCelestialSteal()
         for i = #waypoints, 1, -1 do
             pcall(function()
                 hrp.CFrame = CFrame.new(waypoints[i].X, waypoints[i].Y, waypoints[i].Z)
-                task.wait(0.05)
+                task.wait(0.15)
             end)
         end
         
@@ -2229,7 +2229,7 @@ local function teleportToLastGap()
                     print(string.format("[Celestial TP] Waypoint %d: X=%.1f, Y=%.1f, Z=%.1f", i, waypoint.X, waypoint.Y, waypoint.Z))
                 end
                 
-                task.wait(0.25)
+                task.wait(0.15)
             end)
             
             if not success then
