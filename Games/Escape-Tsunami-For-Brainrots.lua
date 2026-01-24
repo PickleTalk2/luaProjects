@@ -2277,113 +2277,49 @@ local function teleportToLastGap()
         return 
     end
     
-    local gapSequence = {"Gap1", "Gap2", "Gap3", "Gap4", "Gap5", "Gap6", "Gap7", "Gap8", "Gap9"}
+    local celestialWaypoints = {
+        {X = 341, Y = 3, Z = 75},
+        {X = 470, Y = 3, Z = 75},
+        {X = 649, Y = 3, Z = 75},
+        {X = 876, Y = 3, Z = 75},
+        {X = 948, Y = 3, Z = 75},
+        {X = 1261, Y = 3, Z = 75},
+        {X = 1364, Y = 3, Z = 75},
+        {X = 1812, Y = 3, Z = 75},
+        {X = 1984, Y = 3, Z = 75},
+        {X = 2245, Y = -3, Z = -1},
+        {X = 2595, Y = -3, Z = -1}
+    }
     
     WindUI:Notify({
-        Title = "Teleport Last Gap",
-        Content = "Starting journey through all gaps...",
+        Title = "Teleport Celestial Area",
+        Content = "Starting VIP area journey...",
         Duration = 3,
         Icon = "navigation",
     })
     
     task.spawn(function()
-        for i, gapName in ipairs(gapSequence) do
+        for i, waypoint in ipairs(celestialWaypoints) do
             local success = pcall(function()
-                local misc = Workspace:FindFirstChild("Misc")
-                if not misc then error("Misc folder not found") end
-                
-                local gapsFolder = misc:FindFirstChild("Gaps")
-                if not gapsFolder then error("Gaps folder not found") end
-                
-                local gap = gapsFolder:FindFirstChild(gapName)
-                if not gap then error(gapName .. " not found") end
-                
-                local gapChildren = gap:GetChildren()
-                if #gapChildren < 2 then error(gapName .. " doesn't have enough children") end
-                
-                local targetPart = gapChildren[2]
-                local targetPos = targetPart.Position
-                
                 local character = LocalPlayer.Character
                 if not character then return end
                 
                 local hrp = character:FindFirstChild("HumanoidRootPart")
                 if not hrp then return end
                 
-                if hrp.Position.Y > -3 then
-                    hrp.CFrame = CFrame.new(hrp.Position.X, -3, hrp.Position.Z)
-                    task.wait(0.1)
-                end
-                
-                local distance = math.abs(hrp.Position.X - targetPos.X)
+                hrp.CFrame = CFrame.new(waypoint.X, waypoint.Y, waypoint.Z)
                 
                 if States.DebugMode then
-                    print(string.format("[Teleport] %s - Distance: %.1f studs", gapName, distance))
+                    print(string.format("[Celestial TP] Waypoint %d: X=%.1f, Y=%.1f, Z=%.1f", i, waypoint.X, waypoint.Y, waypoint.Z))
                 end
                 
-                if distance < 220 then
-                    hrp.CFrame = CFrame.new(targetPos.X, -3, targetPos.Z)
-                    if States.DebugMode then
-                        print(string.format("[Teleport] Teleported to %s (close)", gapName))
-                    end
-                else
-                    local tweenSpeed = 800
-                    local tweenTime = distance / tweenSpeed
-                    
-                    local tweenInfo = TweenInfo.new(tweenTime, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut)
-                    local tween = TweenService:Create(hrp, tweenInfo, {CFrame = CFrame.new(targetPos.X, -3, targetPos.Z)})
-                    
-                    local completed = false
-                    local reachedThreshold = false
-                    
-                    tween.Completed:Connect(function(playbackState)
-                        if playbackState == Enum.PlaybackState.Completed then
-                            completed = true
-                        end
-                    end)
-                    
-                    tween:Play()
-                    
-                    while not completed and not reachedThreshold do
-                        task.wait(0.05)
-                        
-                        local character = LocalPlayer.Character
-                        if not character then break end
-                        
-                        local hrp = character:FindFirstChild("HumanoidRootPart")
-                        if not hrp then break end
-                        
-                        if hrp.Position.Y > -3 then
-                            hrp.CFrame = CFrame.new(hrp.Position.X, -3, hrp.Position.Z)
-                        end
-                        
-                        local currentDist = math.abs(hrp.Position.X - targetPos.X)
-                        
-                        if currentDist < 220 then
-                            tween:Cancel()
-                            hrp.CFrame = CFrame.new(targetPos.X, -3, targetPos.Z)
-                            reachedThreshold = true
-                            if States.DebugMode then
-                                print(string.format("[Teleport] Teleported to %s (threshold reached)", gapName))
-                            end
-                        end
-                    end
-                    
-                    if completed and not reachedThreshold then
-                        hrp.CFrame = CFrame.new(targetPos.X, -3, targetPos.Z)
-                        if States.DebugMode then
-                            print(string.format("[Teleport] Teleported to %s (tween complete)", gapName))
-                        end
-                    end
-                end
-                
-                task.wait(0.2)
+                task.wait(0.3)
             end)
             
             if not success then
                 WindUI:Notify({
                     Title = "Teleport Error",
-                    Content = "Failed at " .. gapName,
+                    Content = string.format("Failed at waypoint %d", i),
                     Duration = 2,
                     Icon = "x",
                 })
@@ -2393,7 +2329,7 @@ local function teleportToLastGap()
         
         WindUI:Notify({
             Title = "Teleport Complete",
-            Content = "Reached Gap9!",
+            Content = "Reached Celestial Area end!",
             Duration = 3,
             Icon = "check",
         })
@@ -2588,7 +2524,7 @@ local SettingsTab = Window:Tab({
 })
 
 local TeleportLastGapButton = MainTab:Button({
-    Title = "Teleport Last Gap",
+    Title = "Teleport Celestial Area Gap (vip)",
     Desc = "Teleport through all gaps to Gap9",
     Callback = function()
         teleportToLastGap()
@@ -2596,8 +2532,8 @@ local TeleportLastGapButton = MainTab:Button({
 })
 
 local StealUIToggle = MainTab:Toggle({
-    Title = "Steal Highest Button",
-    Desc = "Show button to steal highest value brainrot",
+    Title = "Steal Celestial",
+    Desc = "Show button to steal Celestial brainrot",
     Default = false,
     Callback = function(state)
         toggleStealUI(state)
