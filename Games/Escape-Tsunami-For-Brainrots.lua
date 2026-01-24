@@ -2264,16 +2264,6 @@ local function teleportToLastGap()
         local strokeFadeOut = TweenService:Create(glowStroke, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
             Transparency = 1
         })
-
-        fadeOut:Play()
-        textFadeOut:Play()
-        strokeFadeOut:Play()
-
-        fadeOut.Completed:Connect(function()
-            glowTween:Cancel()
-            textTween:Cancel()
-            loadingGui:Destroy()
-        end)
     end)
 end
 
