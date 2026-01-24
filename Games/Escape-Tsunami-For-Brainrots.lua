@@ -1501,7 +1501,10 @@ function executeCelestialSteal()
         local currentPos = hrp.Position
         local nearestIndex = 1
         local nearestDist = math.huge
-        
+        local player = game.Players.LocalPlayer
+        local char = LocalPlayer.Character
+        local humanoid = char:WaitForChild("Humanoid")
+            
         for i, wp in ipairs(waypoints) do
             local dist = (Vector3.new(wp.X, wp.Y, wp.Z) - currentPos).Magnitude
             if dist < nearestDist then
@@ -2217,7 +2220,9 @@ local function teleportToLastGap()
     task.spawn(function()
         for i, waypoint in ipairs(celestialWaypoints) do
             local success = pcall(function()
+                local player = game.Players.LocalPlayer
                 local character = LocalPlayer.Character
+                local humanoid = character:WaitForChild("Humanoid")
                 if not character then return end
                 
                 local hrp = character:FindFirstChild("HumanoidRootPart")
