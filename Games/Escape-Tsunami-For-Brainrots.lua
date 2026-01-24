@@ -898,51 +898,63 @@ local function removeStealButton()
 end
 
 local function createStealingText()
-    local character = LocalPlayer.Character
-    if not character then return end
-    
-    local hrp = character:FindFirstChild("HumanoidRootPart")
-    if not hrp then return end
-    
-    local existingGui = hrp:FindFirstChild("StealingTextGui")
+    local existingGui = LocalPlayer.PlayerGui:FindFirstChild("StealingTextGui")
     if existingGui then
         existingGui:Destroy()
     end
     
-    local billboardGui = Instance.new("BillboardGui")
-    billboardGui.Name = "StealingTextGui"
-    billboardGui.Size = UDim2.new(0, 200, 0, 50)
-    billboardGui.StudsOffset = Vector3.new(0, 3, 0)
-    billboardGui.AlwaysOnTop = true
-    billboardGui.Parent = hrp
+    local screenGui = Instance.new("ScreenGui")
+    screenGui.Name = "StealingTextGui"
+    screenGui.ResetOnSpawn = false
+    screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+    
+    local stealingFrame = Instance.new("Frame")
+    stealingFrame.Size = UDim2.new(0, 300, 0, 80)
+    stealingFrame.Position = UDim2.new(0.5, -150, 0.15, 0)
+    stealingFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
+    stealingFrame.BackgroundTransparency = 0.3
+    stealingFrame.BorderSizePixel = 0
+    stealingFrame.Parent = screenGui
+    
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 16)
+    corner.Parent = stealingFrame
+    
+    local glowStroke = Instance.new("UIStroke")
+    glowStroke.Color = Color3.fromRGB(80, 255, 120)
+    glowStroke.Thickness = 3
+    glowStroke.Transparency = 0.2
+    glowStroke.Parent = stealingFrame
     
     local textLabel = Instance.new("TextLabel")
     textLabel.Size = UDim2.new(1, 0, 1, 0)
     textLabel.BackgroundTransparency = 1
-    textLabel.Text = "STEALING"
+    textLabel.Text = "⚠️ STEALING CELESTIAL ⚠️"
     textLabel.TextColor3 = Color3.fromRGB(80, 255, 120)
-    textLabel.TextSize = 28
+    textLabel.TextSize = 24
     textLabel.Font = Enum.Font.GothamBold
     textLabel.TextStrokeTransparency = 0
     textLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
-    textLabel.Parent = billboardGui
+    textLabel.Parent = stealingFrame
     
-    local glowTween = TweenService:Create(textLabel, TweenInfo.new(0.5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true), {
-        TextColor3 = Color3.fromRGB(120, 255, 160)
+    local glowTween = TweenService:Create(glowStroke, TweenInfo.new(0.6, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true), {
+        Thickness = 6,
+        Transparency = 0.5,
+        Color = Color3.fromRGB(120, 255, 160)
     })
     glowTween:Play()
     
-    return billboardGui
+    local textTween = TweenService:Create(textLabel, TweenInfo.new(0.8, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true), {
+        TextColor3 = Color3.fromRGB(120, 255, 160)
+    })
+    textTween:Play()
+    
+    return screenGui
 end
 
 local function removeStealingText()
-    local character = LocalPlayer.Character
-    if not character then return end
-    
-    local hrp = character:FindFirstChild("HumanoidRootPart")
-    if not hrp then return end
-    
-    local existingGui = hrp:FindFirstChild("StealingTextGui")
+    local existingGui = LocalPlayer.PlayerGui:FindFirstChild("StealingTextGui")
     if existingGui then
         existingGui:Destroy()
     end
@@ -2169,12 +2181,49 @@ local function teleportToLastGap()
         {X = 2605, Y = -3, Z = -1}
     }
     
-    WindUI:Notify({
-        Title = "Teleport Celestial Area",
-        Content = "Starting VIP area journey...",
-        Duration = 3,
-        Icon = "navigation",
+    local loadingGui = Instance.new("ScreenGui")
+    loadingGui.Name = "CelestialLoadingScreen"
+    loadingGui.ResetOnSpawn = false
+    loadingGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    loadingGui.IgnoreGuiInset = true
+    loadingGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+
+    local loadingFrame = Instance.new("Frame")
+    loadingFrame.Size = UDim2.new(1, 0, 1, 0)
+    loadingFrame.Position = UDim2.new(0, 0, 0, 0)
+    loadingFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    loadingFrame.BorderSizePixel = 0
+    loadingFrame.Parent = loadingGui
+
+    local loadingText = Instance.new("TextLabel")
+    loadingText.Size = UDim2.new(0, 600, 0, 100)
+    loadingText.Position = UDim2.new(0.5, -300, 0.5, -50)
+    loadingText.BackgroundTransparency = 1
+    loadingText.Text = "TELEPORTING TO CELESTIAL AREA"
+    loadingText.TextColor3 = Color3.fromRGB(80, 255, 120)
+    loadingText.TextSize = 32
+    loadingText.Font = Enum.Font.GothamBold
+    loadingText.TextStrokeTransparency = 0
+    loadingText.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+    loadingText.Parent = loadingFrame
+
+    local glowStroke = Instance.new("UIStroke")
+    glowStroke.Color = Color3.fromRGB(80, 255, 120)
+    glowStroke.Thickness = 3
+    glowStroke.Transparency = 0.3
+    glowStroke.Parent = loadingText
+
+    local glowTween = TweenService:Create(glowStroke, TweenInfo.new(0.8, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true), {
+        Thickness = 8,
+        Transparency = 0.7,
+        Color = Color3.fromRGB(120, 255, 160)
     })
+    glowTween:Play()
+
+    local textTween = TweenService:Create(loadingText, TweenInfo.new(1.2, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true), {
+        TextColor3 = Color3.fromRGB(120, 255, 160)
+    })
+    textTween:Play()
     
     task.spawn(function()
         for i, waypoint in ipairs(celestialWaypoints) do
@@ -2191,7 +2240,7 @@ local function teleportToLastGap()
                     print(string.format("[Celestial TP] Waypoint %d: X=%.1f, Y=%.1f, Z=%.1f", i, waypoint.X, waypoint.Y, waypoint.Z))
                 end
                 
-                task.wait(0.3)
+                task.wait(0.4)
             end)
             
             if not success then
@@ -2205,12 +2254,26 @@ local function teleportToLastGap()
             end
         end
         
-        WindUI:Notify({
-            Title = "Teleport Complete",
-            Content = "Reached Celestial Area end!",
-            Duration = 3,
-            Icon = "check",
+        local fadeOut = TweenService:Create(loadingFrame, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+            BackgroundTransparency = 1
         })
+        local textFadeOut = TweenService:Create(loadingText, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+            TextTransparency = 1,
+            TextStrokeTransparency = 1
+        })
+        local strokeFadeOut = TweenService:Create(glowStroke, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+            Transparency = 1
+        })
+
+        fadeOut:Play()
+        textFadeOut:Play()
+        strokeFadeOut:Play()
+
+        fadeOut.Completed:Connect(function()
+            glowTween:Cancel()
+            textTween:Cancel()
+            loadingGui:Destroy()
+        end)
     end)
 end
 
