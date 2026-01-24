@@ -2285,8 +2285,8 @@ local function teleportToLastGap()
         {X = 948, Y = 3, Z = 75},
         {X = 1261, Y = 3, Z = 75},
         {X = 1364, Y = 3, Z = 75},
-        {X = 1812, Y = 3, Z = 75},
-        {X = 1984, Y = 3, Z = 75},
+        {X = 1712, Y = 3, Z = 75},
+        {X = 1884, Y = 3, Z = 75},
         {X = 2245, Y = -3, Z = -1},
         {X = 2595, Y = -3, Z = -1}
     }
@@ -2313,7 +2313,7 @@ local function teleportToLastGap()
                     print(string.format("[Celestial TP] Waypoint %d: X=%.1f, Y=%.1f, Z=%.1f", i, waypoint.X, waypoint.Y, waypoint.Z))
                 end
                 
-                task.wait(0.3)
+                task.wait(0.4)
             end)
             
             if not success then
