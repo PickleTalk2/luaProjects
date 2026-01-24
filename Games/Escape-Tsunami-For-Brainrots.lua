@@ -1536,64 +1536,103 @@ function executeCelestialSteal()
         return
     end
     
-    local distance = (hrp.Position - celestialRoot.Position).Magnitude
-    
-    if distance > 280 then
-        WindUI:Notify({
-            Title = "Steal Celestial",
-            Content = "You must be on celestial area on gap to do this!",
-            Duration = 4,
-            Icon = "alert-triangle",
-        })
-        return
-    end
-    
     States.IsStealing = true
-    States.SavedStealPosition = hrp.CFrame
     
     local stealingTextGui = createStealingText()
     
     WindUI:Notify({
         Title = "Steal Celestial",
-        Content = string.format("Stealing... (%.0f studs away)", distance),
+        Content = "Starting steal sequence...",
         Duration = 2,
         Icon = "zap",
     })
     
-    task.wait(0.3)
-    
-    hrp.CFrame = celestialRoot.CFrame * CFrame.new(0, 3, 0)
-    
-    task.wait(0.2)
-    
-    local takePrompt = celestialRoot:FindFirstChild("TakePrompt")
-    if takePrompt and takePrompt:IsA("ProximityPrompt") then
-        fireproximityprompt(takePrompt)
+    task.spawn(function()
+        local currentPos = hrp.Position
+        
+        hrp.CFrame = CFrame.new(currentPos.X, 65, currentPos.Z)
+        task.wait(0.1)
+        
+        local humanoid = character:FindFirstChildOfClass("Humanoid")
+        if humanoid then
+            humanoid:Move(Vector3.new(0, 0, -1))
+        end
+        
+        local celestialX = celestialRoot.Position.X
+        local celestialZ = celestialRoot.Position.Z
+        local distanceToCelestial = math.abs(currentPos.X - celestialX)
+        
+        local tweenSpeed = 250
+        local tweenTime = distanceToCelestial / tweenSpeed
+        
+        local tweenInfo = TweenInfo.new(tweenTime, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut)
+        local tween = TweenService:Create(hrp, tweenInfo, {CFrame = CFrame.new(celestialX, 65, celestialZ)})
+        
+        local tweenCompleted = false
+        tween.Completed:Connect(function()
+            tweenCompleted = true
+        end)
+        
+        tween:Play()
+        
+        while not tweenCompleted do
+            if humanoid then
+                humanoid:Move(Vector3.new(0, 0, -1))
+            end
+            task.wait(0.03)
+        end
+        
+        task.wait(0.05)
+        hrp.CFrame = celestialRoot.CFrame
+        task.wait(0.05)
+        
+        local takePrompt = celestialRoot:FindFirstChild("TakePrompt")
+        if takePrompt and takePrompt:IsA("ProximityPrompt") then
+            fireproximityprompt(takePrompt)
+        end
+        
+        task.wait(0.05)
+        hrp.CFrame = CFrame.new(celestialX, 65, celestialZ)
+        task.wait(0.1)
+        
+        local distanceToReturn = math.abs(celestialX - 120)
+        local returnTweenSpeed = 250
+        local returnTweenTime = distanceToReturn / returnTweenSpeed
+        
+        local returnTweenInfo = TweenInfo.new(returnTweenTime, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut)
+        local returnTween = TweenService:Create(hrp, returnTweenInfo, {CFrame = CFrame.new(120, 65, -1)})
+        
+        local returnTweenCompleted = false
+        returnTween.Completed:Connect(function()
+            returnTweenCompleted = true
+        end)
+        
+        returnTween:Play()
+        
+        while not returnTweenCompleted do
+            if humanoid then
+                humanoid:Move(Vector3.new(0, 0, -1))
+            end
+            task.wait(0.03)
+        end
+        
+        task.wait(0.05)
+        hrp.CFrame = CFrame.new(120, 3, -1)
+        
+        if humanoid then
+            humanoid:Move(Vector3.new(0, 0, 0))
+        end
+        
+        removeStealingText()
+        States.IsStealing = false
         
         WindUI:Notify({
-            Title = "Steal Success",
-            Content = "Celestial collected!",
-            Duration = 2,
+            Title = "Steal Complete",
+            Content = "Celestial successfully stolen!",
+            Duration = 3,
             Icon = "check",
         })
-    else
-        WindUI:Notify({
-            Title = "Steal Failed",
-            Content = "TakePrompt not found!",
-            Duration = 3,
-            Icon = "x",
-        })
-    end
-    
-    task.wait(0.5)
-    
-    if States.SavedStealPosition then
-        hrp.CFrame = States.SavedStealPosition
-    end
-    
-    removeStealingText()
-    States.IsStealing = false
-    States.SavedStealPosition = nil
+    end)
 end
 
 local function toggleStealUI(state)
