@@ -1455,7 +1455,7 @@ function executeCelestialSteal()
         
         local tweenInfo = TweenInfo.new(tweenTime, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut)
         local tween = TweenService:Create(hrp, tweenInfo, {CFrame = CFrame.new(celestialX, 65, celestialZ)})
-        
+            
         local tweenCompleted = false
         tween.Completed:Connect(function()
             tweenCompleted = true
@@ -1469,6 +1469,7 @@ function executeCelestialSteal()
             end
             task.wait(0.03)
         end
+
         task.wait(0.05)
         hrp.CFrame = celestialRoot.CFrame
         task.wait(0.05)
@@ -1477,6 +1478,9 @@ function executeCelestialSteal()
             fireproximityprompt(takePrompt)
         end
         task.wait(0.05)
+        if takePrompt and takePrompt:IsA("ProximityPrompt") then
+            fireproximityprompt(takePrompt)
+        end
         hrp.CFrame = CFrame.new(celestialX, 65, celestialZ)
         
         local distanceToReturn = math.abs(celestialX - 120)
@@ -2084,51 +2088,120 @@ local function teleportToLastGap()
         return 
     end
     
-    local humanoid = character:FindFirstChildOfClass("Humanoid")
+    local celestialWaypoints = {
+        {X = 140, Y = 3, Z = 77},
+        {X = 240, Y = 3, Z = 77},
+        {X = 341, Y = 3, Z = 77},
+        {X = 470, Y = 3, Z = 77},
+        {X = 676, Y = 3, Z = 77},
+        {X = 760, Y = 66, Z = 65},
+        {X = 876, Y = 3, Z = 77},
+        {X = 948, Y = 3, Z = 77},
+        {X = 1073, Y = 66, Z = 65},
+        {X = 1257, Y = 3, Z = 77},
+        {X = 1364, Y = 3, Z = 77},
+        {X = 1536, Y = 66, Z = 65},
+        {X = 1812, Y = 3, Z = 77},
+        {X = 1884, Y = 3, Z = 77},
+        {X = 2226, Y = 66, Z = 65},
+        {X = 2276, Y = 66, Z = 65},
+        {X = 2581, Y = 66, Z = 65},
+        {X = 2605, Y = -3, Z = -1}
+    }
     
-    -- UI
+    local loadingGui = Instance.new("ScreenGui")
+    loadingGui.Name = "CelestialLoadingScreen"
+    loadingGui.ResetOnSpawn = false
+    loadingGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    loadingGui.IgnoreGuiInset = true
+    loadingGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+
+    local loadingFrame = Instance.new("Frame")
+    loadingFrame.Size = UDim2.new(1, 0, 1, 0)
+    loadingFrame.Position = UDim2.new(0, 0, 0, 0)
+    loadingFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    loadingFrame.BorderSizePixel = 0
+    loadingFrame.Parent = loadingGui
+
+    local loadingText = Instance.new("TextLabel")
+    loadingText.Size = UDim2.new(0, 600, 0, 100)
+    loadingText.Position = UDim2.new(0.5, -300, 0.5, -50)
+    loadingText.BackgroundTransparency = 1
+    loadingText.Text = "TELEPORTING TO CELESTIAL AREA"
+    loadingText.TextColor3 = Color3.fromRGB(80, 255, 120)
+    loadingText.TextSize = 32
+    loadingText.Font = Enum.Font.GothamBold
+    loadingText.TextStrokeTransparency = 0
+    loadingText.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+    loadingText.Parent = loadingFrame
+
+    local glowStroke = Instance.new("UIStroke")
+    glowStroke.Color = Color3.fromRGB(80, 255, 120)
+    glowStroke.Thickness = 3
+    glowStroke.Transparency = 0.3
+    glowStroke.Parent = loadingText
+
+    local glowTween = TweenService:Create(glowStroke, TweenInfo.new(0.8, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true), {
+        Thickness = 8,
+        Transparency = 0.7,
+        Color = Color3.fromRGB(120, 255, 160)
+    })
+    glowTween:Play()
+
+    local textTween = TweenService:Create(loadingText, TweenInfo.new(1.2, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true), {
+        TextColor3 = Color3.fromRGB(120, 255, 160)
+    })
+    textTween:Play()
     
     task.spawn(function()
-        local currentPos = hrp.Position
-        
-        hrp.CFrame = CFrame.new(120, 65, -1)
-        hrp.Anchored = true
-        task.wait(0.1)
-
-        if humanoid then
-            humanoid:Move(Vector3.new(0, 0, -1))
-        end
-
-        local currentX = currentPos.X
-
-        while currentX < 2605 do
-            currentX = currentX + 150
-            if currentX > 2605 then
-                currentX = 2605
+        for i, waypoint in ipairs(celestialWaypoints) do
+            local success = pcall(function()
+                local character = LocalPlayer.Character
+                if not character then return end
+                
+                local hrp = character:FindFirstChild("HumanoidRootPart")
+                if not hrp then return end
+                
+                hrp.CFrame = CFrame.new(waypoint.X, waypoint.Y, waypoint.Z)
+                
+                if States.DebugMode then
+                    print(string.format("[Celestial TP] Waypoint %d: X=%.1f, Y=%.1f, Z=%.1f", i, waypoint.X, waypoint.Y, waypoint.Z))
+                end
+                
+                task.wait(0.1)
+            end)
+            
+            if not success then
+                WindUI:Notify({
+                    Title = "Teleport Error",
+                    Content = string.format("Failed at waypoint %d", i),
+                    Duration = 2,
+                    Icon = "x",
+                })
+                return
             end
-    
-            hrp.CFrame = CFrame.new(currentX, 65, -1)
-    
-            if humanoid then
-                humanoid:Move(Vector3.new(0, 0, -1))
-            end
-    
-            task.wait(0.2)
-        end
-
-        task.wait(2)
-        hrp.CFrame = CFrame.new(2605, -4, -1)
-        hrp.Anchored = false
-
-        if humanoid then
-            humanoid:Move(Vector3.new(0, 0, 0))
         end
         
-        if humanoid then
-            humanoid:Move(Vector3.new(0, 0, 0))
-        end
-        
-        -- Tween
+        local fadeOut = TweenService:Create(loadingFrame, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+            BackgroundTransparency = 1
+        })
+        local textFadeOut = TweenService:Create(loadingText, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+            TextTransparency = 1,
+            TextStrokeTransparency = 1
+        })
+        local strokeFadeOut = TweenService:Create(glowStroke, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+            Transparency = 1
+        })
+
+        fadeOut:Play()
+        textFadeOut:Play()
+        strokeFadeOut:Play()
+
+        fadeOut.Completed:Connect(function()
+            glowTween:Cancel()
+            textTween:Cancel()
+            loadingGui:Destroy()
+        end)
     end)
 end
 
