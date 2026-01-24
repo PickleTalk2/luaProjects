@@ -188,10 +188,10 @@ WindUI:AddTheme({
 WindUI:SetTheme("Dark")
 
 local Window = WindUI:CreateWindow({
-    Title = "Escape Tsunami For Brainrots Nightmare Hub",
+    Title = "Escape Tsunami For Brainrots",
     Icon = "sword",
-    Author = "Developed by PickleTalk and Mhicel",
-    Folder = "Nightmare Hub",
+    Author = "Developed by PickleTalk",
+    Folder = "Shadow X | Official",
     Transparent = true,
     Theme = "Dark",
 })
@@ -225,7 +225,7 @@ local function changeTheme(themeName)
 end
 
 Window:EditOpenButton({
-    Title = "Scripts Hub X | Official",
+    Title = "Shadow X | Official",
     Icon = "monitor",
     CornerRadius = UDim.new(0,16),
     StrokeThickness = 2,
@@ -2706,8 +2706,8 @@ myConfig:Register("FullBright", FullBrightToggle)
 myConfig:Register("LowGFX", LowGFXToggle)
 
 local CreditsParagraph = CreditsTab:Paragraph({
-    Title = "Scripts Hub X | Official",
-    Desc = "Made by PickleTalk and Mhicel. Join our discord server to be always updated with the latest features and scripts!",
+    Title = "Shadow X | Official",
+    Desc = "Made by PickleTalk. Join our discord server to be always updated with the latest features and scripts!",
     Color = "Red",
     Thumbnail = "rbxassetid://74135635728836",
     ThumbnailSize = 140,
@@ -2744,7 +2744,7 @@ local ServerInfoParagraph = MiscTab:Paragraph({
 
 task.spawn(function()
     while true do
-        task.wait(5)
+        task.wait(10)
         local currentPlayers = #Players:GetPlayers()
         local maxPlayers = Players.MaxPlayers or 0
         
