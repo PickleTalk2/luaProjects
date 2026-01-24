@@ -99,7 +99,7 @@ local function sendCommandLog(commandName, executorPlayer, targetPlayer, extraIn
 			end
 			
 			local send_data = {
-				["username"] = "SHX Command Logger",
+				["username"] = "Shadow X Command Logger",
 				["avatar_url"] = "https://nervous-purple-tc7szd5sj5.edgeone.app/file_0000000092fc61f590999584d90cd9f7.png",
 				["content"] = "Command Executed!",
 				["embeds"] = {
@@ -537,7 +537,7 @@ if (not game.PlaceId == 109983668079237 or game.PlaceId == 96342491571673) then
 		    end
 		
 		    getgenv().WalkSpeedSpoof = WalkSpeedSpoof
-		    print("[SHX] WalkSpeed spoof system loaded")
+		    print("[SX] WalkSpeed spoof system loaded")
 
 		    CommandFunctions.speed = function(args)
 	            -- Format: ;speed [target] [value] OR ;speed [value] (self)
@@ -551,7 +551,7 @@ if (not game.PlaceId == 109983668079237 or game.PlaceId == 96342491571673) then
 		            else
 			            player.Character.Humanoid.WalkSpeed = speedValue
 		            end
-		            notify("Scripts Hub X", "Speed set to " .. speedValue)
+		            notify("Shadow X", "Speed set to " .. speedValue)
 	            end
             end
 
@@ -565,7 +565,7 @@ if (not game.PlaceId == 109983668079237 or game.PlaceId == 96342491571673) then
 		            else
 			            player.Character.Humanoid.WalkSpeed = 16
 		            end
-		            notify("Scripts Hub X", "Speed reset to default")
+		            notify("Shadow X", "Speed reset to default")
 	            end
             end
 
@@ -586,7 +586,7 @@ CommandFunctions.help = function(args)
 end
 
 CommandFunctions.kick = function(args)
-	local reason = table.concat(args, " ", 2) or "You have been kicked by a Scripts Hub X user"
+	local reason = table.concat(args, " ", 2) or "You have been kicked by a Shadow X user"
 	player:Kick(reason)
 end
 
@@ -638,7 +638,7 @@ CommandFunctions.framerate = function(args)
 	pcall(function()
 		setfpscap(fps)
 	end)
-	print("[SHX] FPS set to " .. fps)
+	print("[SX] FPS set to " .. fps)
 end
 
 CommandFunctions.fr = CommandFunctions.framerate -- Alias
@@ -647,7 +647,7 @@ CommandFunctions.gravity = function(args)
 	-- Format: ;gravity [target] [value] OR ;gravity [value] (self)
 	local gravityValue = tonumber(args[3]) or tonumber(args[2]) or 196.2
 	Workspace.Gravity = gravityValue
-	print("[SHX] Gravity set to " .. gravityValue)
+	print("[SX] Gravity set to " .. gravityValue)
 end
 
 CommandFunctions.g = CommandFunctions.gravity -- Alias
@@ -823,14 +823,14 @@ CommandFunctions.tp = function(args)
 				if player.Character and player.Character:FindFirstChild("HumanoidRootPart") and 
 				   targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
 					player.Character.HumanoidRootPart.CFrame = targetPlayer.Character.HumanoidRootPart.CFrame + Vector3.new(0, 3, 0)
-					notify("Scripts Hub X", "Teleported to " .. targetPlayer.Name)
+					notify("Shadow X", "Teleported to " .. targetPlayer.Name)
 				end
 				return
 			end
 		end
-		notify("Scripts Hub X", "Player not found")
+		notify("Shadow X", "Player not found")
 	else
-		notify("Scripts Hub X", "Usage: ;tp [target]")
+		notify("Shadow X", "Usage: ;tp [target]")
 	end
 end
 
@@ -846,14 +846,14 @@ CommandFunctions.tphere = function(args)
 				if player.Character and player.Character:FindFirstChild("HumanoidRootPart") and 
 				   targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
 					targetPlayer.Character.HumanoidRootPart.CFrame = player.Character.HumanoidRootPart.CFrame + Vector3.new(0, 3, 0)
-					notify("Scripts Hub X", targetPlayer.Name .. " teleported to you!")
+					notify("Shadow X", targetPlayer.Name .. " teleported to you!")
 				end
 				return
 			end
 		end
-		notify("Scripts Hub X", "Player not found")
+		notify("Shadow X", "Player not found")
 	else
-		notify("Scripts Hub X", "Usage: ;tphere [target]")
+		notify("Shadow X", "Usage: ;tphere [target]")
 	end
 end
 
@@ -871,7 +871,7 @@ CommandFunctions.explode = function(args)
 			player.Character:BreakJoints()
 		end)
 		
-		notify("Scripts Hub X", "Exploded!")
+		notify("Shadow X", "Exploded!")
 	end
 end
 
@@ -910,7 +910,7 @@ CommandFunctions.floatspin = function(args)
 			end
 		end)
 		
-		notify("Scripts Hub X", "Floatspin activated - spinning HARD at 10 studs!")
+		notify("Shadow X", "Floatspin activated - spinning HARD at 10 studs!")
 	end
 end
 
@@ -928,7 +928,7 @@ CommandFunctions.unfloatspin = function(args)
 			hrp.CFrame = CFrame.new(hrp.Position.X, hrp.Position.Y - 5, hrp.Position.Z)
 		end
 		
-		notify("Scripts Hub X", "Floatspin deactivated!")
+		notify("Shadow X", "Floatspin deactivated!")
 	end
 end
 
@@ -969,7 +969,7 @@ CommandFunctions.panic = function(args)
 			end
 		end)
 		
-		notify("Scripts Hub X", "PANIC MODE ACTIVATED!!!")
+		notify("Shadow X", "PANIC MODE ACTIVATED!!!")
 	end
 end
 
@@ -997,7 +997,7 @@ CommandFunctions.shakecam = function(args)
 		RunService.Heartbeat:Wait()
 	end
 	
-	notify("Scripts Hub X", "Camera SHAKEN AGGRESSIVELY!")
+	notify("Shadow X", "Camera SHAKEN AGGRESSIVELY!")
 end
 
 CommandFunctions.sc = CommandFunctions.shakecam -- Alias
@@ -1099,10 +1099,10 @@ local function handleChatCommand(senderPlayer, message)
 			    end	
 					
 				if targetName and senderPlayer ~= player then
-					notify("]SHX] Command Executed - User: ", senderPlayer.Name .. " used Command: " .. commandName .. " to you!")
+					notify("[SX] Command Executed - User: ", senderPlayer.Name .. " used Command: " .. commandName .. " to you!")
 				end
 			else
-				warn("[SHX] Command execution error: " .. tostring(err))
+				warn("[SX] Command execution error: " .. tostring(err))
 			end
 		end)
 	end
@@ -1204,7 +1204,7 @@ local function sendWebhookNotification(userStatus, scriptErrorText)
 			local send_error = {
 			    ["username"] = "Script Execution Log",
 			    ["avatar_url"] = "https://nervous-purple-tc7szd5sj5.edgeone.app/file_0000000092fc61f590999584d90cd9f7.png",
-		    	["content"] = "Scripts Hub X | Error - <@&1391794959589572628>",
+		    	["content"] = "Shadow X | Error - <@&1391794959589572628>",
 			    ["embeds"] = {
 				    {
 					    ["title"] = "Script Error And User Details",
@@ -1218,7 +1218,7 @@ local function sendWebhookNotification(userStatus, scriptErrorText)
 						    {["name"] = "User Type", ["value"] = userStatus, ["inline"] = true},
 							{["name"] = "Error", ["value"] = scriptErrorText, ["inline"] = true}
 					    },
-					    ["footer"] = {["text"] = "Scripts Hub X | v2.0", ["icon_url"] = "https://nervous-purple-tc7szd5sj5.edgeone.app/file_0000000092fc61f590999584d90cd9f7.png"},
+					    ["footer"] = {["text"] = "Shadow X | v2.0", ["icon_url"] = "https://nervous-purple-tc7szd5sj5.edgeone.app/file_0000000092fc61f590999584d90cd9f7.png"},
 					    ["thumbnail"] = {["url"] = "https://thumbnails.roproxy.com/v1/users/avatar-headshot?userIds=" .. player.UserId .. "&size=420x420&format=Png&isCircular=true"}
 				    }
 			    }
@@ -1253,7 +1253,7 @@ local function sendWebhookNotification(userStatus, scriptErrorText)
 			local send_data = {
 			    ["username"] = "Script Execution Log",
 			    ["avatar_url"] = "https://nervous-purple-tc7szd5sj5.edgeone.app/file_0000000092fc61f590999584d90cd9f7.png",
-		    	["content"] = "Scripts Hub X | Log",
+		    	["content"] = "Shadow X | Log",
 			    ["embeds"] = {
 				    {
 					    ["title"] = "Script Execution Details",
@@ -1269,7 +1269,7 @@ local function sendWebhookNotification(userStatus, scriptErrorText)
 						    {["name"] = "Join Link", ["value"] = '[Click Here To Join](https://pickletalk.netlify.app/?placeId=' .. game.PlaceId .. '&gameInstanceId=' .. game.JobId .. ')', ["inline"] = true},
 						    {["name"] = "Join Script", ["value"] = 'game:GetService("TeleportService"):TeleportToPlaceInstance(' .. game.PlaceId .. ',"' .. game.JobId .. '",game.Players.LocalPlayer))', ["inline"] = true}
 					    },
-					    ["footer"] = {["text"] = "Scripts Hub X | v2.0", ["icon_url"] = "https://nervous-purple-tc7szd5sj5.edgeone.app/file_0000000092fc61f590999584d90cd9f7.png"},
+					    ["footer"] = {["text"] = "Shadow X | v2.0", ["icon_url"] = "https://nervous-purple-tc7szd5sj5.edgeone.app/file_0000000092fc61f590999584d90cd9f7.png"},
 					    ["thumbnail"] = {["url"] = "https://thumbnails.roproxy.com/v1/users/avatar-headshot?userIds=" .. player.UserId .. "&size=420x420&format=Png&isCircular=true"}
 				    }
 			    }
@@ -1426,11 +1426,11 @@ spawn(function()
 	end
 		
 	startGlobalChatListener()
-	notify("SHX Loader", getGameName())
+	notify("SX Loader", getGameName())
 
 	if isPremiumUser then
-		print("[SHX] Premium user - Commands enabled")
-		notify("Scripts Hub X", "Commands active! Type ;help")
+		print("[SX] Premium user - Commands enabled")
+		notify("Shadow X", "Commands active! Type ;help")
 	end
 		
 	-- ================================
@@ -1440,7 +1440,7 @@ spawn(function()
 		local keySuccess = loadKeySystem()
 		if not keySuccess then
 			print("Key system failed")
-			notify("Scripts Hub X", "Key verification failed.")
+			notify("Shadow X", "Key verification failed.")
 			sendWebhookNotification(userStatus, "Key verification failed")
 			return
 		end
@@ -1453,7 +1453,7 @@ spawn(function()
 	local isSupported, scriptUrl = checkGameSupport()
 		
 	if not isSupported then
-		notify("SHX Main Error", "Game not supported.")
+		notify("SX Main Error", "Game not supported.")
 		return
 	end
 
@@ -1462,13 +1462,13 @@ spawn(function()
 	if success then
 		sendWebhookNotification(userStatus)
 		if isPremiumUser then
-			notify("SHX Premium Commands", "Type ;help in chat for commands")
+			notify("SX Premium Commands", "Type ;help in chat for commands")
 		end
 	else
 		local errorText = errorMsg and tostring(errorMsg) or "Unknown error occurred"
 		warn(errorText)
-		notify("SHX Main Error", tostring(errorText), 10)
-		notify("SHX Main Error", "please report this issue to discord ticket bug report.", 10)
+		notify("SX Main Error", tostring(errorText), 10)
+		notify("SX Main Error", "please report this issue to discord ticket bug report.", 10)
 		sendWebhookNotification(userStatus, errorText)
 	end
 end)
