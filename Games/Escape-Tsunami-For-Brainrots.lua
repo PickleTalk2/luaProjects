@@ -2241,7 +2241,7 @@ local function teleportToLastGap()
                     print(string.format("[Celestial TP] Waypoint %d: X=%.1f, Y=%.1f, Z=%.1f", i, waypoint.X, waypoint.Y, waypoint.Z))
                 end
                 
-                task.wait(0.05)
+                task.wait(0.2)
             end)
             
             if not success then
