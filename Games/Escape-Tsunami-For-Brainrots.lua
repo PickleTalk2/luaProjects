@@ -423,6 +423,94 @@ local function toggleAutoCollect(state)
     end
 end
 
+local function collectAllRadioactiveCoins()
+    local character = LocalPlayer.Character
+    if not character then
+        WindUI:Notify({
+            Title = "Collect Coins Failed",
+            Content = "No character found!",
+            Duration = 3,
+            Icon = "x",
+        })
+        return
+    end
+    
+    local hrp = character:FindFirstChild("HumanoidRootPart")
+    if not hrp then
+        WindUI:Notify({
+            Title = "Collect Coins Failed",
+            Content = "No HumanoidRootPart found!",
+            Duration = 3,
+            Icon = "x",
+        })
+        return
+    end
+    
+    local eventParts = Workspace:FindFirstChild("EventParts")
+    if not eventParts then
+        WindUI:Notify({
+            Title = "Collect Coins Failed",
+            Content = "No EventParts folder found!",
+            Duration = 3,
+            Icon = "x",
+        })
+        return
+    end
+    
+    local coins = {}
+    for _, model in pairs(eventParts:GetChildren()) do
+        if model:IsA("Model") and model.Name == "RadioactiveCoin" then
+            local coinPart = model:FindFirstChild("Radioactive Coin")
+            if coinPart and coinPart:IsA("MeshPart") then
+                local touchInterest = coinPart:FindFirstChild("TouchInterest")
+                if touchInterest then
+                    table.insert(coins, coinPart)
+                end
+            end
+        end
+    end
+    
+    if #coins == 0 then
+        WindUI:Notify({
+            Title = "Collect Coins",
+            Content = "No radioactive coins found!",
+            Duration = 3,
+            Icon = "x",
+        })
+        return
+    end
+    
+    WindUI:Notify({
+        Title = "Collect Coins",
+        Content = string.format("Collecting %d coins...", #coins),
+        Duration = 2,
+        Icon = "zap",
+    })
+    
+    local originalPos = hrp.CFrame
+    hrp.Anchored = true
+    
+    for i, coin in ipairs(coins) do
+        pcall(function()
+            hrp.CFrame = coin.CFrame
+            task.wait(0.05)
+            firetouchinterest(hrp, coin, 0)
+            task.wait(0.05)
+            firetouchinterest(hrp, coin, 1)
+        end)
+    end
+    
+    hrp.CFrame = originalPos
+    hrp.Anchored = false
+    
+    WindUI:Notify({
+        Title = "Collect Complete",
+        Content = string.format("Collected %d radioactive coins!", #coins),
+        Duration = 3,
+        Icon = "check",
+    })
+end
+
 local function disableWaveHitboxes()
     if not States.GodMode then return end
     
@@ -2366,6 +2454,11 @@ local MainTab = Window:Tab({
     Icon = "home",
 })
 
+local RadioactiveEventTab= Window:Tab({
+    Title = "Radioactive Event",
+    Icon = "home",
+})
+
 local PlayerTab = Window:Tab({
     Title = "Player",
     Icon = "user",
@@ -2465,6 +2558,14 @@ myConfig:Register("AntiSlap", AntiSlapToggle)
 myConfig:Register("SlapAura", SlapAuraToggle)
 myConfig:Register("AntiTsunami", AntiTsunamiToggle)
 myConfig:Register("FastInteraction", FastInteractionToggle)
+
+local CollectRadioactiveButton = RadioactiveEventTab:Button({
+    Title = "Collect All Radioactive Coins",
+    Desc = "Auto collect all radioactive coins",
+    Callback = function()
+        collectAllRadioactiveCoins()
+    end
+})
 
 local GodModeToggle = PlayerTab:Toggle({
     Title = "God Mode",
