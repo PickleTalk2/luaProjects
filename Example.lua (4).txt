@@ -6,7 +6,9 @@
 -- || AND DON'T ADD WELCOME NOTIFICATION SINCE WE ALREADY HAVE WINDOW POPUP NOTIFICATION FOR UPDATES AND DISCORD JOIN!                                      ||
 -- || AND DON'T ADD COMMENTS TELLS HOW DOES THAT PART WORKS, ONLY COMMENT WHAT IS THIS LINE OF CODE NOT HOW THAT LINE WORKSN!                               ||
 -- || AND ON TOGGLE BUTTON, OR BUTTON NOTIFICATION DON'T NOTIFY HOW IT WORKS JUST TELL SIMPLE THING LIKE "ANTI VOID IS ON, YOU NOW CANNOT FALL TO THE VOID" ||
---  =========================================================================================================================================================
+--  
+-- Always add If States.DebugMode and use WindUi notify for all errors with saying report on discord
+=========================================================================================================================================================
 
 -- Load The Library
 local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
@@ -187,10 +189,10 @@ WindUI:SetTheme("Dark")
 
 -- Creating Window!
 local Window = WindUI:CreateWindow({
-    Title = "(gameName) Nightmare Hub", -- ALWAS LIKE THIS CHANGE THE GAMENAME TO THE PROVIDED GAME
+    Title = "(gameName) Shadow X | Official", -- ALWAS LIKE THIS CHANGE THE GAMENAME TO THE PROVIDED GAME
     Icon = "sword", -- lucide icon
-    Author = "Developed by PickleTalk and Mhicel",
-    Folder = "Nightmare Hub", -- ALWAYS!
+    Author = "Developed by PickleTalk",
+    Folder = "Shadow X", -- ALWAYS!
     Transparent = true,
     Theme = "Dark",
 })
@@ -251,7 +253,7 @@ end
 
 -- Editing the minimized!
 Window:EditOpenButton({
-    Title = "Scripts Hub X | Official", -- Must be always this title!
+    Title = "Shadow X | Official", -- Must be always this title!
     Icon = "monitor", -- must be this icon always!
     CornerRadius = UDim.new(0,16),
     StrokeThickness = 2,
@@ -357,8 +359,8 @@ local Keybind = Tab:Keybind({
 
 -- Example creating paragraph
 local Paragraph = Tab:Paragraph({
-    Title = "Scripts Hub X | Official",
-    Desc = "Made by PickleTalk and Mhicel Join to our discord server to be always updated",
+    Title = "Shadow X | Official",
+    Desc = "Made by PickleTalk Join to our discord server to be always updated",
     Color = "Red",
     Image = "",
     ImageSize = 30,
@@ -827,8 +829,8 @@ myConfig:Register("LowGFX", LowGFXToggle)
 -- CREDITS TAB ELEMENTS ALWAYS!!!
 -- ========================================
 local CreditsParagraph = CreditsTab:Paragraph({
-    Title = "Scripts Hub X | Official | Official",
-    Desc = "Made by PickleTalk and Mhicel. Join our discord server to be always updated with the latest features and scripts!",
+    Title = "Shadow X | Official | Official",
+    Desc = "Made by PickleTalk. Join our discord server to be always updated with the latest features and scripts!",
     Color = "Red",
     Thumbnail = "rbxassetid://74135635728836",
     ThumbnailSize = 140,
@@ -858,7 +860,7 @@ local maxPlayers = Players.MaxPlayers or 0
 local ServerInfoParagraph = MiscTab:Paragraph({
     Title = "Server Information",
     Desc = string.format(
-        "Game: Steal A Clown\nPlace ID: %d\nJob ID: %s\nPlayers: %d/%d",
+        "Game: game.Name\nPlace ID: %d\nJob ID: %s\nPlayers: %d/%d",
         game.PlaceId or 0,
         tostring(game.JobId or "N/A"),
         currentPlayers,
@@ -869,14 +871,14 @@ local ServerInfoParagraph = MiscTab:Paragraph({
 -- Update player count every 5 seconds
 task.spawn(function()
     while true do
-        task.wait(5)
+        task.wait(10)
         local currentPlayers = #Players:GetPlayers()
         local maxPlayers = Players.MaxPlayers or 0
         
         pcall(function()
             ServerInfoParagraph:Set({
                 Desc = string.format(
-                    "Game: Steal A Clown\nPlace ID: %d\nJob ID: %s\nPlayers: %d/%d",
+                    "Game: game.Name\nPlace ID: %d\nJob ID: %s\nPlayers: %d/%d",
                     game.PlaceId or 0,
                     tostring(game.JobId or "N/A"),
                     currentPlayers,
@@ -970,9 +972,9 @@ myConfig:Register("ThemeColor", ThemeColorPicker)
 -- WELCOME POPUP THIS IS MUST THERE ALWAYS!
 -- ========================================
 WindUI:Popup({
-    Title = "(game name) V(script version)",
+    Title = "(game name)game.Name V(script version)",
     Icon = "sword",
-    Content = "New Update: (the new update)!", -- USE SIMPLE WORDS LIKE ADDED NOCLIP, BYPASS NOCLIP, IMPROVE ANT VOID, ETC.!
+    Content = "New Update: (the new update always remind me to change this every prompt)!", -- USE SIMPLE WORDS LIKE ADDED NOCLIP, BYPASS NOCLIP, IMPROVE ANT VOID, ETC.!
     Buttons = {
         {
             Title = "Close",
