@@ -765,27 +765,58 @@ end
 
 local function createStealButton()
     local screenGui = Instance.new("ScreenGui")
-    screenGui.Name = "StealHighestUI"
+    screenGui.Name = "StealCelestialUI"
     screenGui.ResetOnSpawn = false
     screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
     screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
 
     local button = Instance.new("TextButton")
     button.Name = "StealButton"
-    button.Size = UDim2.new(0, 100, 0, 50)
-    button.Position = UDim2.new(0.5, -50, 0.85, -25)
-    button.BackgroundColor3 = Color3.fromRGB(255, 60, 120)
-    button.Text = "Steal Highest"
-    button.TextColor3 = Color3.fromRGB(255, 255, 255)
-    button.TextSize = 16
-    button.Font = Enum.Font.GothamBold
+    button.Size = UDim2.new(0, 200, 0, 70)
+    button.Position = UDim2.new(0.5, -100, 0.85, -35)
+    button.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+    button.Text = ""
     button.BorderSizePixel = 0
     button.AutoButtonColor = false
     button.Parent = screenGui
 
     local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0.15, 0)
+    corner.CornerRadius = UDim.new(0, 14)
     corner.Parent = button
+
+    local gradient = Instance.new("UIGradient")
+    gradient.Color = ColorSequence.new(
+        Color3.fromRGB(30, 30, 40),
+        Color3.fromRGB(15, 15, 20)
+    )
+    gradient.Rotation = 90
+    gradient.Parent = button
+
+    local stroke = Instance.new("UIStroke")
+    stroke.Color = Color3.fromRGB(80, 255, 120)
+    stroke.Thickness = 2.5
+    stroke.Transparency = 0
+    stroke.Parent = button
+
+    local glowStroke = Instance.new("UIStroke")
+    glowStroke.Color = Color3.fromRGB(80, 255, 120)
+    glowStroke.Thickness = 0
+    glowStroke.Transparency = 0.5
+    glowStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+    glowStroke.Parent = button
+
+    local buttonText = Instance.new("TextLabel")
+    buttonText.Size = UDim2.new(1, 0, 1, 0)
+    buttonText.BackgroundTransparency = 1
+    buttonText.Text = "STEAL CELESTIAL"
+    buttonText.TextColor3 = Color3.fromRGB(255, 255, 255)
+    buttonText.TextSize = 20
+    buttonText.Font = Enum.Font.GothamBold
+    buttonText.TextStrokeTransparency = 0.5
+    buttonText.Parent = button
+
+    local glowTween = TweenService:Create(glowStroke, TweenInfo.new(1, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true), {Thickness = 6, Transparency = 0.8})
+    glowTween:Play()
 
     local dragging = false
     local dragStart = nil
@@ -799,13 +830,35 @@ local function createStealButton()
             startPos = button.Position
             hasMoved = false
             
+            local clickTween = TweenService:Create(button, TweenInfo.new(0.1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+                Size = UDim2.new(0, 190, 0, 65),
+                BackgroundColor3 = Color3.fromRGB(10, 10, 15)
+            })
+            clickTween:Play()
+            
+            local strokeTween = TweenService:Create(stroke, TweenInfo.new(0.1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+                Color = Color3.fromRGB(100, 255, 140)
+            })
+            strokeTween:Play()
+            
             input.Changed:Connect(function()
                 if input.UserInputState == Enum.UserInputState.End then
                     dragging = false
                     
+                    local releaseTween = TweenService:Create(button, TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+                        Size = UDim2.new(0, 200, 0, 70),
+                        BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+                    })
+                    releaseTween:Play()
+                    
+                    local strokeReleaseTween = TweenService:Create(stroke, TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+                        Color = Color3.fromRGB(80, 255, 120)
+                    })
+                    strokeReleaseTween:Play()
+                    
                     if not hasMoved and not States.IsStealing then
                         task.spawn(function()
-                            executeSteal()
+                            executeCelestialSteal()
                         end)
                     end
                 end
@@ -838,6 +891,57 @@ local function removeStealButton()
     if States.StealButton then
         States.StealButton:Destroy()
         States.StealButton = nil
+    end
+end
+
+local function createStealingText()
+    local character = LocalPlayer.Character
+    if not character then return end
+    
+    local hrp = character:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+    
+    local existingGui = hrp:FindFirstChild("StealingTextGui")
+    if existingGui then
+        existingGui:Destroy()
+    end
+    
+    local billboardGui = Instance.new("BillboardGui")
+    billboardGui.Name = "StealingTextGui"
+    billboardGui.Size = UDim2.new(0, 200, 0, 50)
+    billboardGui.StudsOffset = Vector3.new(0, 3, 0)
+    billboardGui.AlwaysOnTop = true
+    billboardGui.Parent = hrp
+    
+    local textLabel = Instance.new("TextLabel")
+    textLabel.Size = UDim2.new(1, 0, 1, 0)
+    textLabel.BackgroundTransparency = 1
+    textLabel.Text = "STEALING"
+    textLabel.TextColor3 = Color3.fromRGB(80, 255, 120)
+    textLabel.TextSize = 28
+    textLabel.Font = Enum.Font.GothamBold
+    textLabel.TextStrokeTransparency = 0
+    textLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+    textLabel.Parent = billboardGui
+    
+    local glowTween = TweenService:Create(textLabel, TweenInfo.new(0.5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true), {
+        TextColor3 = Color3.fromRGB(120, 255, 160)
+    })
+    glowTween:Play()
+    
+    return billboardGui
+end
+
+local function removeStealingText()
+    local character = LocalPlayer.Character
+    if not character then return end
+    
+    local hrp = character:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+    
+    local existingGui = hrp:FindFirstChild("StealingTextGui")
+    if existingGui then
+        existingGui:Destroy()
     end
 end
 
@@ -1358,32 +1462,7 @@ local function findNearestGap(playerPosition, gaps)
     return nearestGap
 end
 
-local function parseRateValue(rateText)
-    if not rateText then return 0 end
-    
-    local cleanText = rateText:gsub("%$", ""):gsub("/s", ""):gsub(",", "")
-    local multiplier = 1
-    
-    if cleanText:find("k") or cleanText:find("K") then
-        multiplier = 1000
-        cleanText = cleanText:gsub("k", ""):gsub("K", "")
-    elseif cleanText:find("m") or cleanText:find("M") then
-        multiplier = 1000000
-        cleanText = cleanText:gsub("m", ""):gsub("M", "")
-    elseif cleanText:find("b") or cleanText:find("B") then
-        multiplier = 1000000000
-        cleanText = cleanText:gsub("b", ""):gsub("B", "")
-    end
-    
-    local number = tonumber(cleanText)
-    if number then
-        return number * multiplier
-    end
-    
-    return 0
-end
-
-function executeSteal()
+function executeCelestialSteal()
     if States.IsStealing then
         WindUI:Notify({
             Title = "Steal In Progress",
@@ -1395,321 +1474,111 @@ function executeSteal()
     end
     
     local character = LocalPlayer.Character
-    if not character then 
-        if States.DebugMode then
-            print("[DEBUG] No character found")
-        end
-        return 
+    if not character then
+        WindUI:Notify({
+            Title = "Steal Failed",
+            Content = "No character found!",
+            Duration = 3,
+            Icon = "x",
+        })
+        return
     end
     
     local hrp = character:FindFirstChild("HumanoidRootPart")
-    if not hrp then 
-        if States.DebugMode then
-            print("[DEBUG] No HumanoidRootPart found")
-        end
-        return 
+    if not hrp then
+        WindUI:Notify({
+            Title = "Steal Failed",
+            Content = "No HumanoidRootPart found!",
+            Duration = 3,
+            Icon = "x",
+        })
+        return
     end
     
-    States.IsStealing = true
-    States.SavedStealPosition = hrp.Position
-
-    local wasAntiTsunamiEnabled = States.AntiTsunami
-    if not wasAntiTsunamiEnabled then
-        States.AntiTsunami = true
-        if States.DebugMode then
-            print("[DEBUG] Anti Tsunami enabled for stealing")
-        end
-    end
-    
-    WindUI:Notify({
-        Title = "Steal Highest",
-        Content = "Scanning for highest value...",
-        Duration = 2,
-        Icon = "search",
-    })
-    
-    local highestBrainrot = nil
-    local highestValue = 0
-    local highestFolder = nil
-    local foundBrainrots = 0
+    local celestialBrainrot = nil
+    local celestialRoot = nil
     
     pcall(function()
-        local possibleParents = {"ActiveBrainrots", "Brainrots"}
-        local activeBrainrots = nil
-        
-        for _, parentName in ipairs(possibleParents) do
-            activeBrainrots = Workspace:FindFirstChild(parentName)
-            if activeBrainrots then
-                if States.DebugMode then
-                    print("[DEBUG] Found parent folder:", parentName)
-                end
-                break
-            end
-        end
-        
-        if not activeBrainrots then
-            if States.DebugMode then
-                print("[DEBUG] No parent folder found, searching workspace root")
-            end
-            activeBrainrots = Workspace
-        end
-        
-        local rarityFolders = {"Celestial", "Secret", "Cosmic", "Legendary", "Mythical", "Rare", "Uncommon"}
-        
-        for _, folderName in ipairs(rarityFolders) do
-            local folder = activeBrainrots:FindFirstChild(folderName)
-            if folder then
-                if States.DebugMode then
-                    print("[DEBUG] Checking folder:", folderName)
-                end
-                
-                for _, child in pairs(folder:GetChildren()) do
-                    if child.Name == "RenderedBrainrot" and child:IsA("Model") then
-                        foundBrainrots = foundBrainrots + 1
-        
-                        local success, rate = pcall(function()
-                            local brainrotModel = nil
-                            for _, modelChild in pairs(child:GetChildren()) do
-                                if modelChild:IsA("Model") then
-                                    brainrotModel = modelChild
-                                    break
-                                end
-                            end
-                            if not brainrotModel then 
-                                if States.DebugMode then
-                                    print("[DEBUG] No child model in RenderedBrainrot")
-                                end
-                                return nil
-                            end
-            
-                            local modelExtents = brainrotModel:FindFirstChild("ModelExtents")
-                            if not modelExtents then 
-                                if States.DebugMode then
-                                    print("[DEBUG] No ModelExtents in", brainrotModel.Name)
-                                end
-                                return nil 
-                            end
-                            
-                            local statsGui = modelExtents:FindFirstChild("StatsGui")
-                            if not statsGui then 
-                                if States.DebugMode then
-                                    print("[DEBUG] No StatsGui in", modelExtents:GetFullName())
-                                end
-                                return nil 
-                            end
-                            
-                            local frame = statsGui:FindFirstChild("Frame")
-                            if not frame then 
-                                if States.DebugMode then
-                                    print("[DEBUG] No Frame in", statsGui:GetFullName())
-                                end
-                                return nil 
-                            end
-                            
-                            local rateLabel = frame:FindFirstChild("Rate")
-                            if not rateLabel then 
-                                if States.DebugMode then
-                                    print("[DEBUG] No Rate label in", frame:GetFullName())
-                                end
-                                return nil 
-                            end
-                            
-                            return rateLabel.Text
-                        end)
-                        
-                        if success and rate then
-                            local value = parseRateValue(rate)
-                            
-                            if States.DebugMode then
-                                print(string.format("[DEBUG] %s - Rate: %s = %d", folderName, rate, value))
-                            end
-                            
-                            if value > highestValue then
-                                highestValue = value
-                                highestBrainrot = child
-                                highestFolder = folderName
-                            end
-                        end
-                    end
-                end
-            else
-                if States.DebugMode then
-                    print("[DEBUG] Folder not found:", folderName)
+        local activeBrainrots = Workspace:FindFirstChild("ActiveBrainrots")
+        if activeBrainrots then
+            local celestialFolder = activeBrainrots:FindFirstChild("Celestial")
+            if celestialFolder then
+                celestialBrainrot = celestialFolder:FindFirstChild("RenderedBrainrot")
+                if celestialBrainrot then
+                    celestialRoot = celestialBrainrot:FindFirstChild("Root")
                 end
             end
-        end
-        
-        if States.DebugMode then
-            print(string.format("[DEBUG] Total RenderedBrainrots found: %d", foundBrainrots))
         end
     end)
     
-    if foundBrainrots == 0 then
+    if not celestialRoot then
         WindUI:Notify({
-            Title = "Steal Failed",
-            Content = "No RenderedBrainrot models found!",
-            Duration = 4,
-            Icon = "x",
-        })
-        States.IsStealing = false
-        
-        if not wasAntiTsunamiEnabled then
-            States.AntiTsunami = false
-        end
-        return
-    end
-    
-    if not highestBrainrot then
-        WindUI:Notify({
-            Title = "Steal Failed",
-            Content = string.format("Found %d brainrots but none had valid rates!", foundBrainrots),
-            Duration = 4,
-            Icon = "x",
-        })
-        States.IsStealing = false
-        
-        if not wasAntiTsunamiEnabled then
-            States.AntiTsunami = false
-        end
-        return
-    end
-    
-    local root = highestBrainrot:FindFirstChild("Root")
-    if not root then
-        WindUI:Notify({
-            Title = "Steal Failed",
-            Content = "Highest brainrot has no Root!",
+            Title = "Steal Celestial",
+            Content = "No Celestial brainrot found!",
             Duration = 3,
             Icon = "x",
         })
-        States.IsStealing = false
-        
-        if not wasAntiTsunamiEnabled then
-            States.AntiTsunami = false
-        end
         return
     end
     
-    if States.DebugMode then
+    local distance = (hrp.Position - celestialRoot.Position).Magnitude
+    
+    if distance > 400 then
         WindUI:Notify({
-            Title = "Highest Found!",
-            Content = string.format("%s - $%d/s", highestFolder, highestValue),
-            Duration = 3,
-            Icon = "trending-up",
+            Title = "Steal Celestial",
+            Content = "You must be on celestial area on gap to do this!",
+            Duration = 4,
+            Icon = "alert-triangle",
         })
-        print(string.format("[DEBUG] Stealing from: %s in %s", highestBrainrot:GetFullName(), highestFolder))
-        print(string.format("[DEBUG] Value: %d", highestValue))
-        print(string.format("[DEBUG] Root Position: %s", tostring(root.Position)))
-    end
-    
-    local targetPos = root.Position
-    
-    while States.IsStealing do
-        if not hrp or not hrp.Parent then
-            if States.DebugMode then
-                print("[DEBUG] HRP lost")
-            end
-            break
-        end
-        
-        local currentDist = (Vector3.new(hrp.Position.X, 0, hrp.Position.Z) - Vector3.new(targetPos.X, 0, targetPos.Z)).Magnitude
-        
-        if currentDist < 15 then
-            if States.DebugMode then
-                print("[DEBUG] Reached target position")
-            end
-            break
-        end
-        
-        if hrp.Position.Y < 0 then
-            if States.DebugMode then
-                print("[DEBUG] In gap, waiting for wave to pass...")
-            end
-            
-            local waitCount = 0
-            while States.IsStealing and hrp.Position.Y < 0 and waitCount < 20 do
-                task.wait(0.5)
-                waitCount = waitCount + 1
-                
-                local nearestWave = findNearestWave(hrp.Position)
-                if not nearestWave or nearestWave.Distance > 80 then
-                    local playerX = hrp.Position.X
-                    local waveIsBehind = false
-                    
-                    if nearestWave then
-                        waveIsBehind = (playerX - nearestWave.XPosition) > 10
-                    end
-                    
-                    if not nearestWave or waveIsBehind then
-                        if States.DebugMode then
-                            print("[DEBUG] Wave passed, lifting to Y=3")
-                        end
-                        
-                        hrp.CFrame = CFrame.new(hrp.Position.X, 3, hrp.Position.Z)
-                        task.wait(0.3)
-                        break
-                    end
-                end
-            end
-            
-            if waitCount >= 20 then
-                if States.DebugMode then
-                    print("[DEBUG] Timeout waiting for wave, forcing lift")
-                end
-                hrp.CFrame = CFrame.new(hrp.Position.X, 3, hrp.Position.Z)
-                task.wait(0.3)
-            end
-        end
-        
-        if States.DebugMode then
-            print(string.format("[DEBUG] Tweening to target (Distance: %.1f)", currentDist))
-        end
-        
-        tweenToPositionSafely(hrp, targetPos, false)
-        task.wait(0.5)
-    end
-    
-    if not States.IsStealing then
-        if not wasAntiTsunamiEnabled then
-            States.AntiTsunami = false
-        end
         return
     end
+    
+    States.IsStealing = true
+    States.SavedStealPosition = hrp.CFrame
+    
+    local stealingTextGui = createStealingText()
+    
+    WindUI:Notify({
+        Title = "Steal Celestial",
+        Content = string.format("Stealing... (%.0f studs away)", distance),
+        Duration = 2,
+        Icon = "zap",
+    })
     
     task.wait(0.3)
     
-    local takePrompt = root:FindFirstChild("TakePrompt")
+    hrp.CFrame = celestialRoot.CFrame * CFrame.new(0, 3, 0)
+    
+    task.wait(0.2)
+    
+    local takePrompt = celestialRoot:FindFirstChild("TakePrompt")
     if takePrompt and takePrompt:IsA("ProximityPrompt") then
-        if States.DebugMode then
-            print("[DEBUG] Firing TakePrompt")
-        end
-        
         fireproximityprompt(takePrompt)
         
         WindUI:Notify({
             Title = "Steal Success",
-            Content = "Collected!",
+            Content = "Celestial collected!",
             Duration = 2,
             Icon = "check",
         })
-        
-        task.wait(0.5)
     else
-        if States.DebugMode then
-            print("[DEBUG] TakePrompt not found")
-        end
+        WindUI:Notify({
+            Title = "Steal Failed",
+            Content = "TakePrompt not found!",
+            Duration = 3,
+            Icon = "x",
+        })
     end
     
+    task.wait(0.5)
+    
+    if States.SavedStealPosition then
+        hrp.CFrame = States.SavedStealPosition
+    end
+    
+    removeStealingText()
     States.IsStealing = false
     States.SavedStealPosition = nil
-    
-    if not wasAntiTsunamiEnabled then
-        task.wait(0.5)
-        States.AntiTsunami = false
-        if States.DebugMode then
-            print("[DEBUG] Anti Tsunami disabled after stealing")
-        end
-    end
 end
 
 local function toggleStealUI(state)
@@ -2530,7 +2399,7 @@ local SettingsTab = Window:Tab({
 
 local TeleportLastGapButton = MainTab:Button({
     Title = "Teleport Celestial Area Gap (vip)",
-    Desc = "Teleport through all gaps to Gap9",
+    Desc = "Teleport to Celestial Area vip only",
     Callback = function()
         teleportToLastGap()
     end
