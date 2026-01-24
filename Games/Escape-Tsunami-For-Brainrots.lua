@@ -1471,18 +1471,17 @@ function executeCelestialSteal()
         end
 
         task.wait(0.05)
+        hrp.Anchored = false
         hrp.CFrame = celestialRoot.CFrame
-        task.wait(0.05)
+        task.wait(0.1)
         local takePrompt = celestialRoot:FindFirstChild("TakePrompt")
         if takePrompt and takePrompt:IsA("ProximityPrompt") then
             fireproximityprompt(takePrompt)
         end
-        task.wait(0.05)
-        if takePrompt and takePrompt:IsA("ProximityPrompt") then
-            fireproximityprompt(takePrompt)
-        end
+        task.wait(0.1)
         hrp.CFrame = CFrame.new(celestialX, 65, celestialZ)
-        
+        task.wait(0.05)
+        hrp.Anchored = true
         local distanceToReturn = math.abs(celestialX - 120)
         local returnTweenSpeed = 220
         local returnTweenTime = distanceToReturn / returnTweenSpeed
