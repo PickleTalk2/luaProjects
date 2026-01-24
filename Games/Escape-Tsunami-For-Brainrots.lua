@@ -210,12 +210,6 @@ end
 local function loadConfiguration()
     pcall(function()
         myConfig:Load()
-        WindUI:Notify({
-            Title = "Configuration Loaded",
-            Content = "All your saved settings have been loaded!",
-            Duration = 3,
-            Icon = "download",
-        })
     end)
 end
 
@@ -1519,7 +1513,7 @@ function executeCelestialSteal()
         for i = nearestIndex, #waypoints do
             pcall(function()
                 hrp.CFrame = CFrame.new(waypoints[i].X, waypoints[i].Y, waypoints[i].Z)
-                task.wait(0.2)
+                task.wait(0.18)
             end)
         end
         
@@ -1537,7 +1531,7 @@ function executeCelestialSteal()
         for i = #waypoints, 1, -1 do
             pcall(function()
                 hrp.CFrame = CFrame.new(waypoints[i].X, waypoints[i].Y, waypoints[i].Z)
-                task.wait(0.2)
+                task.wait(0.18)
             end)
         end
         
@@ -2229,7 +2223,7 @@ local function teleportToLastGap()
                     print(string.format("[Celestial TP] Waypoint %d: X=%.1f, Y=%.1f, Z=%.1f", i, waypoint.X, waypoint.Y, waypoint.Z))
                 end
                 
-                task.wait(0.15)
+                task.wait(0.18)
             end)
             
             if not success then
