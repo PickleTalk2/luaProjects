@@ -2094,8 +2094,14 @@ local function teleportToLastGap()
         hrp.CFrame = CFrame.new(currentPos.X, 65, -1)
         task.wait(0.1)
 
+        local bodyPos = Instance.new("BodyPosition")
+        bodyPos.MaxForce = Vector3.new(0, math.huge, 0)
+        bodyPos.Position = Vector3.new(0, 65, 0)
+        bodyPos.P = 10000
+        bodyPos.D = 500
+        bodyPos.Parent = hrp
+        
         if humanoid then
-            humanoid:ChangeState(Enum.HumanoidStateType.Physics)
             humanoid:Move(Vector3.new(0, 0, -1))
         end
 
@@ -2112,21 +2118,17 @@ local function teleportToLastGap()
         end)
 
         tween:Play()
-        
+
         while not tweenCompleted do
-            hrp.CFrame = hrp.CFrame + Vector3.new(0, 0.1, 0)
             if humanoid then
                 humanoid:Move(Vector3.new(0, 0, -1))
             end
             task.wait(0.03)
         end
 
-        task.wait(0.2)
+        task.wait(2)
+        bodyPos:Destroy()
         hrp.CFrame = CFrame.new(2605, -4, -1)
-
-        if humanoid then
-            humanoid:ChangeState(Enum.HumanoidStateType.Running)
-        end
         hrp.CFrame = CFrame.new(2605, -4, -1)
         
         if humanoid then
