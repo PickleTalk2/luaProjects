@@ -202,15 +202,27 @@ local ConfigManager = Window.ConfigManager
 local myConfig = ConfigManager:CreateConfig("EscapeTsunami")
 
 local function saveConfiguration()
-    pcall(function()
+    local success, err = pcall(function()
         myConfig:Save()
     end)
+    if not success then
+        warn("Failed to save configuration:", err)
+        WindUI:Notify({
+            Title = "Save Failed",
+            Content = "Could not save configuration: " .. tostring(err),
+            Duration = 3,
+            Icon = "x",
+        })
+    end
 end
 
 local function loadConfiguration()
-    pcall(function()
+    local success, err = pcall(function()
         myConfig:Load()
     end)
+    if not success then
+        warn("Failed to load configuration:", err)
+    end
 end
 
 local function changeTheme(themeName)
@@ -266,6 +278,7 @@ local States = {
     ESPLuckyBlockCosmic = false,
     ESPLuckyBlockNormal = false,
     AutoFarmCelestial = false,
+    ESPHighestBrainrot = false,
 }
 
 local Connections = {
@@ -290,6 +303,7 @@ local Connections = {
     ESPLuckyBlockCosmic = nil,
     ESPLuckyBlockNormal = nil,
     AutoFarmCelestial = nil,
+    ESPHighestBrainrot = nil,
 }
 
 local LowGFXStorage = {
@@ -297,6 +311,8 @@ local LowGFXStorage = {
     SavedLighting = {},
 }
 
+local HealthConnection = nil
+local CharacterConnection = nil
 local OriginalCharacterProperties = {}
 local OldNamecallHook = nil
 local OldIndexHook = nil
@@ -470,6 +486,127 @@ local function toggleESPLuckyBlock(state, blockType)
     end
 end
 
+local function toggleESPHighestBrainrot(state)
+    local connectionName = "ESPHighestBrainrot"
+    States[connectionName] = state
+    
+    if state then
+        Connections[connectionName] = RunService.Heartbeat:Connect(function()
+            if not States[connectionName] then return end
+            
+            pcall(function()
+                local activeBrainrots = Workspace:FindFirstChild("ActiveBrainrots")
+                if not activeBrainrots then return end
+                
+                local function createBrainrotESP(folder, effectType)
+                    if not folder then return end
+                    
+                    for _, renderedBrainrot in pairs(folder:GetChildren()) do
+                        if renderedBrainrot.Name == "RenderedBrainrot" and renderedBrainrot:IsA("Model") then
+                            local innerModel = renderedBrainrot:FindFirstChildOfClass("Model")
+                            if not innerModel then continue end
+                            
+                            local modelExtents = innerModel:FindFirstChild("ModelExtents")
+                            if not modelExtents then continue end
+                            
+                            local statsGui = modelExtents:FindFirstChild("StatsGui")
+                            if not statsGui then continue end
+                            
+                            local frame = statsGui:FindFirstChild("Frame")
+                            if not frame then continue end
+                            
+                            local nameLabel = frame:FindFirstChild("BrainrotName")
+                            local mutationLabel = frame:FindFirstChild("Mutation")
+                            
+                            if not nameLabel or not mutationLabel then continue end
+                            
+                            local brainrotName = nameLabel.Text or "Unknown"
+                            local mutation = mutationLabel.Text or "N/A"
+                            
+                            local primary = innerModel.PrimaryPart or innerModel:FindFirstChildWhichIsA("BasePart")
+                            if not primary then continue end
+                            
+                            if primary:FindFirstChild("ESP_HighestBrainrot") then continue end
+                            
+                            local billboardGui = Instance.new("BillboardGui")
+                            billboardGui.Name = "ESP_HighestBrainrot"
+                            billboardGui.Adornee = primary
+                            billboardGui.Size = UDim2.new(0, 300, 0, 100)
+                            billboardGui.StudsOffset = Vector3.new(0, 5, 0)
+                            billboardGui.AlwaysOnTop = true
+                            billboardGui.Parent = primary
+                            
+                            local nameText = Instance.new("TextLabel")
+                            nameText.Size = UDim2.new(1, 0, 0.4, 0)
+                            nameText.Position = UDim2.new(0, 0, 0, 0)
+                            nameText.BackgroundTransparency = 1
+                            nameText.Text = brainrotName
+                            nameText.TextSize = 22
+                            nameText.Font = Enum.Font.GothamBold
+                            nameText.TextStrokeTransparency = 0
+                            nameText.Parent = billboardGui
+                            
+                            local mutationText = Instance.new("TextLabel")
+                            mutationText.Size = UDim2.new(1, 0, 0.3, 0)
+                            mutationText.Position = UDim2.new(0, 0, 0.4, 0)
+                            mutationText.BackgroundTransparency = 1
+                            mutationText.Text = mutation
+                            mutationText.TextSize = 16
+                            mutationText.Font = Enum.Font.Gotham
+                            mutationText.TextStrokeTransparency = 0
+                            mutationText.Parent = billboardGui
+                            
+                            if effectType == "Celestial" then
+                                nameText.TextColor3 = Color3.fromRGB(0, 255, 0)
+                                nameText.TextStrokeColor3 = Color3.fromRGB(0, 100, 0)
+                                mutationText.TextColor3 = Color3.fromRGB(150, 255, 150)
+                                mutationText.TextStrokeColor3 = Color3.fromRGB(0, 80, 0)
+                                
+                                local glowTween = TweenService:Create(nameText, 
+                                    TweenInfo.new(1, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true),
+                                    {TextColor3 = Color3.fromRGB(100, 255, 100)}
+                                )
+                                glowTween:Play()
+                            elseif effectType == "Secret" then
+                                nameText.TextColor3 = Color3.fromRGB(255, 50, 50)
+                                nameText.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+                                nameText.TextStrokeTransparency = 0.3
+                                mutationText.TextColor3 = Color3.fromRGB(255, 100, 100)
+                                mutationText.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+                                mutationText.TextStrokeTransparency = 0.3
+                                
+                                local shadowTween = TweenService:Create(nameText,
+                                    TweenInfo.new(0.8, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true),
+                                    {TextColor3 = Color3.fromRGB(200, 0, 0)}
+                                )
+                                shadowTween:Play()
+                            end
+                            
+                            table.insert(ESPObjects, billboardGui)
+                        end
+                    end
+                end
+                
+                local celestialFolder = activeBrainrots:FindFirstChild("Celestial")
+                if celestialFolder then
+                    createBrainrotESP(celestialFolder, "Celestial")
+                end
+                
+                local secretFolder = activeBrainrots:FindFirstChild("Secret")
+                if secretFolder then
+                    createBrainrotESP(secretFolder, "Secret")
+                end
+            end)
+        end)
+    else
+        if Connections[connectionName] then
+            Connections[connectionName]:Disconnect()
+            Connections[connectionName] = nil
+        end
+        clearESP()
+    end
+end
+
 local function disableWaveHitboxes()
     if not States.GodMode then return end
     
@@ -512,6 +649,16 @@ local function setupGodModeForCharacter(character)
     
     humanoid.MaxHealth = math.huge
     humanoid.Health = math.huge
+    
+    if HealthConnection then
+        HealthConnection:Disconnect()
+    end
+    
+    HealthConnection = humanoid:GetPropertyChangedSignal("Health"):Connect(function()
+        if States.GodMode and humanoid.Health < 1000000 then
+            humanoid.Health = 1000000
+        end
+    end)
     
     if Connections.GodMode then
         Connections.GodMode:Disconnect()
@@ -933,6 +1080,7 @@ local function toggleAntiSlap(state)
         if not humanoid or not hrp then return end
         
         local lastPosition = hrp.Position
+        local lastVelocity = Vector3.new(0, 0, 0)
         
         Connections.AntiSlap = RunService.Heartbeat:Connect(function()
             if not States.AntiSlap then return end
@@ -946,38 +1094,43 @@ local function toggleAntiSlap(state)
                 
                 if not humanoid or not hrp then return end
                 
-                -- Force running state
-                if humanoid:GetState() == Enum.HumanoidStateType.Ragdoll or 
-                   humanoid:GetState() == Enum.HumanoidStateType.FallingDown or
-                   humanoid:GetState() == Enum.HumanoidStateType.Flying or
-                   humanoid:GetState() == Enum.HumanoidStateType.Freefall then
+                local currentState = humanoid:GetState()
+                
+                if currentState == Enum.HumanoidStateType.Ragdoll or 
+                   currentState == Enum.HumanoidStateType.FallingDown or
+                   currentState == Enum.HumanoidStateType.Flying then
                     humanoid:ChangeState(Enum.HumanoidStateType.Running)
                 end
                 
-                -- Destroy all physics objects
                 for _, obj in pairs(hrp:GetChildren()) do
                     if obj:IsA("BodyVelocity") or obj:IsA("BodyGyro") or 
-                       obj:IsA("BodyPosition") or obj:IsA("BodyAngularVelocity") then
+                       obj:IsA("BodyPosition") or obj:IsA("BodyAngularVelocity") or
+                       obj:IsA("BodyThrust") or obj:IsA("BodyForce") then
                         obj:Destroy()
                     end
                 end
                 
                 local currentVelocity = hrp.AssemblyVelocity
                 
-                -- Stop all high velocity movement
-                if currentVelocity.Magnitude > 50 and not States.Speed then
-                    hrp.AssemblyVelocity = Vector3.new(0, 0, 0)
-                    hrp.CFrame = CFrame.new(lastPosition)
+                if currentState ~= Enum.HumanoidStateType.Freefall and 
+                   currentState ~= Enum.HumanoidStateType.Jumping then
+                    if currentVelocity.Magnitude > 60 and not States.Speed then
+                        hrp.AssemblyVelocity = Vector3.new(0, currentVelocity.Y, 0)
+                        hrp.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
+                        hrp.CFrame = CFrame.new(lastPosition.X, hrp.Position.Y, lastPosition.Z)
+                    end
                 end
                 
-                -- Prevent vertical displacement
-                if math.abs(hrp.Position.Y - lastPosition.Y) > 5 then
-                    hrp.CFrame = CFrame.new(hrp.Position.X, lastPosition.Y, hrp.Position.Z)
+                if currentState ~= Enum.HumanoidStateType.Freefall and 
+                   currentState ~= Enum.HumanoidStateType.Jumping then
+                    if math.abs(hrp.Position.Y - lastPosition.Y) > 8 then
+                        hrp.CFrame = CFrame.new(hrp.Position.X, lastPosition.Y, hrp.Position.Z)
+                    end
                 end
                 
-                -- Update last position if movement is normal
-                if currentVelocity.Magnitude < 50 then
+                if currentVelocity.Magnitude < 60 then
                     lastPosition = hrp.Position
+                    lastVelocity = currentVelocity
                 end
             end)
         end)
@@ -1802,6 +1955,16 @@ local function toggleGodMode(state)
             setupGodModeForCharacter(character)
         end
         
+        if CharacterConnection then
+            CharacterConnection:Disconnect()
+        end
+        
+        CharacterConnection = LocalPlayer.CharacterAdded:Connect(function(newChar)
+            task.wait(1)
+            if not States.GodMode then return end
+            setupGodModeForCharacter(newChar)
+        end)
+        
         if Connections.WaveMonitor then
             Connections.WaveMonitor:Disconnect()
         end
@@ -1813,6 +1976,16 @@ local function toggleGodMode(state)
             end
         end)
     else
+        if HealthConnection then
+            HealthConnection:Disconnect()
+            HealthConnection = nil
+        end
+        
+        if CharacterConnection then
+            CharacterConnection:Disconnect()
+            CharacterConnection = nil
+        end
+        
         if Connections.GodMode then
             Connections.GodMode:Disconnect()
             Connections.GodMode = nil
@@ -2553,6 +2726,16 @@ myConfig:Register("SlapAura", SlapAuraToggle)
 myConfig:Register("AntiTsunami", AntiTsunamiToggle)
 myConfig:Register("FastInteraction", FastInteractionToggle)
 
+local ESPHighestBrainrotToggle = VisualTab:Toggle({
+    Title = "ESP Highest Brainrot",
+    Desc = "Show ESP for Celestial and Secret brainrots with stats",
+    Default = false,
+    Callback = function(state)
+        toggleESPHighestBrainrot(state)
+        saveConfiguration()
+    end
+})
+
 local ESPCelestialToggle = VisualTab:Toggle({
     Title = "ESP Celestial",
     Desc = "Show ESP for Celestial brainrot",
@@ -2594,6 +2777,7 @@ local ESPCosmicToggle = VisualTab:Toggle({
 })
 
 myConfig:Register("ESPCelestial", ESPCelestialToggle)
+myConfig:Register("ESPHighestBrainrot", ESPHighestBrainrotToggle)
 myConfig:Register("ESPCelestiall", ESPCelestiallToggle)
 myConfig:Register("ESPSecret", ESPSecretToggle)
 myConfig:Register("ESPCosmic", ESPCosmicToggle)
@@ -2911,6 +3095,7 @@ WindUI:Popup({
 })
 
 toggleCameraZoom(true)
+task.wait(0.3)
 loadConfiguration()
 MainTab:Select()
 
