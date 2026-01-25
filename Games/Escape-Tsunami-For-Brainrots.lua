@@ -2532,30 +2532,92 @@ local function teleportToLastGap()
         return 
     end
     
-    local waypoints = {
-        {X = 140, Y = 3, Z = 68, Wait = 0.2},
-        {X = 200, Y = -4, Z = 68, Wait = 0.1},
-        {X = 282, Y = -4, Z = 68, Wait = 0.1},
-        {X = 353, Y = 3, Z = 77, Wait = 0.1},
-        {X = 403, Y = -4, Z = 68, Wait = 0.1},
-        {X = 467, Y = 3, Z = 77, Wait = 0.1},
-        {X = 539, Y = -4, Z = 68, Wait = 0.1},
-        {X = 626, Y = 3, Z = 77, Wait = 0.1},
-        {X = 677, Y = 3, Z = 77, Wait = 0.1},
-        {X = 757, Y = -4, Z = 68, Wait = 0.1},
-        {X = 875, Y = 3, Z = 77, Wait = 0.1},
-        {X = 951, Y = 3, Z = 77, Wait = 0.1},
-        {X = 1078, Y = -4, Z = 68, Wait = 0.1},
-        {X = 1255, Y = 3, Z = 77, Wait = 0.1},
-        {X = 1536, Y = -4, Z = 68, Wait = 0.1},
-        {X = 1573, Y = -4, Z = 68, Wait = 0.1},
-        {X = 1811, Y = 3, Z = 77, Wait = 0.1},
-        {X = 1989, Y = 3, Z = 77, Wait = 0.1},
-        {X = 2225, Y = -4, Z = 68, Wait = 0.1},
-        {X = 2278, Y = -4, Z = 68, Wait = 0.1},
-        {X = 2436, Y = 65, Z = -1, Wait = 0.1},
-        {X = 2590, Y = -4, Z = -1, Wait = 0.07}
-    }
+    local floorsFolder = Workspace:FindFirstChild("Floors")
+    local miscFolder = Workspace:FindFirstChild("Misc")
+    local gapsFolder = miscFolder and miscFolder:FindFirstChild("Gaps")
+    
+    if not floorsFolder or not gapsFolder then
+        WindUI:Notify({
+            Title = "Teleport Failed",
+            Content = "Floors or Gaps folder not found!",
+            Duration = 3,
+            Icon = "x",
+        })
+        return
+    end
+    
+    local floorOrder = {"Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythical", "Cosmic", "Secret"}
+    
+    local function hasWaveInFloor(floorPart)
+        if not floorPart or not floorPart:IsA("BasePart") then return false end
+        
+        local activeTsunamis = Workspace:FindFirstChild("ActiveTsunamis")
+        if not activeTsunamis then return false end
+        
+        local floorMinX = floorPart.Position.X - (floorPart.Size.X / 2)
+        local floorMaxX = floorPart.Position.X + (floorPart.Size.X / 2)
+        
+        for i = 1, 20 do
+            local wave = activeTsunamis:FindFirstChild("Wave" .. i)
+            if wave then
+                local hitbox = wave:FindFirstChild("Hitbox")
+                if hitbox and hitbox:IsA("BasePart") then
+                    local waveX = hitbox.Position.X
+                    if waveX >= floorMinX and waveX <= floorMaxX then
+                        if States.DebugMode then
+                            print(string.format("[Wave Detection] Wave%d found in floor range %.1f-%.1f at X=%.1f", i, floorMinX, floorMaxX, waveX))
+                        end
+                        return true
+                    end
+                end
+            end
+        end
+        
+        return false
+    end
+    
+    local function getFloorEndPosition(floorPart)
+        if not floorPart or not floorPart:IsA("BasePart") then return nil end
+        local endX = floorPart.Position.X + (floorPart.Size.X / 2) + 5
+        return Vector3.new(endX, 3, -1)
+    end
+    
+    local function tweenToPosition(targetPos, label)
+        if not hrp.Parent then return false end
+        
+        local distance = (hrp.Position - targetPos).Magnitude
+        
+        if distance <= 10 then
+            if States.DebugMode then
+                print(string.format("[Tween] %s - Close distance (%.1f studs), instant teleport", label, distance))
+            end
+            hrp.CFrame = CFrame.new(targetPos)
+            return true
+        end
+        
+        local tweenSpeed = 250
+        local tweenTime = distance / tweenSpeed
+        
+        if States.DebugMode then
+            print(string.format("[Tween] %s - Distance: %.1f studs, Time: %.2fs", label, distance, tweenTime))
+        end
+        
+        local tweenInfo = TweenInfo.new(tweenTime, Enum.EasingStyle.Linear)
+        local tween = TweenService:Create(hrp, tweenInfo, {CFrame = CFrame.new(targetPos)})
+        
+        local completed = false
+        tween.Completed:Connect(function(state)
+            completed = true
+        end)
+        
+        tween:Play()
+        
+        while not completed and hrp.Parent do
+            task.wait(0.05)
+        end
+        
+        return completed
+    end
     
     if States.DebugMode == false then
         local loadingGui = Instance.new("ScreenGui")
@@ -2576,7 +2638,7 @@ local function teleportToLastGap()
         loadingText.Size = UDim2.new(0, 600, 0, 100)
         loadingText.Position = UDim2.new(0.5, -300, 0.5, -50)
         loadingText.BackgroundTransparency = 1
-        loadingText.Text = "TELEPORTING TO CELESTIAL AREA (1-3 tries)"
+        loadingText.Text = "TELEPORTING TO CELESTIAL AREA"
         loadingText.TextColor3 = Color3.fromRGB(80, 255, 120)
         loadingText.TextSize = 32
         loadingText.Font = Enum.Font.GothamBold
@@ -2604,36 +2666,97 @@ local function teleportToLastGap()
     end
     
     task.spawn(function()
-        for i, waypoint in ipairs(waypoints) do
-            local success = pcall(function()
-                local character = LocalPlayer.Character
-                local humanoid = character:WaitForChild("Humanoid")
-                if not character then return end
-                
-                local hrp = character:FindFirstChild("HumanoidRootPart")
-                if not hrp then return end
-                
-                humanoid:Move(Vector3.new(2, 0, 0), true)
-                task.wait(0.1)
-                humanoid:Move(Vector3.zero, true)
-                hrp.CFrame = CFrame.new(waypoint.X, waypoint.Y, waypoint.Z)
-                
+        local gap1 = gapsFolder:FindFirstChild("Gap1")
+        if gap1 and gap1:GetChildren()[2] then
+            hrp.CFrame = gap1:GetChildren()[2].CFrame
+            if States.DebugMode then
+                print("[Step 1] Teleported to Gap1")
+            end
+            task.wait(0.1)
+        else
+            WindUI:Notify({
+                Title = "Teleport Failed",
+                Content = "Gap1 not found!",
+                Duration = 3,
+                Icon = "x",
+            })
+            return
+        end
+        
+        local currentIndex = 1
+        
+        while currentIndex <= #floorOrder do
+            local floorName = floorOrder[currentIndex]
+            local floor = floorsFolder:FindFirstChild(floorName)
+            
+            if floor and floor:IsA("BasePart") then
                 if States.DebugMode then
-                    print(string.format("[Celestial TP] Waypoint %d: X=%.1f, Y=%.1f, Z=%.1f", i, waypoint.X, waypoint.Y, waypoint.Z))
+                    print(string.format("[Checking] Floor: %s (Index %d/%d)", floorName, currentIndex, #floorOrder))
                 end
                 
-                task.wait(waypoint.Wait)
-            end)
-            
-            if not success then
-                WindUI:Notify({
-                    Title = "Teleport Error",
-                    Content = string.format("Failed at waypoint %d", i),
-                    Duration = 2,
-                    Icon = "x",
-                })
-                return
+                if hasWaveInFloor(floor) then
+                    if States.DebugMode then
+                        print(string.format("[Wave Found] In %s floor - Retreating to previous floor", floorName))
+                    end
+                    
+                    if currentIndex > 1 then
+                        local previousFloorName = floorOrder[currentIndex - 1]
+                        local previousFloor = floorsFolder:FindFirstChild(previousFloorName)
+                        
+                        if previousFloor and previousFloor:IsA("BasePart") then
+                            local targetPos = getFloorEndPosition(previousFloor)
+                            if targetPos then
+                                local success = tweenToPosition(targetPos, string.format("End of %s", previousFloorName))
+                                if not success then
+                                    WindUI:Notify({
+                                        Title = "Teleport Failed",
+                                        Content = string.format("Failed to reach %s", previousFloorName),
+                                        Duration = 2,
+                                        Icon = "x",
+                                    })
+                                    return
+                                end
+                                task.wait(0.1)
+                            end
+                        end
+                    else
+                        if States.DebugMode then
+                            print("[Warning] Wave in first floor (Common), waiting...")
+                        end
+                        task.wait(0.5)
+                    end
+                else
+                    if States.DebugMode then
+                        print(string.format("[Clear] No wave in %s, checking next floor", floorName))
+                    end
+                    currentIndex = currentIndex + 1
+                end
+            else
+                if States.DebugMode then
+                    print(string.format("[Skip] %s floor not found, moving to next", floorName))
+                end
+                currentIndex = currentIndex + 1
             end
+            
+            task.wait(0.05)
+        end
+        
+        if States.DebugMode then
+            print("[Final] All floors clear, moving to Gap9")
+        end
+        
+        local gap9 = gapsFolder:FindFirstChild("Gap9")
+        if gap9 and gap9:GetChildren()[2] then
+            local gap9Part = gap9:GetChildren()[2]
+            local finalPos = Vector3.new(gap9Part.Position.X + 5, 3, -1)
+            tweenToPosition(finalPos, "Gap9 Final")
+        else
+            WindUI:Notify({
+                Title = "Teleport Warning",
+                Content = "Gap9 not found, stopped at last safe floor",
+                Duration = 3,
+                Icon = "alert-triangle",
+            })
         end
         
         if States.DebugMode == false then
@@ -2665,6 +2788,13 @@ local function teleportToLastGap()
                 end
             end
         end
+        
+        WindUI:Notify({
+            Title = "Teleport Complete",
+            Content = "Reached Celestial area safely!",
+            Duration = 3,
+            Icon = "check",
+        })
     end)
 end
 
