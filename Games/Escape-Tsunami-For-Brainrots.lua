@@ -2619,29 +2619,20 @@ local function teleportToLastGap()
     local function getFloorEndPosition(floorPart)
         if not floorPart or not floorPart:IsA("BasePart") then return nil end
         local endX = floorPart.Position.X + (floorPart.Size.X / 2) + 5
-        return Vector3.new(endX, -4, -1)
+        return Vector3.new(endX, -3, -1)
     end
     
     local function getFloorStartPosition(floorPart)
         if not floorPart or not floorPart:IsA("BasePart") then return nil end
         local startX = floorPart.Position.X - (floorPart.Size.X / 2) - 5
-        return Vector3.new(startX, -4, -1)
+        return Vector3.new(startX, -3, -1)
     end
     
     local function tweenToPosition(targetPos, label, currentFloorIndex, shouldMonitorWave)
         if not hrp.Parent then return false end
-        
+
         local distance = (hrp.Position - targetPos).Magnitude
-        
-        if distance <= 10 then
-            if States.DebugMode then
-                print(string.format("[Tween] %s - Close distance (%.1f studs), instant teleport", label, distance))
-            end
-            hrp.CFrame = CFrame.new(targetPos)
-            return true
-        end
-        
-        local tweenSpeed = 500
+        local tweenSpeed = 400
         local tweenTime = distance / tweenSpeed
         
         if States.DebugMode then
@@ -2775,7 +2766,7 @@ local function teleportToLastGap()
                 print("[Step 1] Teleported to Gap1")
             end
             task.wait(0.1)
-            hrp.CFrame = CFrame.new(hrp.Position.X, -4, -1)
+            hrp.CFrame = CFrame.new(hrp.Position.X, -3, -1)
         else
             WindUI:Notify({
                 Title = "Teleport Failed",
@@ -2796,7 +2787,7 @@ local function teleportToLastGap()
                 local floorIsClear = false
         
                 while not floorIsClear do
-                    pcall(function() hrp.CFrame = CFrame.new(hrp.Position.X, -4, -1) end)
+                    pcall(function() hrp.CFrame = CFrame.new(hrp.Position.X, -3, -1) end)
             
                     if States.DebugMode then
                         print(string.format("[Checking] Floor: %s (Index %d/%d)", floorName, currentIndex, #floorOrder))
@@ -2809,12 +2800,12 @@ local function teleportToLastGap()
                             local playerX = hrp.Position.X
                             local waveX = waveInfo.XPosition
                     
-                            if waveX < playerX then
+                            if waveX < (playerX - 20) then
                                 if States.DebugMode then
-                                    print(string.format("[Wave Passed] %s at X:%.1f already passed player at X:%.1f - Re-checking floor", waveInfo.Name, waveX, playerX))
+                                    print(string.format("[Wave Passed] %s at X:%.1f is 20+ studs behind player at X:%.1f - Re-checking floor", waveInfo.Name, waveX, playerX))
                                 end
                                 task.wait(0.3)
-                                pcall(function() hrp.CFrame = CFrame.new(hrp.Position.X, -4, -1) end)
+                                pcall(function() hrp.CFrame = CFrame.new(hrp.Position.X, -3, -1) end)
                             else
                                 if isWaveCloseToFloorStart(waveInfo.XPosition, floor, 100) then
                                     if States.DebugMode then
@@ -2838,7 +2829,7 @@ local function teleportToLastGap()
                                                     })
                                                     return
                                                 end
-                                                pcall(function() hrp.CFrame = CFrame.new(hrp.Position.X, -4, -1) end)
+                                                pcall(function() hrp.CFrame = CFrame.new(hrp.Position.X, -3, -1) end)
                                             end
                                         end
                                     else
@@ -2846,7 +2837,7 @@ local function teleportToLastGap()
                                             print("[Warning] Wave near start of first floor (Common), waiting...")
                                         end
                                         task.wait(0.5)
-                                        pcall(function() hrp.CFrame = CFrame.new(hrp.Position.X, -4, -1) end)
+                                        pcall(function() hrp.CFrame = CFrame.new(hrp.Position.X, -3, -1) end)
                                     end
                                 else
                                     if States.DebugMode then
@@ -2870,7 +2861,7 @@ local function teleportToLastGap()
                                                     })
                                                     return
                                                 end
-                                                pcall(function() hrp.CFrame = CFrame.new(hrp.Position.X, -4, -1) end)
+                                                pcall(function() hrp.CFrame = CFrame.new(hrp.Position.X, -3, -1) end)
                                             end
                                         end
                                     else
@@ -2878,13 +2869,13 @@ local function teleportToLastGap()
                                             print("[Warning] Wave in first floor (Common), waiting...")
                                         end
                                         task.wait(0.5)
-                                        pcall(function() hrp.CFrame = CFrame.new(hrp.Position.X, -4, -1) end)
+                                        pcall(function() hrp.CFrame = CFrame.new(hrp.Position.X, -3, -1) end)
                                     end
                                 end
                             end
                         else
                             task.wait(0.3)
-                            pcall(function() hrp.CFrame = CFrame.new(hrp.Position.X, -4, -1) end)
+                            pcall(function() hrp.CFrame = CFrame.new(hrp.Position.X, -3, -1) end)
                         end
                     else
                         if States.DebugMode then
@@ -2903,7 +2894,7 @@ local function teleportToLastGap()
                 currentIndex = currentIndex + 1
             end
     
-            pcall(function() hrp.CFrame = CFrame.new(hrp.Position.X, -4, -1) end)
+            pcall(function() hrp.CFrame = CFrame.new(hrp.Position.X, -3, -1) end)
         end
         
         if States.DebugMode then
@@ -2913,7 +2904,7 @@ local function teleportToLastGap()
         local gap9 = gapsFolder:FindFirstChild("Gap9")
         if gap9 and gap9:GetChildren()[2] then
             local gap9Part = gap9:GetChildren()[2]
-            local finalPos = Vector3.new(gap9Part.Position.X + 5, -4, -1)
+            local finalPos = Vector3.new(gap9Part.Position.X + 5, -3, -1)
             tweenToPosition(finalPos, "Gap9 Final", #floorOrder, false)
         else
             WindUI:Notify({
