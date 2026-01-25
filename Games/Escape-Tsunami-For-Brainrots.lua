@@ -452,7 +452,7 @@ local function toggleESPLuckyBlock(state, blockType)
                 if not activeLuckyBlocks then return end
                 
                 for _, block in pairs(activeLuckyBlocks:GetChildren()) do
-                    if block:IsA("Model") and block.Name == "GlobalLuckyBlock_" .. blockType then
+                    if block:IsA("Model") and block.Name == "NaturalLuckyBlock_" .. blockType then
                         local primary = block.PrimaryPart or block:FindFirstChildWhichIsA("BasePart")
                         if primary and not primary:FindFirstChild("ESP_" .. blockType .. " Lucky Block") then
                             createESP(primary, blockType .. " Lucky Block", Color3.fromRGB(0, 255, 255))
