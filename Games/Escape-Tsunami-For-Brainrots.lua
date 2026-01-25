@@ -2563,6 +2563,16 @@ local ESPCelestialToggle = VisualTab:Toggle({
     end
 })
 
+local ESPCelestiallToggle = VisualTab:Toggle({
+    Title = "ESP Celestial Lucky Block",
+    Desc = "Show ESP for Celestial lucky blocks",
+    Default = false,
+    Callback = function(state)
+        toggleESPLuckyBlock(state, "Celestial")
+        saveConfiguration()
+    end
+})
+
 local ESPSecretToggle = VisualTab:Toggle({
     Title = "ESP Secret Lucky Block",
     Desc = "Show ESP for Secret lucky blocks",
@@ -2584,6 +2594,7 @@ local ESPCosmicToggle = VisualTab:Toggle({
 })
 
 myConfig:Register("ESPCelestial", ESPCelestialToggle)
+myConfig:Register("ESPCelestiall", ESPCelestiallToggle)
 myConfig:Register("ESPSecret", ESPSecretToggle)
 myConfig:Register("ESPCosmic", ESPCosmicToggle)
 
