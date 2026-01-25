@@ -281,6 +281,11 @@ local States = {
     ESPHighestBrainrot = false,
     AutoCollectRadioactive = false,
     AutoCollectUFO = false,
+    AutoStealBrainrot = false,
+    SelectedBrainrotType = "Common",
+    AutoUpgradeBrainrot = false,
+    SelectedUpgradeSlots = {},
+    UpgradeDropdownOptions = {},
 }
 
 local Connections = {
@@ -308,6 +313,9 @@ local Connections = {
     ESPHighestBrainrot = nil,
     AutoCollectRadioactive = nil,
     AutoCollectUFO = nil,
+    AutoStealBrainrot = nil,
+    AutoUpgradeBrainrot = nil,
+    UpgradeDropdownUpdater = nil,
 }
 
 local LowGFXStorage = {
@@ -390,12 +398,12 @@ local function toggleAutoCollect(state)
     end
 end
 
-local function toggleAutoCollectRadioactive(state)
-    States.AutoCollectRadioactive = state
+local function toggleAutoStealBrainrot(state)
+    States.AutoStealBrainrot = state
     
     if state then
-        Connections.AutoCollectRadioactive = RunService.Heartbeat:Connect(function()
-            if not States.AutoCollectRadioactive then return end
+        Connections.AutoStealBrainrot = RunService.Heartbeat:Connect(function()
+            if not States.AutoStealBrainrot then return end
             
             pcall(function()
                 local character = LocalPlayer.Character
@@ -404,18 +412,24 @@ local function toggleAutoCollectRadioactive(state)
                 local hrp = character:FindFirstChild("HumanoidRootPart")
                 if not hrp then return end
                 
-                local eventParts = Workspace:FindFirstChild("EventParts")
-                if not eventParts then return end
+                local activeBrainrots = Workspace:FindFirstChild("ActiveBrainrots")
+                if not activeBrainrots then return end
                 
-                for _, coin in pairs(eventParts:GetChildren()) do
-                    if coin.Name == "Radioactive Coin" then
-                        local coinPart = coin:FindFirstChild("Radioactive Coin")
-                        if coinPart and coinPart:FindFirstChild("TouchInterest") then
-                            local distance = (hrp.Position - coinPart.Position).Magnitude
-                            if distance <= 50 then
-                                firetouchinterest(hrp, coinPart, 0)
-                                task.wait()
-                                firetouchinterest(hrp, coinPart, 1)
+                local selectedFolder = activeBrainrots:FindFirstChild(States.SelectedBrainrotType)
+                if not selectedFolder then return end
+                
+                for _, renderedBrainrot in pairs(selectedFolder:GetChildren()) do
+                    if renderedBrainrot.Name == "RenderedBrainrot" and renderedBrainrot:IsA("Model") then
+                        local root = renderedBrainrot:FindFirstChild("Root")
+                        if root then
+                            local distance = (hrp.Position - root.Position).Magnitude
+                            
+                            if distance <= 15 then
+                                local takePrompt = root:FindFirstChild("TakePrompt")
+                                if takePrompt and takePrompt:IsA("ProximityPrompt") then
+                                    fireproximityprompt(takePrompt)
+                                    task.wait(0.5)
+                                end
                             end
                         end
                     end
@@ -423,49 +437,106 @@ local function toggleAutoCollectRadioactive(state)
             end)
         end)
     else
-        if Connections.AutoCollectRadioactive then
-            Connections.AutoCollectRadioactive:Disconnect()
-            Connections.AutoCollectRadioactive = nil
+        if Connections.AutoStealBrainrot then
+            Connections.AutoStealBrainrot:Disconnect()
+            Connections.AutoStealBrainrot = nil
         end
     end
 end
 
-local function toggleAutoCollectUFO(state)
-    States.AutoCollectUFO = state
+local function getBrainrotSlotInfo()
+    local slotInfo = {}
     
-    if state then
-        Connections.AutoCollectUFO = RunService.Heartbeat:Connect(function()
-            if not States.AutoCollectUFO then return end
+    pcall(function()
+        local myBase = getMyBase()
+        if not myBase then return end
+        
+        local slotsFolder = myBase:FindFirstChild("Slots")
+        if not slotsFolder then return end
+        
+        for i = 1, 30 do
+            local slotName = "slot " .. i .. " brainrot"
+            local brainrotNameObj = myBase:FindFirstChild(slotName)
             
-            pcall(function()
-                local character = LocalPlayer.Character
-                if not character then return end
+            if brainrotNameObj and brainrotNameObj:IsA("StringValue") then
+                local brainrotName = brainrotNameObj.Value
                 
-                local hrp = character:FindFirstChild("HumanoidRootPart")
-                if not hrp then return end
-                
-                local ufoEventParts = Workspace:FindFirstChild("UFOEventParts")
-                if not ufoEventParts then return end
-                
-                for _, coin in pairs(ufoEventParts:GetChildren()) do
-                    if coin.Name == "UFO Coin" then
-                        local hitbox = coin:FindFirstChild("Hitbox")
-                        if hitbox and hitbox:FindFirstChild("TouchInterest") then
-                            local distance = (hrp.Position - hitbox.Position).Magnitude
-                            if distance <= 50 then
-                                firetouchinterest(hrp, hitbox, 0)
-                                task.wait()
-                                firetouchinterest(hrp, hitbox, 1)
+                local slotFolder = slotsFolder:FindFirstChild("Slot" .. i)
+                if slotFolder then
+                    local upgrade = slotFolder:FindFirstChild("Upgrade")
+                    if upgrade then
+                        local upgradeGui = upgrade:FindFirstChild("UpgradeGui")
+                        if upgradeGui then
+                            local button = upgradeGui:FindFirstChild("Button")
+                            if button then
+                                local levelChange = button:FindFirstChild("LevelChange")
+                                if levelChange and levelChange:IsA("TextLabel") then
+                                    local level = levelChange.Text
+                                    table.insert(slotInfo, {
+                                        Slot = i,
+                                        Name = brainrotName,
+                                        Level = level,
+                                        Display = string.format("Slot %d: %s %s", i, brainrotName, level)
+                                    })
+                                end
                             end
                         end
                     end
                 end
+            end
+        end
+    end)
+    
+    return slotInfo
+end
+
+local function updateUpgradeDropdown(dropdown)
+    local slotInfo = getBrainrotSlotInfo()
+    local options = {}
+    
+    for _, info in ipairs(slotInfo) do
+        table.insert(options, {
+            Title = info.Display,
+            Icon = "box",
+            Slot = info.Slot
+        })
+    end
+    
+    States.UpgradeDropdownOptions = slotInfo
+    
+    if dropdown and #options > 0 then
+        pcall(function()
+            dropdown:Set({Values = options})
+        end)
+    end
+    
+    return options
+end
+
+local function toggleAutoUpgradeBrainrot(state)
+    States.AutoUpgradeBrainrot = state
+    
+    if state then
+        Connections.AutoUpgradeBrainrot = RunService.Heartbeat:Connect(function()
+            if not States.AutoUpgradeBrainrot then return end
+            
+            pcall(function()
+                for slotNum, _ in pairs(States.SelectedUpgradeSlots) do
+                    local args = {
+                        "Upgrade Brainrot",
+                        "",
+                        tostring(slotNum)
+                    }
+                    
+                    ReplicatedStorage:WaitForChild("Packages"):WaitForChild("Net"):WaitForChild("RF/Plot.PlotAction"):InvokeServer(unpack(args))
+                    task.wait(0.05)
+                end
             end)
         end)
     else
-        if Connections.AutoCollectUFO then
-            Connections.AutoCollectUFO:Disconnect()
-            Connections.AutoCollectUFO = nil
+        if Connections.AutoUpgradeBrainrot then
+            Connections.AutoUpgradeBrainrot:Disconnect()
+            Connections.AutoUpgradeBrainrot = nil
         end
     end
 end
@@ -3072,9 +3143,9 @@ local MainTab = Window:Tab({
     Icon = "home",
 })
 
-local EventTab = Window:Tab({
-    Title = "Event",
-    Icon = "star",
+local BrainrotTab = Window:Tab({
+    Title = "Brainrot",
+    Icon = "brain",
 })
 
 local VisualTab = Window:Tab({
@@ -3193,28 +3264,76 @@ myConfig:Register("SlapAura", SlapAuraToggle)
 myConfig:Register("AntiTsunami", AntiTsunamiToggle)
 myConfig:Register("FastInteraction", FastInteractionToggle)
 
-local AutoCollectRadioactiveToggle = EventTab:Toggle({
-    Title = "Auto Collect Radioactive Coins",
-    Desc = "Collect nearby Radioactive Coins (50 studs)",
-    Default = false,
-    Callback = function(state)
-        toggleAutoCollectRadioactive(state)
+local BrainrotTypeDropdown = BrainrotTab:Dropdown({
+    Title = "Select Brainrot Type",
+    Values = {
+        {Title = "Common", Icon = "box"},
+        {Title = "Uncommon", Icon = "package"},
+        {Title = "Rare", Icon = "gift"},
+        {Title = "Epic", Icon = "star"},
+        {Title = "Legendary", Icon = "award"},
+        {Title = "Mythical", Icon = "crown"},
+        {Title = "Cosmic", Icon = "sparkles"},
+        {Title = "Secret", Icon = "lock"},
+        {Title = "Celestial", Icon = "sun"},
+    },
+    Value = "Common",
+    Callback = function(option)
+        States.SelectedBrainrotType = option.Title
         saveConfiguration()
     end
 })
 
-local AutoCollectUFOToggle = EventTab:Toggle({
-    Title = "Auto Collect UFO Coins",
-    Desc = "Collect nearby UFO Coins (50 studs)",
+local AutoStealBrainrotToggle = BrainrotTab:Toggle({
+    Title = "Auto Steal Selected Brainrot (15 studs)",
+    Desc = "Automatically steal nearby brainrot of selected type",
     Default = false,
     Callback = function(state)
-        toggleAutoCollectUFO(state)
+        toggleAutoStealBrainrot(state)
         saveConfiguration()
     end
 })
 
-myConfig:Register("AutoCollectRadioactive", AutoCollectRadioactiveToggle)
-myConfig:Register("AutoCollectUFO", AutoCollectUFOToggle)
+local UpgradeBrainrotDropdown = BrainrotTab:Dropdown({
+    Title = "Auto Upgrade Select Brainrots",
+    Values = {},
+    Value = {},
+    Multi = true,
+    Callback = function(selectedOptions)
+        States.SelectedUpgradeSlots = {}
+        for _, option in ipairs(selectedOptions) do
+            if option.Slot then
+                States.SelectedUpgradeSlots[option.Slot] = true
+            end
+        end
+        saveConfiguration()
+    end
+})
+
+task.spawn(function()
+    task.wait(2)
+    updateUpgradeDropdown(UpgradeBrainrotDropdown)
+end)
+
+Connections.UpgradeDropdownUpdater = RunService.Heartbeat:Connect(function()
+    if os.clock() % 3 < 0.1 then
+        updateUpgradeDropdown(UpgradeBrainrotDropdown)
+    end
+end)
+
+local AutoUpgradeBrainrotToggle = BrainrotTab:Toggle({
+    Title = "Auto Upgrade Selected",
+    Desc = "Automatically upgrade selected brainrot slots",
+    Default = false,
+    Callback = function(state)
+        toggleAutoUpgradeBrainrot(state)
+        saveConfiguration()
+    end
+})
+
+myConfig:Register("BrainrotType", BrainrotTypeDropdown)
+myConfig:Register("AutoStealBrainrot", AutoStealBrainrotToggle)
+myConfig:Register("AutoUpgradeBrainrot", AutoUpgradeBrainrotToggle)
 
 local ESPHighestBrainrotToggle = VisualTab:Toggle({
     Title = "ESP Highest Brainrot",
