@@ -2547,6 +2547,8 @@ local function teleportToLastGap()
     end
     
     local floorOrder = {"Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythical", "Cosmic", "Secret"}
+    local activeTween = nil
+    local shouldCancelTween = false
     
     local function hasWaveInFloor(floorPart)
         if not floorPart or not floorPart:IsA("BasePart") then return false end
@@ -2582,7 +2584,13 @@ local function teleportToLastGap()
         return Vector3.new(endX, 3, -1)
     end
     
-    local function tweenToPosition(targetPos, label)
+    local function getFloorStartPosition(floorPart)
+        if not floorPart or not floorPart:IsA("BasePart") then return nil end
+        local startX = floorPart.Position.X - (floorPart.Size.X / 2) - 5
+        return Vector3.new(startX, 3, -1)
+    end
+    
+    local function tweenToPosition(targetPos, label, currentFloorIndex, nextFloorIndex)
         if not hrp.Parent then return false end
         
         local distance = (hrp.Position - targetPos).Magnitude
@@ -2595,28 +2603,67 @@ local function teleportToLastGap()
             return true
         end
         
-        local tweenSpeed = 400
+        local tweenSpeed = 350
         local tweenTime = distance / tweenSpeed
         
         if States.DebugMode then
-            print(string.format("[Tween] %s - Distance: %.1f studs, Time: %.2fs", label, distance, tweenTime))
+            print(string.format("[Tween] %s - Distance: %.1f studs, Time: %.2fs, Speed: %d", label, distance, tweenTime, tweenSpeed))
         end
         
         local tweenInfo = TweenInfo.new(tweenTime, Enum.EasingStyle.Linear)
         local tween = TweenService:Create(hrp, tweenInfo, {CFrame = CFrame.new(targetPos)})
         
+        activeTween = tween
+        shouldCancelTween = false
         local completed = false
+        local cancelled = false
+        
         tween.Completed:Connect(function(state)
-            completed = true
+            if state == Enum.PlaybackState.Completed then
+                completed = true
+            elseif state == Enum.PlaybackState.Cancelled then
+                cancelled = true
+            end
         end)
         
         tween:Play()
         
-        while not completed and hrp.Parent do
+        task.spawn(function()
+            while not completed and not cancelled and hrp.Parent do
+                if nextFloorIndex and nextFloorIndex <= #floorOrder then
+                    local nextFloor = floorsFolder:FindFirstChild(floorOrder[nextFloorIndex])
+                    if nextFloor and hasWaveInFloor(nextFloor) then
+                        if States.DebugMode then
+                            print(string.format("[Mid-Tween Alert] Wave detected in %s while tweening! Retreating to start of %s", floorOrder[nextFloorIndex], floorOrder[currentFloorIndex]))
+                        end
+                        
+                        shouldCancelTween = true
+                        tween:Cancel()
+                        
+                        local currentFloor = floorsFolder:FindFirstChild(floorOrder[currentFloorIndex])
+                        if currentFloor then
+                            local retreatPos = getFloorStartPosition(currentFloor)
+                            if retreatPos then
+                                hrp.CFrame = CFrame.new(retreatPos)
+                                if States.DebugMode then
+                                    print(string.format("[Emergency Retreat] Teleported to start of %s - 5 studs", floorOrder[currentFloorIndex]))
+                                end
+                            end
+                        end
+                        return
+                    end
+                end
+                
+                task.wait(0.05)
+            end
+        end)
+        
+        while not completed and not cancelled and hrp.Parent do
             task.wait(0.05)
         end
         
-        return completed
+        activeTween = nil
+        return completed and not shouldCancelTween
     end
     
     if States.DebugMode == false then
@@ -2706,8 +2753,9 @@ local function teleportToLastGap()
                         if previousFloor and previousFloor:IsA("BasePart") then
                             local targetPos = getFloorEndPosition(previousFloor)
                             if targetPos then
-                                local success = tweenToPosition(targetPos, string.format("End of %s", previousFloorName))
-                                if not success then
+                                local nextIndex = currentIndex + 1
+                                local success = tweenToPosition(targetPos, string.format("End of %s", previousFloorName), currentIndex - 1, nextIndex)
+                                if not success and not shouldCancelTween then
                                     WindUI:Notify({
                                         Title = "Teleport Failed",
                                         Content = string.format("Failed to reach %s", previousFloorName),
@@ -2749,7 +2797,7 @@ local function teleportToLastGap()
         if gap9 and gap9:GetChildren()[2] then
             local gap9Part = gap9:GetChildren()[2]
             local finalPos = Vector3.new(gap9Part.Position.X + 5, 3, -1)
-            tweenToPosition(finalPos, "Gap9 Final")
+            tweenToPosition(finalPos, "Gap9 Final", #floorOrder, nil)
         else
             WindUI:Notify({
                 Title = "Teleport Warning",
