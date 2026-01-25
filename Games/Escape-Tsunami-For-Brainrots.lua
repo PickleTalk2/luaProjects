@@ -191,7 +191,7 @@ local Window = WindUI:CreateWindow({
     Title = "Escape Tsunami For Brainrots",
     Icon = "sword",
     Author = "Developed by PickleTalk",
-    Folder = "Shadow X | Official",
+    Folder = "Shadow X Official",
     Transparent = true,
     Theme = "Dark",
 })
