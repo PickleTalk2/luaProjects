@@ -3006,8 +3006,8 @@ local AutoFarmCelestialToggle = MainTab:Toggle({
 })
 
 local TeleportLastGapButton = MainTab:Button({
-    Title = "Teleport Celestial Area Gap (vip)",
-    Desc = "Teleport to Celestial Area vip only",
+    Title = "Teleport Celestial Area",
+    Desc = "Teleport to Celestial Area On Gap",
     Callback = function()
         teleportToLastGap()
     end
