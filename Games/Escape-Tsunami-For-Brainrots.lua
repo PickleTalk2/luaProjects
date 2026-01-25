@@ -2663,7 +2663,7 @@ local function teleportToLastGap()
                     pcall(function()
                         local currentWave = getClosestWaveInfo(hrp.Position.X)
                         
-                        if currentWave and currentWave.Distance <= 30 then
+                        if currentWave and currentWave.Distance <= 50 then
                             if States.DebugMode then
                                 print(string.format("[EMERGENCY] %s %.1f studs away! Switching direction!", currentWave.Name, currentWave.Distance))
                             end
@@ -2690,7 +2690,7 @@ local function teleportToLastGap()
                                 
                                 if retreatPos then
                                     local emergencyDist = (hrp.Position - retreatPos).Magnitude
-                                    local emergencyTime = emergencyDist / 500
+                                    local emergencyTime = emergencyDist / 400
                                     local emergencyTween = TweenService:Create(hrp, TweenInfo.new(emergencyTime, Enum.EasingStyle.Linear), {CFrame = CFrame.new(retreatPos)})
                                     emergencyTween:Play()
                                     activeTween = emergencyTween
@@ -2800,7 +2800,7 @@ local function teleportToLastGap()
                             local playerX = hrp.Position.X
                             local waveX = waveInfo.XPosition
                     
-                            if waveX < (playerX - 20) then
+                            if waveX < (playerX - 40) then
                                 if States.DebugMode then
                                     print(string.format("[Wave Passed] %s at X:%.1f is 20+ studs behind player at X:%.1f - Re-checking floor", waveInfo.Name, waveX, playerX))
                                 end
