@@ -1833,31 +1833,35 @@ function executeCelestialSteal()
     
     task.spawn(function()
         local waypoints = {
-            {X = 140, Y = 3, Z = 77},
-            {X = 240, Y = 3, Z = 77},
-            {X = 341, Y = 3, Z = 77},
-            {X = 470, Y = 3, Z = 77},
-            {X = 676, Y = 3, Z = 77},
-            {X = 760, Y = -4, Z = 65},
-            {X = 876, Y = 3, Z = 77},
-            {X = 948, Y = 3, Z = 77},
-            {X = 1073, Y = -4, Z = 65},
-            {X = 1257, Y = 3, Z = 77},
-            {X = 1364, Y = 3, Z = 77},
-            {X = 1536, Y = -4, Z = 65},
-            {X = 1812, Y = 3, Z = 77},
-            {X = 1884, Y = 3, Z = 77},
-            {X = 2226, Y = -4, Z = 65},
-            {X = 2276, Y = -4, Z = 65},
-            {X = 2581, Y = -4, Z = 65},
-            {X = 2605, Y = -3, Z = -1}
+            {X = 140, Y = 3, Z = 68, Wait = 0.2},
+            {X = 200, Y = -4, Z = 68, Wait = 0.1},
+            {X = 282, Y = -4, Z = 68, Wait = 0.1},
+            {X = 353, Y = 3, Z = 77, Wait = 0.1},
+            {X = 403, Y = -4, Z = 68, Wait = 0.1},
+            {X = 467, Y = 3, Z = 77, Wait = 0.1},
+            {X = 539, Y = -4, Z = 68, Wait = 0.1},
+            {X = 626, Y = 3, Z = 77, Wait = 0.1},
+            {X = 677, Y = 3, Z = 77, Wait = 0.1},
+            {X = 757, Y = -4, Z = 68, Wait = 0.1},
+            {X = 875, Y = 3, Z = 77, Wait = 0.1},
+            {X = 951, Y = 3, Z = 77, Wait = 0.1},
+            {X = 1078, Y = -4, Z = 68, Wait = 0.1},
+            {X = 1255, Y = 3, Z = 77, Wait = 0.1},
+            {X = 1536, Y = -4, Z = 68, Wait = 0.1},
+            {X = 1573, Y = -4, Z = 68, Wait = 0.1},
+            {X = 1811, Y = 3, Z = 77, Wait = 0.1},
+            {X = 1989, Y = 3, Z = 77, Wait = 0.1},
+            {X = 2225, Y = -4, Z = 68, Wait = 0.1},
+            {X = 2278, Y = -4, Z = 68, Wait = 0.1},
+            {X = 2436, Y = 65, Z = -1, Wait = 0.1},
+            {X = 2590, Y = -4, Z = -1, Wait = 0.07}
         }
         
         local currentPos = hrp.Position
         local nearestIndex = 1
         local nearestDist = math.huge
-        local player = game.Players.LocalPlayer
-        local char = LocalPlayer.Character
+        local player = LocalPlayer
+        local char = character
         local humanoid = char:WaitForChild("Humanoid")
             
         for i, wp in ipairs(waypoints) do
@@ -1874,20 +1878,21 @@ function executeCelestialSteal()
                 task.wait(0.1)
                 humanoid:Move(Vector3.zero, true)
                 hrp.CFrame = CFrame.new(waypoints[i].X, waypoints[i].Y, waypoints[i].Z)
-                task.wait(0.13)
+                task.wait(waypoints[i].Wait)
             end)
         end
         
-        task.wait(0.1)
+        task.wait(0.2)
         hrp.CFrame = celestialRoot.CFrame
-        task.wait(0.1)
+        task.wait(0.3)
         
         local takePrompt = celestialRoot:FindFirstChild("TakePrompt")
         if takePrompt and takePrompt:IsA("ProximityPrompt") then
             fireproximityprompt(takePrompt)
+            task.wait(0.5)
         end
         
-        task.wait(0.2)
+        task.wait(0.3)
         
         for i = #waypoints, 1, -1 do
             pcall(function()
@@ -1895,7 +1900,7 @@ function executeCelestialSteal()
                 task.wait(0.1)
                 humanoid:Move(Vector3.zero, true)
                 hrp.CFrame = CFrame.new(waypoints[i].X, waypoints[i].Y, waypoints[i].Z)
-                task.wait(0.13)
+                task.wait(waypoints[i].Wait)
             end)
         end
         
@@ -2527,26 +2532,31 @@ local function teleportToLastGap()
         return 
     end
     
-    local celestialWaypoints = {
-        {X = 140, Y = 3, Z = 77},
-        {X = 240, Y = 3, Z = 77},
-        {X = 341, Y = 3, Z = 77},
-        {X = 470, Y = 3, Z = 77},
-        {X = 676, Y = 3, Z = 77},
-        {X = 760, Y = -4, Z = 65},
-        {X = 876, Y = 3, Z = 77},
-        {X = 948, Y = 3, Z = 77},
-        {X = 1073, Y = -4, Z = 65},
-        {X = 1257, Y = 3, Z = 77},
-        {X = 1364, Y = 3, Z = 77},
-        {X = 1536, Y = -4, Z = 65},
-        {X = 1812, Y = 3, Z = 77},
-        {X = 1884, Y = 3, Z = 77},
-        {X = 2226, Y = -4, Z = 65},
-        {X = 2276, Y = -4, Z = 65},
-        {X = 2581, Y = -4, Z = 65},
-        {X = 2605, Y = -3, Z = -1}
+    local waypoints = {
+        {X = 140, Y = 3, Z = 68, Wait = 0.2},
+        {X = 200, Y = -4, Z = 68, Wait = 0.1},
+        {X = 282, Y = -4, Z = 68, Wait = 0.1},
+        {X = 353, Y = 3, Z = 77, Wait = 0.1},
+        {X = 403, Y = -4, Z = 68, Wait = 0.1},
+        {X = 467, Y = 3, Z = 77, Wait = 0.1},
+        {X = 539, Y = -4, Z = 68, Wait = 0.1},
+        {X = 626, Y = 3, Z = 77, Wait = 0.1},
+        {X = 677, Y = 3, Z = 77, Wait = 0.1},
+        {X = 757, Y = -4, Z = 68, Wait = 0.1},
+        {X = 875, Y = 3, Z = 77, Wait = 0.1},
+        {X = 951, Y = 3, Z = 77, Wait = 0.1},
+        {X = 1078, Y = -4, Z = 68, Wait = 0.1},
+        {X = 1255, Y = 3, Z = 77, Wait = 0.1},
+        {X = 1536, Y = -4, Z = 68, Wait = 0.1},
+        {X = 1573, Y = -4, Z = 68, Wait = 0.1},
+        {X = 1811, Y = 3, Z = 77, Wait = 0.1},
+        {X = 1989, Y = 3, Z = 77, Wait = 0.1},
+        {X = 2225, Y = -4, Z = 68, Wait = 0.1},
+        {X = 2278, Y = -4, Z = 68, Wait = 0.1},
+        {X = 2436, Y = 65, Z = -1, Wait = 0.1},
+        {X = 2590, Y = -4, Z = -1, Wait = 0.07}
     }
+    
     if States.DebugMode == false then
         local loadingGui = Instance.new("ScreenGui")
         loadingGui.Name = "CelestialLoadingScreen"
@@ -2594,15 +2604,15 @@ local function teleportToLastGap()
     end
     
     task.spawn(function()
-        for i, waypoint in ipairs(celestialWaypoints) do
+        for i, waypoint in ipairs(waypoints) do
             local success = pcall(function()
-                local player = game.Players.LocalPlayer
                 local character = LocalPlayer.Character
                 local humanoid = character:WaitForChild("Humanoid")
                 if not character then return end
                 
                 local hrp = character:FindFirstChild("HumanoidRootPart")
                 if not hrp then return end
+                
                 humanoid:Move(Vector3.new(2, 0, 0), true)
                 task.wait(0.1)
                 humanoid:Move(Vector3.zero, true)
@@ -2612,7 +2622,7 @@ local function teleportToLastGap()
                     print(string.format("[Celestial TP] Waypoint %d: X=%.1f, Y=%.1f, Z=%.1f", i, waypoint.X, waypoint.Y, waypoint.Z))
                 end
                 
-                task.wait(0.13)
+                task.wait(waypoint.Wait)
             end)
             
             if not success then
@@ -2625,27 +2635,35 @@ local function teleportToLastGap()
                 return
             end
         end
+        
         if States.DebugMode == false then
-            local fadeOut = TweenService:Create(loadingFrame, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-                BackgroundTransparency = 1
-            })
-            local textFadeOut = TweenService:Create(loadingText, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-                TextTransparency = 1,
-                TextStrokeTransparency = 1
-            })
-            local strokeFadeOut = TweenService:Create(glowStroke, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-                Transparency = 1
-            })
+            local loadingGui = LocalPlayer.PlayerGui:FindFirstChild("CelestialLoadingScreen")
+            if loadingGui then
+                local loadingFrame = loadingGui:FindFirstChild("Frame")
+                local loadingText = loadingFrame and loadingFrame:FindFirstChild("TextLabel")
+                local glowStroke = loadingText and loadingText:FindFirstChild("UIStroke")
+                
+                if loadingFrame and loadingText and glowStroke then
+                    local fadeOut = TweenService:Create(loadingFrame, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+                        BackgroundTransparency = 1
+                    })
+                    local textFadeOut = TweenService:Create(loadingText, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+                        TextTransparency = 1,
+                        TextStrokeTransparency = 1
+                    })
+                    local strokeFadeOut = TweenService:Create(glowStroke, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+                        Transparency = 1
+                    })
 
-            fadeOut:Play()
-            textFadeOut:Play()
-            strokeFadeOut:Play()
+                    fadeOut:Play()
+                    textFadeOut:Play()
+                    strokeFadeOut:Play()
 
-            fadeOut.Completed:Connect(function()
-                glowTween:Cancel()
-                textTween:Cancel()
-                loadingGui:Destroy()
-            end)
+                    fadeOut.Completed:Connect(function()
+                        loadingGui:Destroy()
+                    end)
+                end
+            end
         end
     end)
 end
