@@ -2549,6 +2549,7 @@ local function teleportToLastGap()
     local floorOrder = {"Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythical", "Cosmic", "Secret"}
     local activeTween = nil
     local shouldCancelTween = false
+    local monitoredWave = nil
     
     local function hasWaveInFloor(floorPart)
         if not floorPart or not floorPart:IsA("BasePart") then return false end
@@ -2578,19 +2579,56 @@ local function teleportToLastGap()
         return false
     end
     
+    local function getClosestWaveInfo(playerX)
+        local activeTsunamis = Workspace:FindFirstChild("ActiveTsunamis")
+        if not activeTsunamis then return nil end
+        
+        local closestWave = nil
+        local closestDist = math.huge
+        
+        for i = 1, 20 do
+            local wave = activeTsunamis:FindFirstChild("Wave" .. i)
+            if wave then
+                local hitbox = wave:FindFirstChild("Hitbox")
+                if hitbox and hitbox:IsA("BasePart") then
+                    local dist = math.abs(hitbox.Position.X - playerX)
+                    if dist < closestDist then
+                        closestDist = dist
+                        closestWave = {
+                            Wave = wave,
+                            Hitbox = hitbox,
+                            XPosition = hitbox.Position.X,
+                            Distance = dist,
+                            Name = wave.Name
+                        }
+                    end
+                end
+            end
+        end
+        
+        return closestWave
+    end
+    
+    local function isWaveCloseToFloorStart(waveX, floorPart, threshold)
+        if not floorPart or not floorPart:IsA("BasePart") then return false end
+        local floorStartX = floorPart.Position.X - (floorPart.Size.X / 2)
+        local distToStart = math.abs(waveX - floorStartX)
+        return distToStart < (threshold or 100)
+    end
+    
     local function getFloorEndPosition(floorPart)
         if not floorPart or not floorPart:IsA("BasePart") then return nil end
         local endX = floorPart.Position.X + (floorPart.Size.X / 2) + 5
-        return Vector3.new(endX, 3, -1)
+        return Vector3.new(endX, -4, -1)
     end
     
     local function getFloorStartPosition(floorPart)
         if not floorPart or not floorPart:IsA("BasePart") then return nil end
         local startX = floorPart.Position.X - (floorPart.Size.X / 2) - 5
-        return Vector3.new(startX, 3, -1)
+        return Vector3.new(startX, -4, -1)
     end
     
-    local function tweenToPosition(targetPos, label, currentFloorIndex, nextFloorIndex)
+    local function tweenToPosition(targetPos, label, currentFloorIndex, shouldMonitorWave)
         if not hrp.Parent then return false end
         
         local distance = (hrp.Position - targetPos).Magnitude
@@ -2603,7 +2641,7 @@ local function teleportToLastGap()
             return true
         end
         
-        local tweenSpeed = 350
+        local tweenSpeed = 500
         local tweenTime = distance / tweenSpeed
         
         if States.DebugMode then
@@ -2628,35 +2666,52 @@ local function teleportToLastGap()
         
         tween:Play()
         
-        task.spawn(function()
-            while not completed and not cancelled and hrp.Parent do
-                if nextFloorIndex and nextFloorIndex <= #floorOrder then
-                    local nextFloor = floorsFolder:FindFirstChild(floorOrder[nextFloorIndex])
-                    if nextFloor and hasWaveInFloor(nextFloor) then
-                        if States.DebugMode then
-                            print(string.format("[Mid-Tween Alert] Wave detected in %s while tweening! Retreating to start of %s", floorOrder[nextFloorIndex], floorOrder[currentFloorIndex]))
-                        end
+        if shouldMonitorWave then
+            task.spawn(function()
+                while not completed and not cancelled and hrp.Parent do
+                    pcall(function()
+                        local currentWave = getClosestWaveInfo(hrp.Position.X)
                         
-                        shouldCancelTween = true
-                        tween:Cancel()
-                        
-                        local currentFloor = floorsFolder:FindFirstChild(floorOrder[currentFloorIndex])
-                        if currentFloor then
-                            local retreatPos = getFloorStartPosition(currentFloor)
-                            if retreatPos then
-                                hrp.CFrame = CFrame.new(retreatPos)
-                                if States.DebugMode then
-                                    print(string.format("[Emergency Retreat] Teleported to start of %s - 5 studs", floorOrder[currentFloorIndex]))
+                        if currentWave and currentWave.Distance <= 30 then
+                            if States.DebugMode then
+                                print(string.format("[EMERGENCY] %s %.1f studs away! Switching direction!", currentWave.Name, currentWave.Distance))
+                            end
+                            
+                            shouldCancelTween = true
+                            tween:Cancel()
+                            
+                            local currentFloor = floorsFolder:FindFirstChild(floorOrder[currentFloorIndex])
+                            if currentFloor then
+                                local retreatPos = nil
+                                local isMovingForward = targetPos.X > hrp.Position.X
+                                
+                                if isMovingForward then
+                                    retreatPos = getFloorStartPosition(currentFloor)
+                                    if States.DebugMode then
+                                        print(string.format("[Emergency Retreat] Switching to beginning of %s", floorOrder[currentFloorIndex]))
+                                    end
+                                else
+                                    retreatPos = getFloorEndPosition(currentFloor)
+                                    if States.DebugMode then
+                                        print(string.format("[Emergency Retreat] Switching to end of %s", floorOrder[currentFloorIndex]))
+                                    end
+                                end
+                                
+                                if retreatPos then
+                                    local emergencyDist = (hrp.Position - retreatPos).Magnitude
+                                    local emergencyTime = emergencyDist / 500
+                                    local emergencyTween = TweenService:Create(hrp, TweenInfo.new(emergencyTime, Enum.EasingStyle.Linear), {CFrame = CFrame.new(retreatPos)})
+                                    emergencyTween:Play()
+                                    activeTween = emergencyTween
                                 end
                             end
+                            return
                         end
-                        return
-                    end
+                    end)
+                    task.wait(0.05)
                 end
-                
-                task.wait(0.05)
-            end
-        end)
+            end)
+        end
         
         while not completed and not cancelled and hrp.Parent do
             task.wait(0.05)
@@ -2676,7 +2731,7 @@ local function teleportToLastGap()
 
         local loadingFrame = Instance.new("Frame")
         loadingFrame.Size = UDim2.new(1, 0, 1, 0)
-        loadingFrame.Position = UDim2.new(0, 0, 0, 0) 
+        loadingFrame.Position = UDim2.new(0, 0, 0, 0)
         loadingFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
         loadingFrame.BorderSizePixel = 0
         loadingFrame.Parent = loadingGui
@@ -2720,6 +2775,7 @@ local function teleportToLastGap()
                 print("[Step 1] Teleported to Gap1")
             end
             task.wait(0.1)
+            hrp.CFrame = CFrame.new(hrp.Position.X, -4, -1)
         else
             WindUI:Notify({
                 Title = "Teleport Failed",
@@ -2733,6 +2789,8 @@ local function teleportToLastGap()
         local currentIndex = 1
         
         while currentIndex <= #floorOrder do
+            hrp.CFrame = CFrame.new(hrp.Position.X, -4, -1)
+            
             local floorName = floorOrder[currentIndex]
             local floor = floorsFolder:FindFirstChild(floorName)
             
@@ -2742,36 +2800,72 @@ local function teleportToLastGap()
                 end
                 
                 if hasWaveInFloor(floor) then
-                    if States.DebugMode then
-                        print(string.format("[Wave Found] In %s floor - Retreating to previous floor", floorName))
-                    end
+                    local waveInfo = getClosestWaveInfo(hrp.Position.X)
                     
-                    if currentIndex > 1 then
-                        local previousFloorName = floorOrder[currentIndex - 1]
-                        local previousFloor = floorsFolder:FindFirstChild(previousFloorName)
+                    if waveInfo and isWaveCloseToFloorStart(waveInfo.XPosition, floor, 100) then
+                        if States.DebugMode then
+                            print(string.format("[Wave at Start] %s detected near beginning of %s - Retreating to beginning of previous floor", waveInfo.Name, floorName))
+                        end
                         
-                        if previousFloor and previousFloor:IsA("BasePart") then
-                            local targetPos = getFloorEndPosition(previousFloor)
-                            if targetPos then
-                                local nextIndex = currentIndex + 1
-                                local success = tweenToPosition(targetPos, string.format("End of %s", previousFloorName), currentIndex - 1, nextIndex)
-                                if not success and not shouldCancelTween then
-                                    WindUI:Notify({
-                                        Title = "Teleport Failed",
-                                        Content = string.format("Failed to reach %s", previousFloorName),
-                                        Duration = 2,
-                                        Icon = "x",
-                                    })
-                                    return
+                        if currentIndex > 1 then
+                            local previousFloorName = floorOrder[currentIndex - 1]
+                            local previousFloor = floorsFolder:FindFirstChild(previousFloorName)
+                            
+                            if previousFloor and previousFloor:IsA("BasePart") then
+                                local targetPos = getFloorStartPosition(previousFloor)
+                                if targetPos then
+                                    local success = tweenToPosition(targetPos, string.format("Beginning of %s", previousFloorName), currentIndex - 1, true)
+                                    if not success and not shouldCancelTween then
+                                        WindUI:Notify({
+                                            Title = "Teleport Failed",
+                                            Content = string.format("Failed to reach %s", previousFloorName),
+                                            Duration = 2,
+                                            Icon = "x",
+                                        })
+                                        return
+                                    end
+                                    task.wait(0.1)
+                                    hrp.CFrame = CFrame.new(hrp.Position.X, -4, -1)
                                 end
-                                task.wait(0.1)
                             end
+                        else
+                            if States.DebugMode then
+                                print("[Warning] Wave near start of first floor (Common), waiting...")
+                            end
+                            task.wait(0.5)
                         end
                     else
                         if States.DebugMode then
-                            print("[Warning] Wave in first floor (Common), waiting...")
+                            print(string.format("[Wave Found] In %s floor - Retreating to end of previous floor", floorName))
                         end
-                        task.wait(0.5)
+                        
+                        if currentIndex > 1 then
+                            local previousFloorName = floorOrder[currentIndex - 1]
+                            local previousFloor = floorsFolder:FindFirstChild(previousFloorName)
+                            
+                            if previousFloor and previousFloor:IsA("BasePart") then
+                                local targetPos = getFloorEndPosition(previousFloor)
+                                if targetPos then
+                                    local success = tweenToPosition(targetPos, string.format("End of %s", previousFloorName), currentIndex - 1, true)
+                                    if not success and not shouldCancelTween then
+                                        WindUI:Notify({
+                                            Title = "Teleport Failed",
+                                            Content = string.format("Failed to reach %s", previousFloorName),
+                                            Duration = 2,
+                                            Icon = "x",
+                                        })
+                                        return
+                                    end
+                                    task.wait(0.1)
+                                    hrp.CFrame = CFrame.new(hrp.Position.X, -4, -1)
+                                end
+                            end
+                        else
+                            if States.DebugMode then
+                                print("[Warning] Wave in first floor (Common), waiting...")
+                            end
+                            task.wait(0.5)
+                        end
                     end
                 else
                     if States.DebugMode then
@@ -2787,6 +2881,7 @@ local function teleportToLastGap()
             end
             
             task.wait(0.05)
+            hrp.CFrame = CFrame.new(hrp.Position.X, -4, -1)
         end
         
         if States.DebugMode then
@@ -2796,8 +2891,8 @@ local function teleportToLastGap()
         local gap9 = gapsFolder:FindFirstChild("Gap9")
         if gap9 and gap9:GetChildren()[2] then
             local gap9Part = gap9:GetChildren()[2]
-            local finalPos = Vector3.new(gap9Part.Position.X + 5, 3, -1)
-            tweenToPosition(finalPos, "Gap9 Final", #floorOrder, nil)
+            local finalPos = Vector3.new(gap9Part.Position.X + 5, -4, -1)
+            tweenToPosition(finalPos, "Gap9 Final", #floorOrder, false)
         else
             WindUI:Notify({
                 Title = "Teleport Warning",
