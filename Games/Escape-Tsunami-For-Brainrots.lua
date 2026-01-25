@@ -2595,7 +2595,7 @@ local function teleportToLastGap()
             return true
         end
         
-        local tweenSpeed = 250
+        local tweenSpeed = 400
         local tweenTime = distance / tweenSpeed
         
         if States.DebugMode then
