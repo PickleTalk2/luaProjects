@@ -486,6 +486,196 @@ local function toggleESPLuckyBlock(state, blockType)
     end
 end
 
+local HighestBrainrotESP = nil
+local lastHighestCheck = 0
+
+local function parseRateValue(rateText)
+    if not rateText or rateText == "" then return 0 end
+    
+    local cleaned = rateText:gsub("%$", ""):gsub("/s", ""):lower()
+    local number = tonumber(cleaned:match("[%d%.]+"))
+    
+    if not number then return 0 end
+    
+    if cleaned:find("b") then
+        return number * 1000000000
+    elseif cleaned:find("m") then
+        return number * 1000000
+    elseif cleaned:find("k") then
+        return number * 1000
+    else
+        return number
+    end
+end
+
+local function findHighestBrainrot()
+    local highestBrainrot = nil
+    local highestRate = 0
+    local highestType = nil
+    
+    pcall(function()
+        local activeBrainrots = Workspace:FindFirstChild("ActiveBrainrots")
+        if not activeBrainrots then return end
+        
+        local function checkFolder(folder, folderType)
+            if not folder then return end
+            
+            for _, renderedBrainrot in pairs(folder:GetChildren()) do
+                if renderedBrainrot.Name == "RenderedBrainrot" and renderedBrainrot:IsA("Model") then
+                    local innerModel = renderedBrainrot:FindFirstChildOfClass("Model")
+                    if not innerModel then continue end
+                    
+                    local modelExtents = innerModel:FindFirstChild("ModelExtents")
+                    if not modelExtents then continue end
+                    
+                    local statsGui = modelExtents:FindFirstChild("StatsGui")
+                    if not statsGui then continue end
+                    
+                    local frame = statsGui:FindFirstChild("Frame")
+                    if not frame then continue end
+                    
+                    local rateLabel = frame:FindFirstChild("Rate")
+                    if not rateLabel then continue end
+                    
+                    local rateText = rateLabel.Text
+                    local rateValue = parseRateValue(rateText)
+                    
+                    if rateValue > highestRate then
+                        highestRate = rateValue
+                        highestBrainrot = innerModel
+                        highestType = folderType
+                    end
+                end
+            end
+        end
+        
+        local celestialFolder = activeBrainrots:FindFirstChild("Celestial")
+        checkFolder(celestialFolder, "Celestial")
+        
+        local secretFolder = activeBrainrots:FindFirstChild("Secret")
+        checkFolder(secretFolder, "Secret")
+    end)
+    
+    return highestBrainrot, highestType, highestRate
+end
+
+local function createHighestBrainrotESP(innerModel, effectType, rateValue)
+    if not innerModel then return end
+    
+    pcall(function()
+        local modelExtents = innerModel:FindFirstChild("ModelExtents")
+        if not modelExtents then return end
+        
+        local statsGui = modelExtents:FindFirstChild("StatsGui")
+        if not statsGui then return end
+        
+        local frame = statsGui:FindFirstChild("Frame")
+        if not frame then return end
+        
+        local nameLabel = frame:FindFirstChild("BrainrotName")
+        local mutationLabel = frame:FindFirstChild("Mutation")
+        local rateLabel = frame:FindFirstChild("Rate")
+        
+        if not nameLabel or not mutationLabel or not rateLabel then return end
+        
+        local brainrotName = nameLabel.Text or "Unknown"
+        local mutation = mutationLabel.Text or "N/A"
+        local rate = rateLabel.Text or "$0/s"
+        
+        local primary = innerModel.PrimaryPart or innerModel:FindFirstChildWhichIsA("BasePart")
+        if not primary then return end
+        
+        if HighestBrainrotESP and HighestBrainrotESP.Parent then
+            HighestBrainrotESP:Destroy()
+        end
+        
+        local billboardGui = Instance.new("BillboardGui")
+        billboardGui.Name = "ESP_HighestBrainrot"
+        billboardGui.Adornee = primary
+        billboardGui.Size = UDim2.new(0, 350, 0, 120)
+        billboardGui.StudsOffset = Vector3.new(0, 5, 0)
+        billboardGui.AlwaysOnTop = true
+        billboardGui.Parent = primary
+        
+        local nameText = Instance.new("TextLabel")
+        nameText.Size = UDim2.new(1, 0, 0.35, 0)
+        nameText.Position = UDim2.new(0, 0, 0, 0)
+        nameText.BackgroundTransparency = 1
+        nameText.Text = "⭐ " .. brainrotName .. " ⭐"
+        nameText.TextSize = 24
+        nameText.Font = Enum.Font.GothamBold
+        nameText.TextStrokeTransparency = 0
+        nameText.Parent = billboardGui
+        
+        local mutationText = Instance.new("TextLabel")
+        mutationText.Size = UDim2.new(1, 0, 0.3, 0)
+        mutationText.Position = UDim2.new(0, 0, 0.35, 0)
+        mutationText.BackgroundTransparency = 1
+        mutationText.Text = mutation
+        mutationText.TextSize = 18
+        mutationText.Font = Enum.Font.Gotham
+        mutationText.TextStrokeTransparency = 0
+        mutationText.Parent = billboardGui
+        
+        local rateText = Instance.new("TextLabel")
+        rateText.Size = UDim2.new(1, 0, 0.35, 0)
+        rateText.Position = UDim2.new(0, 0, 0.65, 0)
+        rateText.BackgroundTransparency = 1
+        rateText.Text = rate
+        rateText.TextSize = 20
+        rateText.Font = Enum.Font.GothamBold
+        rateText.TextStrokeTransparency = 0
+        rateText.Parent = billboardGui
+        
+        if effectType == "Celestial" then
+            nameText.TextColor3 = Color3.fromRGB(0, 255, 0)
+            nameText.TextStrokeColor3 = Color3.fromRGB(0, 100, 0)
+            mutationText.TextColor3 = Color3.fromRGB(150, 255, 150)
+            mutationText.TextStrokeColor3 = Color3.fromRGB(0, 80, 0)
+            rateText.TextColor3 = Color3.fromRGB(255, 255, 0)
+            rateText.TextStrokeColor3 = Color3.fromRGB(100, 100, 0)
+            
+            local glowTween1 = TweenService:Create(nameText, 
+                TweenInfo.new(1, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true),
+                {TextColor3 = Color3.fromRGB(100, 255, 100)}
+            )
+            glowTween1:Play()
+            
+            local glowTween2 = TweenService:Create(rateText,
+                TweenInfo.new(1.2, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true),
+                {TextColor3 = Color3.fromRGB(255, 215, 0)}
+            )
+            glowTween2:Play()
+            
+        elseif effectType == "Secret" then
+            nameText.TextColor3 = Color3.fromRGB(255, 50, 50)
+            nameText.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+            nameText.TextStrokeTransparency = 0.3
+            mutationText.TextColor3 = Color3.fromRGB(255, 100, 100)
+            mutationText.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+            mutationText.TextStrokeTransparency = 0.3
+            rateText.TextColor3 = Color3.fromRGB(255, 0, 0)
+            rateText.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+            rateText.TextStrokeTransparency = 0.3
+            
+            local shadowTween1 = TweenService:Create(nameText,
+                TweenInfo.new(0.8, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true),
+                {TextColor3 = Color3.fromRGB(200, 0, 0)}
+            )
+            shadowTween1:Play()
+            
+            local shadowTween2 = TweenService:Create(rateText,
+                TweenInfo.new(1, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true),
+                {TextColor3 = Color3.fromRGB(150, 0, 0)}
+            )
+            shadowTween2:Play()
+        end
+        
+        HighestBrainrotESP = billboardGui
+        table.insert(ESPObjects, billboardGui)
+    end)
+end
+
 local function toggleESPHighestBrainrot(state)
     local connectionName = "ESPHighestBrainrot"
     States[connectionName] = state
@@ -494,116 +684,44 @@ local function toggleESPHighestBrainrot(state)
         Connections[connectionName] = RunService.Heartbeat:Connect(function()
             if not States[connectionName] then return end
             
-            pcall(function()
-                local activeBrainrots = Workspace:FindFirstChild("ActiveBrainrots")
-                if not activeBrainrots then return end
+            local currentTime = tick()
+            if currentTime - lastHighestCheck < 5 then return end
+            lastHighestCheck = currentTime
+            
+            local highestBrainrot, highestType, highestRate = findHighestBrainrot()
+            
+            if highestBrainrot and highestType then
+                createHighestBrainrotESP(highestBrainrot, highestType, highestRate)
                 
-                local function createBrainrotESP(folder, effectType)
-                    if not folder then return end
-                    
-                    for _, renderedBrainrot in pairs(folder:GetChildren()) do
-                        if renderedBrainrot.Name == "RenderedBrainrot" and renderedBrainrot:IsA("Model") then
-                            local innerModel = renderedBrainrot:FindFirstChildOfClass("Model")
-                            if not innerModel then continue end
-                            
-                            local modelExtents = innerModel:FindFirstChild("ModelExtents")
-                            if not modelExtents then continue end
-                            
-                            local statsGui = modelExtents:FindFirstChild("StatsGui")
-                            if not statsGui then continue end
-                            
-                            local frame = statsGui:FindFirstChild("Frame")
-                            if not frame then continue end
-                            
-                            local nameLabel = frame:FindFirstChild("BrainrotName")
-                            local mutationLabel = frame:FindFirstChild("Mutation")
-                            
-                            if not nameLabel or not mutationLabel then continue end
-                            
-                            local brainrotName = nameLabel.Text or "Unknown"
-                            local mutation = mutationLabel.Text or "N/A"
-                            
-                            local primary = innerModel.PrimaryPart or innerModel:FindFirstChildWhichIsA("BasePart")
-                            if not primary then continue end
-                            
-                            if primary:FindFirstChild("ESP_HighestBrainrot") then continue end
-                            
-                            local billboardGui = Instance.new("BillboardGui")
-                            billboardGui.Name = "ESP_HighestBrainrot"
-                            billboardGui.Adornee = primary
-                            billboardGui.Size = UDim2.new(0, 300, 0, 100)
-                            billboardGui.StudsOffset = Vector3.new(0, 5, 0)
-                            billboardGui.AlwaysOnTop = true
-                            billboardGui.Parent = primary
-                            
-                            local nameText = Instance.new("TextLabel")
-                            nameText.Size = UDim2.new(1, 0, 0.4, 0)
-                            nameText.Position = UDim2.new(0, 0, 0, 0)
-                            nameText.BackgroundTransparency = 1
-                            nameText.Text = brainrotName
-                            nameText.TextSize = 22
-                            nameText.Font = Enum.Font.GothamBold
-                            nameText.TextStrokeTransparency = 0
-                            nameText.Parent = billboardGui
-                            
-                            local mutationText = Instance.new("TextLabel")
-                            mutationText.Size = UDim2.new(1, 0, 0.3, 0)
-                            mutationText.Position = UDim2.new(0, 0, 0.4, 0)
-                            mutationText.BackgroundTransparency = 1
-                            mutationText.Text = mutation
-                            mutationText.TextSize = 16
-                            mutationText.Font = Enum.Font.Gotham
-                            mutationText.TextStrokeTransparency = 0
-                            mutationText.Parent = billboardGui
-                            
-                            if effectType == "Celestial" then
-                                nameText.TextColor3 = Color3.fromRGB(0, 255, 0)
-                                nameText.TextStrokeColor3 = Color3.fromRGB(0, 100, 0)
-                                mutationText.TextColor3 = Color3.fromRGB(150, 255, 150)
-                                mutationText.TextStrokeColor3 = Color3.fromRGB(0, 80, 0)
-                                
-                                local glowTween = TweenService:Create(nameText, 
-                                    TweenInfo.new(1, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true),
-                                    {TextColor3 = Color3.fromRGB(100, 255, 100)}
-                                )
-                                glowTween:Play()
-                            elseif effectType == "Secret" then
-                                nameText.TextColor3 = Color3.fromRGB(255, 50, 50)
-                                nameText.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
-                                nameText.TextStrokeTransparency = 0.3
-                                mutationText.TextColor3 = Color3.fromRGB(255, 100, 100)
-                                mutationText.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
-                                mutationText.TextStrokeTransparency = 0.3
-                                
-                                local shadowTween = TweenService:Create(nameText,
-                                    TweenInfo.new(0.8, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true),
-                                    {TextColor3 = Color3.fromRGB(200, 0, 0)}
-                                )
-                                shadowTween:Play()
-                            end
-                            
-                            table.insert(ESPObjects, billboardGui)
-                        end
-                    end
+                if States.DebugMode then
+                    print(string.format("[ESP Highest] Found %s brainrot with rate value: %.2f", highestType, highestRate))
                 end
-                
-                local celestialFolder = activeBrainrots:FindFirstChild("Celestial")
-                if celestialFolder then
-                    createBrainrotESP(celestialFolder, "Celestial")
+            else
+                if HighestBrainrotESP and HighestBrainrotESP.Parent then
+                    HighestBrainrotESP:Destroy()
+                    HighestBrainrotESP = nil
                 end
-                
-                local secretFolder = activeBrainrots:FindFirstChild("Secret")
-                if secretFolder then
-                    createBrainrotESP(secretFolder, "Secret")
-                end
-            end)
+            end
+        end)
+        
+        task.spawn(function()
+            local highestBrainrot, highestType, highestRate = findHighestBrainrot()
+            if highestBrainrot and highestType then
+                createHighestBrainrotESP(highestBrainrot, highestType, highestRate)
+            end
         end)
     else
         if Connections[connectionName] then
             Connections[connectionName]:Disconnect()
             Connections[connectionName] = nil
         end
-        clearESP()
+        
+        if HighestBrainrotESP and HighestBrainrotESP.Parent then
+            HighestBrainrotESP:Destroy()
+            HighestBrainrotESP = nil
+        end
+        
+        lastHighestCheck = 0
     end
 end
 
