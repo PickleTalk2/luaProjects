@@ -279,6 +279,8 @@ local States = {
     ESPLuckyBlockNormal = false,
     AutoFarmCelestial = false,
     ESPHighestBrainrot = false,
+    AutoCollectRadioactive = false,
+    AutoCollectUFO = false,
 }
 
 local Connections = {
@@ -304,6 +306,8 @@ local Connections = {
     ESPLuckyBlockNormal = nil,
     AutoFarmCelestial = nil,
     ESPHighestBrainrot = nil,
+    AutoCollectRadioactive = nil,
+    AutoCollectUFO = nil,
 }
 
 local LowGFXStorage = {
@@ -382,6 +386,86 @@ local function toggleAutoCollect(state)
         if Connections.AutoCollect then
             Connections.AutoCollect:Disconnect()
             Connections.AutoCollect = nil
+        end
+    end
+end
+
+local function toggleAutoCollectRadioactive(state)
+    States.AutoCollectRadioactive = state
+    
+    if state then
+        Connections.AutoCollectRadioactive = RunService.Heartbeat:Connect(function()
+            if not States.AutoCollectRadioactive then return end
+            
+            pcall(function()
+                local character = LocalPlayer.Character
+                if not character then return end
+                
+                local hrp = character:FindFirstChild("HumanoidRootPart")
+                if not hrp then return end
+                
+                local eventParts = Workspace:FindFirstChild("EventParts")
+                if not eventParts then return end
+                
+                for _, coin in pairs(eventParts:GetChildren()) do
+                    if coin.Name == "Radioactive Coin" then
+                        local coinPart = coin:FindFirstChild("Radioactive Coin")
+                        if coinPart and coinPart:FindFirstChild("TouchInterest") then
+                            local distance = (hrp.Position - coinPart.Position).Magnitude
+                            if distance <= 50 then
+                                firetouchinterest(hrp, coinPart, 0)
+                                task.wait()
+                                firetouchinterest(hrp, coinPart, 1)
+                            end
+                        end
+                    end
+                end
+            end)
+        end)
+    else
+        if Connections.AutoCollectRadioactive then
+            Connections.AutoCollectRadioactive:Disconnect()
+            Connections.AutoCollectRadioactive = nil
+        end
+    end
+end
+
+local function toggleAutoCollectUFO(state)
+    States.AutoCollectUFO = state
+    
+    if state then
+        Connections.AutoCollectUFO = RunService.Heartbeat:Connect(function()
+            if not States.AutoCollectUFO then return end
+            
+            pcall(function()
+                local character = LocalPlayer.Character
+                if not character then return end
+                
+                local hrp = character:FindFirstChild("HumanoidRootPart")
+                if not hrp then return end
+                
+                local ufoEventParts = Workspace:FindFirstChild("UFOEventParts")
+                if not ufoEventParts then return end
+                
+                for _, coin in pairs(ufoEventParts:GetChildren()) do
+                    if coin.Name == "UFO Coin" then
+                        local hitbox = coin:FindFirstChild("Hitbox")
+                        if hitbox and hitbox:FindFirstChild("TouchInterest") then
+                            local distance = (hrp.Position - hitbox.Position).Magnitude
+                            if distance <= 50 then
+                                firetouchinterest(hrp, hitbox, 0)
+                                task.wait()
+                                firetouchinterest(hrp, hitbox, 1)
+                            end
+                        end
+                    end
+                end
+            end)
+        end)
+    else
+        if Connections.AutoCollectUFO then
+            Connections.AutoCollectUFO:Disconnect()
+            Connections.AutoCollectUFO = nil
         end
     end
 end
@@ -2728,6 +2812,11 @@ local MainTab = Window:Tab({
     Icon = "home",
 })
 
+local EventTab = Window:Tab({
+    Title = "Event",
+    Icon = "star",
+})
+
 local VisualTab = Window:Tab({
     Title = "Visual",
     Icon = "eye",
@@ -2843,6 +2932,29 @@ myConfig:Register("AntiSlap", AntiSlapToggle)
 myConfig:Register("SlapAura", SlapAuraToggle)
 myConfig:Register("AntiTsunami", AntiTsunamiToggle)
 myConfig:Register("FastInteraction", FastInteractionToggle)
+
+local AutoCollectRadioactiveToggle = EventTab:Toggle({
+    Title = "Auto Collect Radioactive Coins",
+    Desc = "Collect nearby Radioactive Coins (50 studs)",
+    Default = false,
+    Callback = function(state)
+        toggleAutoCollectRadioactive(state)
+        saveConfiguration()
+    end
+})
+
+local AutoCollectUFOToggle = EventTab:Toggle({
+    Title = "Auto Collect UFO Coins",
+    Desc = "Collect nearby UFO Coins (50 studs)",
+    Default = false,
+    Callback = function(state)
+        toggleAutoCollectUFO(state)
+        saveConfiguration()
+    end
+})
+
+myConfig:Register("AutoCollectRadioactive", AutoCollectRadioactiveToggle)
+myConfig:Register("AutoCollectUFO", AutoCollectUFOToggle)
 
 local ESPHighestBrainrotToggle = VisualTab:Toggle({
     Title = "ESP Highest Brainrot",
