@@ -449,34 +449,43 @@ local function getBrainrotSlotInfo()
     
     pcall(function()
         local myBase = getMyBase()
-        if not myBase then return end
-        
-        local slotsFolder = myBase:FindFirstChild("Slots")
-        if not slotsFolder then return end
+        if not myBase then 
+            if States.DebugMode then
+                warn("[Brainrot Debug] getMyBase() returned nil")
+            end
+            return 
+        end
         
         for i = 1, 30 do
             local slotName = "slot " .. i .. " brainrot"
-            local brainrotNameObj = myBase:FindFirstChild(slotName)
+            local slotBrainrotModel = myBase:FindFirstChild(slotName)
             
-            if brainrotNameObj and brainrotNameObj:IsA("StringValue") then
-                local brainrotName = brainrotNameObj.Value
+            if States.DebugMode then
+                print(string.format("[Brainrot Debug] Checking slot %d: %s", i, slotName))
+            end
+            
+            if slotBrainrotModel then
+                local brainrotModel = slotBrainrotModel:GetChildren()[1]
                 
-                local slotFolder = slotsFolder:FindFirstChild("Slot" .. i)
-                if slotFolder then
-                    local upgrade = slotFolder:FindFirstChild("Upgrade")
-                    if upgrade then
-                        local upgradeGui = upgrade:FindFirstChild("UpgradeGui")
-                        if upgradeGui then
-                            local button = upgradeGui:FindFirstChild("Button")
-                            if button then
-                                local levelChange = button:FindFirstChild("LevelChange")
-                                if levelChange and levelChange:IsA("TextLabel") then
-                                    local level = levelChange.Text
+                if brainrotModel then
+                    local modelExtents = brainrotModel:FindFirstChild("ModelExtents")
+                    if modelExtents then
+                        local statsGui = modelExtents:FindFirstChild("StatsGui")
+                        if statsGui then
+                            local frame = statsGui:FindFirstChild("Frame")
+                            if frame then
+                                local brainrotNameLabel = frame:FindFirstChild("BrainrotName")
+                                if brainrotNameLabel and brainrotNameLabel:IsA("TextLabel") then
+                                    local brainrotName = brainrotNameLabel.Text
+                                    
+                                    if States.DebugMode then
+                                        print(string.format("[Brainrot Debug] Slot %d found: %s", i, brainrotName))
+                                    end
+                                    
                                     table.insert(slotInfo, {
                                         Slot = i,
                                         Name = brainrotName,
-                                        Level = level,
-                                        Display = string.format("Slot %d: %s %s", i, brainrotName, level)
+                                        Display = string.format("Slot %d: %s", i, brainrotName)
                                     })
                                 end
                             end
@@ -484,6 +493,10 @@ local function getBrainrotSlotInfo()
                     end
                 end
             end
+        end
+        
+        if States.DebugMode then
+            print(string.format("[Brainrot Debug] Total slots found: %d", #slotInfo))
         end
     end)
     
@@ -504,6 +517,10 @@ local function updateUpgradeDropdown(dropdown)
     
     States.UpgradeDropdownOptions = slotInfo
     
+    if States.DebugMode then
+        print(string.format("[Brainrot Debug] Dropdown updated with %d options", #options))
+    end
+    
     if dropdown and #options > 0 then
         pcall(function()
             dropdown:Set({Values = options})
@@ -511,7 +528,7 @@ local function updateUpgradeDropdown(dropdown)
     end
     
     return options
-end
+end1
 
 local function toggleAutoUpgradeBrainrot(state)
     States.AutoUpgradeBrainrot = state
@@ -3311,13 +3328,14 @@ local UpgradeBrainrotDropdown = BrainrotTab:Dropdown({
 })
 
 task.spawn(function()
-    task.wait(2)
-    updateUpgradeDropdown(UpgradeBrainrotDropdown)
-end)
-
-Connections.UpgradeDropdownUpdater = RunService.Heartbeat:Connect(function()
-    if os.clock() % 3 < 0.1 then
-        updateUpgradeDropdown(UpgradeBrainrotDropdown)
+    while task.wait(3) do
+        pcall(function()
+            if States.DebugMode then
+                print("[Brainrot Debug] Starting 3-second update cycle")
+            end
+            
+            updateUpgradeDropdown(UpgradeBrainrotDropdown)
+        end)
     end
 end)
 
