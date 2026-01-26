@@ -528,7 +528,7 @@ local function updateUpgradeDropdown(dropdown)
     end
     
     return options
-end1
+end
 
 local function toggleAutoUpgradeBrainrot(state)
     States.AutoUpgradeBrainrot = state
