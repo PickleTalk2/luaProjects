@@ -2700,7 +2700,7 @@ local function teleportToLastGap()
             Vector3.new(2465, 4, -139),
         }
 
-        local SPEED = 2000
+        local SPEED = 2200
 
         local function tweenTo(point)
             local distance = (point - hrp.Position).Magnitude
@@ -2725,7 +2725,9 @@ local function teleportToLastGap()
         local gap9 = gapsFolder:FindFirstChild("Gap9")
         if gap9 and gap9:GetChildren()[2] then
             local gap9Part = gap9:GetChildren()[2]
-            hrp.CFrame = gap9Part.CFrame * CFrame.new(5, 0, 0)
+            local gap9X = gap9Part.Position.X
+            local gap9Z = gap9Part.Position.Z
+            hrp.CFrame = CFrame.new(gap9X + 5, -3, gap9Z)
         end
         
         if not States.Noclip then
