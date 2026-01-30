@@ -2907,12 +2907,42 @@ local function teleportToLastGap()
                         end
                     else
                         if States.DebugMode then
-                            print(string.format("[Clear] %s is clear, advancing to end of floor", floorName))
+                            print(string.format("[Clear] %s is clear, checking next floor entrance safety", floorName))
                         end
                 
-                        local targetPos = getFloorEndPosition(floor)
-                        if targetPos then
-                            local success = tweenToPosition(targetPos, string.format("End of %s", floorName), currentIndex, true)
+                        local nextFloorIsSafe = true
+                        if currentIndex < #floorOrder then
+                            local nextFloorName = floorOrder[currentIndex + 1]
+                            local nextFloor = floorsFolder:FindFirstChild(nextFloorName)
+                            
+                            if nextFloor and nextFloor:IsA("BasePart") then
+                                local nextFloorStartX = nextFloor.Position.X - (nextFloor.Size.X / 2)
+                                
+                                local waveInfo = getClosestWaveInfo(hrp.Position.X)
+                                if waveInfo then
+                                    local distToNextFloorStart = math.abs(waveInfo.XPosition - nextFloorStartX)
+                                    
+                                    if distToNextFloorStart < 150 then
+                                        nextFloorIsSafe = false
+                                        if States.DebugMode then
+                                            print(string.format("[Next Floor Unsafe] %s entrance has wave %.1f studs away - waiting", nextFloorName, distToNextFloorStart))
+                                        end
+                                    end
+                                end
+                            end
+                        end
+                        
+                        if not nextFloorIsSafe then
+                            task.wait(0.5)
+                            pcall(function() hrp.CFrame = CFrame.new(hrp.Position.X, -3, -1) end)
+                        else
+                            if States.DebugMode then
+                                print(string.format("[Safe to Advance] Moving to end of %s", floorName))
+                            end
+                            
+                            local targetPos = getFloorEndPosition(floor)
+                            if targetPos then
+                                local success = tweenToPosition(targetPos, string.format("End of %s", floorName), currentIndex, true)
                             if not success and not shouldCancelTween then
                                 WindUI:Notify({
                                     Title = "Teleport Failed",
@@ -2923,10 +2953,11 @@ local function teleportToLastGap()
                                 return
                             end
                             pcall(function() hrp.CFrame = CFrame.new(hrp.Position.X, -3, -1) end)
+                            end
+                    
+                            floorIsClear = true
+                            currentIndex = currentIndex + 1
                         end
-                
-                        floorIsClear = true
-                        currentIndex = currentIndex + 1
                     end
             
                     task.wait(0.05)
