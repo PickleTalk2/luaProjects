@@ -2718,7 +2718,7 @@ local function teleportToLastGap()
         return Vector3.new(startX, -3, -1)
     end
     
-    local function tweenToPosition(targetPos, label, currentFloorIndex, shouldMonitorWave)
+    local function tweenToPosition(targetPos, label, currentFloorIndex, shouldMonitorWave, nextFloorStartX)
         if not hrp.Parent then return false end
 
         local distance = (hrp.Position - targetPos).Magnitude
@@ -2753,7 +2753,49 @@ local function teleportToLastGap()
                     pcall(function()
                         local currentWave = getClosestWaveInfo(hrp.Position.X)
                         
-                        if currentWave and currentWave.Distance <= 150 then
+                        if nextFloorStartX and currentWave then
+                            local distToNextFloorEntrance = math.abs(currentWave.XPosition - nextFloorStartX)
+                            
+                            if distToNextFloorEntrance <= 10 and currentWave.XPosition >= nextFloorStartX - 10 then
+                                if States.DebugMode then
+                                    print(string.format("[CRITICAL EMERGENCY] Wave %.1f studs from next floor entrance! Retreating to last safe position!", distToNextFloorEntrance))
+                                end
+                                
+                                shouldCancelTween = true
+                                tween:Cancel()
+                                States.EmergencyRetreatCooldown = true
+                                
+                                if States.LastSafePosition then
+                                    local lastSafePos = Vector3.new(States.LastSafePosition.X, -3, -1)
+                                    local emergencyDist = (hrp.Position - lastSafePos).Magnitude
+                                    local emergencyTime = emergencyDist / 500
+                                    
+                                    if States.DebugMode then
+                                        print(string.format("[Emergency Retreat] Going back to X:%.1f", States.LastSafePosition.X))
+                                    end
+                                    
+                                    local emergencyTween = TweenService:Create(hrp, TweenInfo.new(emergencyTime, Enum.EasingStyle.Linear), {CFrame = CFrame.new(lastSafePos)})
+                                    
+                                    emergencyTween.Completed:Connect(function()
+                                        task.wait(2)
+                                        States.EmergencyRetreatCooldown = false
+                                        if States.DebugMode then
+                                            print("[Emergency] Cooldown ended at last safe position")
+                                        end
+                                    end)
+                                    
+                                    emergencyTween:Play()
+                                    activeTween = emergencyTween
+                                else
+                                    hrp.CFrame = CFrame.new(hrp.Position.X, -3, -1)
+                                    task.wait(2)
+                                    States.EmergencyRetreatCooldown = false
+                                end
+                                return
+                            end
+                        end
+                        
+                        if currentWave and currentWave.Distance <= 80 then
                             local playerX = hrp.Position.X
                             local waveX = currentWave.XPosition
                             local isWaveAhead = waveX > playerX
@@ -2767,57 +2809,30 @@ local function teleportToLastGap()
                                 tween:Cancel()
                                 States.EmergencyRetreatCooldown = true
                                 
-                                local gaps = getAllGaps()
-                                local allWaves = getAllWaves(hrp.Position)
-                                
-                                local safeGap = nil
-                                local playerPos = hrp.Position
-                                
-                                for _, gap in ipairs(gaps) do
-                                    if gap.XPosition < playerX then
-                                        local isSafe = true
-                                        for _, wave in ipairs(allWaves) do
-                                            local distToGap = math.abs(wave.XPosition - gap.XPosition)
-                                            if distToGap < 50 then
-                                                isSafe = false
-                                                break
-                                            end
-                                        end
-                                        
-                                        if isSafe then
-                                            if not safeGap or math.abs(gap.XPosition - playerX) < math.abs(safeGap.XPosition - playerX) then
-                                                safeGap = gap
-                                            end
-                                        end
-                                    end
-                                end
-                                
-                                if safeGap then
+                                if States.LastSafePosition then
+                                    local lastSafePos = Vector3.new(States.LastSafePosition.X, -3, -1)
+                                    local emergencyDist = (hrp.Position - lastSafePos).Magnitude
+                                    local emergencyTime = emergencyDist / 500
+                                    
                                     if States.DebugMode then
-                                        print(string.format("[Emergency Retreat] Retreating to %s", safeGap.Name))
+                                        print(string.format("[Emergency Retreat] Going back to last safe X:%.1f", States.LastSafePosition.X))
                                     end
                                     
-                                    local gapPos = Vector3.new(safeGap.XPosition, -3, -1)
-                                    local emergencyDist = (hrp.Position - gapPos).Magnitude
-                                    local emergencyTime = emergencyDist / 450
-                                    local emergencyTween = TweenService:Create(hrp, TweenInfo.new(emergencyTime, Enum.EasingStyle.Linear), {CFrame = CFrame.new(gapPos)})
+                                    local emergencyTween = TweenService:Create(hrp, TweenInfo.new(emergencyTime, Enum.EasingStyle.Linear), {CFrame = CFrame.new(lastSafePos)})
                                     
                                     emergencyTween.Completed:Connect(function()
-                                        task.wait(3)
+                                        task.wait(2)
                                         States.EmergencyRetreatCooldown = false
                                         if States.DebugMode then
-                                            print("[Emergency] Cooldown ended, resuming normal checks")
+                                            print("[Emergency] Cooldown ended")
                                         end
                                     end)
                                     
                                     emergencyTween:Play()
                                     activeTween = emergencyTween
                                 else
-                                    if States.DebugMode then
-                                        print("[Emergency] No safe gap found - staying in place")
-                                    end
                                     hrp.CFrame = CFrame.new(hrp.Position.X, -3, -1)
-                                    task.wait(3)
+                                    task.wait(2)
                                     States.EmergencyRetreatCooldown = false
                                 end
                             end
@@ -2828,14 +2843,6 @@ local function teleportToLastGap()
                 end
             end)
         end
-        
-        while not completed and not cancelled and hrp.Parent do
-            task.wait(0.05)
-        end
-        
-        activeTween = nil
-        return completed and not shouldCancelTween
-    end
     
     if States.DebugMode == false then
         local loadingGui = Instance.new("ScreenGui")
@@ -2982,9 +2989,11 @@ local function teleportToLastGap()
                                 print(string.format("[Safe to Advance] Moving to end of %s", floorName))
                             end
                             
+                            States.LastSafePosition = hrp.Position
+                            
                             local targetPos = getFloorEndPosition(floor)
                             if targetPos then
-                                local success = tweenToPosition(targetPos, string.format("End of %s", floorName), currentIndex, true)
+                                local success = tweenToPosition(targetPos, string.format("End of %s", floorName), currentIndex, true, nextFloorStartX)
                             if not success and not shouldCancelTween then
                                 WindUI:Notify({
                                     Title = "Teleport Failed",
