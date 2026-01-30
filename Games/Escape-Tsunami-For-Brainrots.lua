@@ -1767,6 +1767,15 @@ local function tweenToGap(hrp, targetGap, isForward)
     
     tween.Completed:Connect(function(playbackState)
         if playbackState == Enum.PlaybackState.Completed then
+            local character = LocalPlayer.Character
+            if character and not States.Noclip then
+                for _, part in pairs(character:GetDescendants()) do
+                    if part:IsA("BasePart") then
+                        part.CanCollide = true
+                    end
+                end
+            end
+            
             if States.AntiTsunami then
                 local downTweenInfo = TweenInfo.new(0.1, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut)
                 local downTween = TweenService:Create(hrp, downTweenInfo, {CFrame = CFrame.new(targetX, -2, -1)})
@@ -2720,6 +2729,15 @@ local function teleportToLastGap()
     
     local function tweenToPosition(targetPos, label, currentFloorIndex, shouldMonitorWave, nextFloorStartX)
         if not hrp.Parent then return false end
+    
+        local character = LocalPlayer.Character
+        if character then
+            for _, part in pairs(character:GetDescendants()) do
+                if part:IsA("BasePart") then
+                    part.CanCollide = false
+                end
+            end
+        end
 
         local distance = (hrp.Position - targetPos).Magnitude
         local tweenSpeed = 370
@@ -2927,7 +2945,11 @@ local function teleportToLastGap()
                 local floorIsClear = false
         
                 while not floorIsClear do
-                    pcall(function() hrp.CFrame = CFrame.new(hrp.Position.X, -3, -1) end)
+                    pcall(function() 
+                        local currentPos = hrp.Position
+                        hrp.CFrame = CFrame.new(currentPos.X, -3, -1)
+                        hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+                    end)
             
                     if States.DebugMode then
                         print(string.format("[Checking] Floor: %s (Index %d/%d)", floorName, currentIndex, #floorOrder))
@@ -2939,23 +2961,36 @@ local function teleportToLastGap()
                         if waveInfo then
                             local playerX = hrp.Position.X
                             local waveX = waveInfo.XPosition
+                            local floorEndX = floor.Position.X + (floor.Size.X / 2)
                     
-                            if waveX < (playerX - 20) then
+                            if waveX < (playerX - 30) and waveX < (floorEndX - 40) then
                                 if States.DebugMode then
-                                    print(string.format("[Wave Passed] %s at X:%.1f is 20+ studs behind player at X:%.1f - Re-checking floor", waveInfo.Name, waveX, playerX))
-                                end
-                                task.wait(0.3)
-                                pcall(function() hrp.CFrame = CFrame.new(hrp.Position.X, -3, -1) end)
-                            else
-                                if States.DebugMode then
-                                    print(string.format("[Wave Detected] %s in %s at X:%.1f - Staying put and waiting", waveInfo.Name, floorName, waveX))
+                                    print(string.format("[Wave Passed] %s at X:%.1f is safely behind - Re-checking floor", waveInfo.Name, waveX))
                                 end
                                 task.wait(0.5)
-                                pcall(function() hrp.CFrame = CFrame.new(hrp.Position.X, -3, -1) end)
+                                pcall(function() 
+                                    local currentPos = hrp.Position
+                                    hrp.CFrame = CFrame.new(currentPos.X, -3, -1)
+                                    hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+                                end)
+                            else
+                                if States.DebugMode then
+                                    print(string.format("[Wave Detected] %s in %s at X:%.1f - Waiting for safe pass", waveInfo.Name, floorName, waveX))
+                                end
+                                task.wait(1.0)
+                                pcall(function() 
+                                    local currentPos = hrp.Position
+                                    hrp.CFrame = CFrame.new(currentPos.X, -3, -1)
+                                    hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+                                end)
                             end
                         else
                             task.wait(0.3)
-                            pcall(function() hrp.CFrame = CFrame.new(hrp.Position.X, -3, -1) end)
+                            pcall(function() 
+                                local currentPos = hrp.Position
+                                hrp.CFrame = CFrame.new(currentPos.X, -3, -1)
+                                hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+                            end)
                         end
                     else
                         if States.DebugMode then
