@@ -287,7 +287,7 @@ local States = {
     SelectedUpgradeSlots = {},
     UpgradeDropdownOptions = {},
     EmergencyRetreatCooldown = false,
-    LastSafePosition = nil,a
+    LastSafePosition = nil
 }
 
 local Connections = {
@@ -2843,6 +2843,14 @@ local function teleportToLastGap()
                 end
             end)
         end
+
+        while not completed and not cancelled and hrp.Parent do
+            task.wait(0.05)
+        end
+        
+        activeTween = nil
+        return completed and not shouldCancelTween
+    end
     
     if States.DebugMode == false then
         local loadingGui = Instance.new("ScreenGui")
