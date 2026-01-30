@@ -287,6 +287,7 @@ local States = {
     SelectedUpgradeSlots = {},
     UpgradeDropdownOptions = {},
     EmergencyRetreatCooldown = false,
+    LastSafePosition = nil,a
 }
 
 local Connections = {
@@ -2721,7 +2722,7 @@ local function teleportToLastGap()
         if not hrp.Parent then return false end
 
         local distance = (hrp.Position - targetPos).Magnitude
-        local tweenSpeed = 400
+        local tweenSpeed = 370
         local tweenTime = distance / tweenSpeed
         
         if States.DebugMode then
@@ -2947,21 +2948,23 @@ local function teleportToLastGap()
                         end
                 
                         local nextFloorIsSafe = true
+                        local nextFloorStartX = nil
+                        
                         if currentIndex < #floorOrder then
                             local nextFloorName = floorOrder[currentIndex + 1]
                             local nextFloor = floorsFolder:FindFirstChild(nextFloorName)
                             
                             if nextFloor and nextFloor:IsA("BasePart") then
-                                local nextFloorStartX = nextFloor.Position.X - (nextFloor.Size.X / 2)
+                                nextFloorStartX = nextFloor.Position.X - (nextFloor.Size.X / 2)
                                 
                                 local waveInfo = getClosestWaveInfo(hrp.Position.X)
                                 if waveInfo then
                                     local distToNextFloorStart = math.abs(waveInfo.XPosition - nextFloorStartX)
                                     
-                                    if distToNextFloorStart < 150 then
+                                    if distToNextFloorStart < 20 and waveInfo.XPosition > hrp.Position.X then
                                         nextFloorIsSafe = false
                                         if States.DebugMode then
-                                            print(string.format("[Next Floor Unsafe] %s entrance has wave %.1f studs away - waiting", nextFloorName, distToNextFloorStart))
+                                            print(string.format("[Next Floor Unsafe] %s entrance has wave %.1f studs away - waiting for pass", nextFloorName, distToNextFloorStart))
                                         end
                                     end
                                 end
