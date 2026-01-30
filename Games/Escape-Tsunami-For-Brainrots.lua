@@ -2706,7 +2706,7 @@ local function teleportToLastGap()
             Vector3.new(2465, 4, -139),
         }
 
-        local SPEED = 2500
+        local SPEED = 2000
 
         local function tweenTo(point)
             local distance = (point - hrp.Position).Magnitude
@@ -3459,7 +3459,7 @@ myConfig:Register("Theme", ThemeDropdown)
 myConfig:Register("ThemeColor", ThemeColorPicker)
 
 WindUI:Popup({
-    Title = "Escape Tsunami V2.0",
+    Title = "Escape Tsunami V2.483.192",
     Icon = "sword",
     Content = "Fixed Auto Farm Celestial, Fixed Steal Ui, made Teleport to celestial area vio only",
     Buttons = {
