@@ -2631,243 +2631,17 @@ local function teleportToLastGap()
         return 
     end
     
-    local floorsFolder = Workspace:FindFirstChild("Floors")
     local miscFolder = Workspace:FindFirstChild("Misc")
     local gapsFolder = miscFolder and miscFolder:FindFirstChild("Gaps")
     
-    if not floorsFolder or not gapsFolder then
+    if not gapsFolder then
         WindUI:Notify({
             Title = "Teleport Failed",
-            Content = "Floors or Gaps folder not found!",
+            Content = "Gaps folder not found!",
             Duration = 3,
             Icon = "x",
         })
         return
-    end
-    
-    local floorOrder = {"Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythical", "Cosmic", "Secret"}
-    local activeTween = nil
-    local shouldCancelTween = false
-    local monitoredWave = nil
-    
-    local function hasWaveInFloor(floorPart)
-        if not floorPart or not floorPart:IsA("BasePart") then return false end
-        
-        local activeTsunamis = Workspace:FindFirstChild("ActiveTsunamis")
-        if not activeTsunamis then return false end
-        
-        local floorMinX = floorPart.Position.X - (floorPart.Size.X / 2)
-        local floorMaxX = floorPart.Position.X + (floorPart.Size.X / 2)
-        
-        for i = 1, 20 do
-            local wave = activeTsunamis:FindFirstChild("Wave" .. i)
-            if wave then
-                local hitbox = wave:FindFirstChild("Hitbox")
-                if hitbox and hitbox:IsA("BasePart") then
-                    local waveX = hitbox.Position.X
-                    if waveX >= floorMinX and waveX <= floorMaxX then
-                        if States.DebugMode then
-                            print(string.format("[Wave Detection] Wave%d found in floor range %.1f-%.1f at X=%.1f", i, floorMinX, floorMaxX, waveX))
-                        end
-                        return true
-                    end
-                end
-            end
-        end
-        
-        return false
-    end
-    
-    local function getClosestWaveInfo(playerX)
-        local activeTsunamis = Workspace:FindFirstChild("ActiveTsunamis")
-        if not activeTsunamis then return nil end
-        
-        local closestWave = nil
-        local closestDist = math.huge
-        
-        for i = 1, 20 do
-            local wave = activeTsunamis:FindFirstChild("Wave" .. i)
-            if wave then
-                local hitbox = wave:FindFirstChild("Hitbox")
-                if hitbox and hitbox:IsA("BasePart") then
-                    local dist = math.abs(hitbox.Position.X - playerX)
-                    if dist < closestDist then
-                        closestDist = dist
-                        closestWave = {
-                            Wave = wave,
-                            Hitbox = hitbox,
-                            XPosition = hitbox.Position.X,
-                            Distance = dist,
-                            Name = wave.Name
-                        }
-                    end
-                end
-            end
-        end
-        
-        return closestWave
-    end
-    
-    local function isWaveCloseToFloorStart(waveX, floorPart, threshold)
-        if not floorPart or not floorPart:IsA("BasePart") then return false end
-        local floorStartX = floorPart.Position.X - (floorPart.Size.X / 2)
-        local distToStart = math.abs(waveX - floorStartX)
-        return distToStart < (threshold or 100)
-    end
-    
-    local function getFloorEndPosition(floorPart)
-        if not floorPart or not floorPart:IsA("BasePart") then return nil end
-        local endX = floorPart.Position.X + (floorPart.Size.X / 2) + 5
-        return Vector3.new(endX, -3, -1)
-    end
-    
-    local function getFloorStartPosition(floorPart)
-        if not floorPart or not floorPart:IsA("BasePart") then return nil end
-        local startX = floorPart.Position.X - (floorPart.Size.X / 2) - 5
-        return Vector3.new(startX, -3, -1)
-    end
-    
-    local function tweenToPosition(targetPos, label, currentFloorIndex, shouldMonitorWave, nextFloorStartX)
-        if not hrp.Parent then return false end
-    
-        local character = LocalPlayer.Character
-        if character then
-            for _, part in pairs(character:GetDescendants()) do
-                if part:IsA("BasePart") then
-                    part.CanCollide = false
-                end
-            end
-        end
-
-        local distance = (hrp.Position - targetPos).Magnitude
-        local tweenSpeed = 370
-        local tweenTime = distance / tweenSpeed
-        
-        if States.DebugMode then
-            print(string.format("[Tween] %s - Distance: %.1f studs, Time: %.2fs, Speed: %d", label, distance, tweenTime, tweenSpeed))
-        end
-        
-        local tweenInfo = TweenInfo.new(tweenTime, Enum.EasingStyle.Linear)
-        local tween = TweenService:Create(hrp, tweenInfo, {CFrame = CFrame.new(targetPos)})
-        
-        activeTween = tween
-        shouldCancelTween = false
-        local completed = false
-        local cancelled = false
-        
-        tween.Completed:Connect(function(state)
-            if state == Enum.PlaybackState.Completed then
-                completed = true
-            elseif state == Enum.PlaybackState.Cancelled then
-                cancelled = true
-            end
-        end)
-        
-        tween:Play()
-        
-        if shouldMonitorWave then
-            task.spawn(function()
-                while not completed and cancelled and hrp.Parent do
-                    pcall(function()
-                        local currentWave = getClosestWaveInfo(hrp.Position.X)
-                        
-                        if nextFloorStartX and currentWave then
-                            local distToNextFloorEntrance = math.abs(currentWave.XPosition - nextFloorStartX)
-                            
-                            if distToNextFloorEntrance <= 10 and currentWave.XPosition >= nextFloorStartX - 10 then
-                                if States.DebugMode then
-                                    print(string.format("[CRITICAL EMERGENCY] Wave %.1f studs from next floor entrance! Retreating to last safe position!", distToNextFloorEntrance))
-                                end
-                                
-                                shouldCancelTween = true
-                                tween:Cancel()
-                                States.EmergencyRetreatCooldown = true
-                                
-                                if States.LastSafePosition then
-                                    local lastSafePos = Vector3.new(States.LastSafePosition.X, -3, -1)
-                                    local emergencyDist = (hrp.Position - lastSafePos).Magnitude
-                                    local emergencyTime = emergencyDist / 500
-                                    
-                                    if States.DebugMode then
-                                        print(string.format("[Emergency Retreat] Going back to X:%.1f", States.LastSafePosition.X))
-                                    end
-                                    
-                                    local emergencyTween = TweenService:Create(hrp, TweenInfo.new(emergencyTime, Enum.EasingStyle.Linear), {CFrame = CFrame.new(lastSafePos)})
-                                    
-                                    emergencyTween.Completed:Connect(function()
-                                        task.wait(2)
-                                        States.EmergencyRetreatCooldown = false
-                                        if States.DebugMode then
-                                            print("[Emergency] Cooldown ended at last safe position")
-                                        end
-                                    end)
-                                    
-                                    emergencyTween:Play()
-                                    activeTween = emergencyTween
-                                else
-                                    hrp.CFrame = CFrame.new(hrp.Position.X, -3, -1)
-                                    task.wait(2)
-                                    States.EmergencyRetreatCooldown = false
-                                end
-                                return
-                            end
-                        end
-                        
-                        if currentWave and currentWave.Distance <= 80 then
-                            local playerX = hrp.Position.X
-                            local waveX = currentWave.XPosition
-                            local isWaveAhead = waveX > playerX
-                            
-                            if isWaveAhead then
-                                if States.DebugMode then
-                                    print(string.format("[EMERGENCY] %s %.1f studs ahead! Finding safe gap!", currentWave.Name, currentWave.Distance))
-                                end
-                                
-                                shouldCancelTween = true
-                                tween:Cancel()
-                                States.EmergencyRetreatCooldown = true
-                                
-                                if States.LastSafePosition then
-                                    local lastSafePos = Vector3.new(States.LastSafePosition.X, -3, -1)
-                                    local emergencyDist = (hrp.Position - lastSafePos).Magnitude
-                                    local emergencyTime = emergencyDist / 500
-                                    
-                                    if States.DebugMode then
-                                        print(string.format("[Emergency Retreat] Going back to last safe X:%.1f", States.LastSafePosition.X))
-                                    end
-                                    
-                                    local emergencyTween = TweenService:Create(hrp, TweenInfo.new(emergencyTime, Enum.EasingStyle.Linear), {CFrame = CFrame.new(lastSafePos)})
-                                    
-                                    emergencyTween.Completed:Connect(function()
-                                        task.wait(2)
-                                        States.EmergencyRetreatCooldown = false
-                                        if States.DebugMode then
-                                            print("[Emergency] Cooldown ended")
-                                        end
-                                    end)
-                                    
-                                    emergencyTween:Play()
-                                    activeTween = emergencyTween
-                                else
-                                    hrp.CFrame = CFrame.new(hrp.Position.X, -3, -1)
-                                    task.wait(2)
-                                    States.EmergencyRetreatCooldown = false
-                                end
-                            end
-                            return
-                        end
-                    end)
-                    task.wait(0.05)
-                end
-            end)
-        end
-
-        while not completed and not cancelled and hrp.Parent do
-            task.wait(0.05)
-        end
-        
-        activeTween = nil
-        return completed and not shouldCancelTween
     end
     
     if States.DebugMode == false then
@@ -2880,7 +2654,6 @@ local function teleportToLastGap()
 
         local loadingFrame = Instance.new("Frame")
         loadingFrame.Size = UDim2.new(1, 0, 1, 0)
-        loadingFrame.Position = UDim2.new(0, 0, 0, 0)
         loadingFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
         loadingFrame.BorderSizePixel = 0
         loadingFrame.Parent = loadingGui
@@ -2903,214 +2676,72 @@ local function teleportToLastGap()
         glowStroke.Transparency = 0.3
         glowStroke.Parent = loadingText
 
-        local glowTween = TweenService:Create(glowStroke, TweenInfo.new(0.8, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true), {
+        TweenService:Create(glowStroke, TweenInfo.new(0.8, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true), {
             Thickness = 8,
             Transparency = 0.7,
             Color = Color3.fromRGB(120, 255, 160)
-        })
-        glowTween:Play()
+        }):Play()
 
-        local textTween = TweenService:Create(loadingText, TweenInfo.new(1.2, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true), {
+        TweenService:Create(loadingText, TweenInfo.new(1.2, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true), {
             TextColor3 = Color3.fromRGB(120, 255, 160)
-        })
-        textTween:Play()
+        }):Play()
     end
     
     task.spawn(function()
-        local gap1 = gapsFolder:FindFirstChild("Gap1")
-        if gap1 and gap1:GetChildren()[2] then
-            hrp.CFrame = gap1:GetChildren()[2].CFrame
-            if States.DebugMode then
-                print("[Step 1] Teleported to Gap1")
-            end
-            task.wait(0.1)
-            hrp.CFrame = CFrame.new(hrp.Position.X, -3, -1)
-        else
-            WindUI:Notify({
-                Title = "Teleport Failed",
-                Content = "Gap1 not found!",
-                Duration = 3,
-                Icon = "x",
-            })
-            return
+        for _,v in pairs(character:GetDescendants()) do 
+            if v:IsA("BasePart") then 
+                v.CanCollide = false 
+            end 
         end
-        
-        local currentIndex = 1
-        
-        while currentIndex <= #floorOrder do
-            local floorName = floorOrder[currentIndex]
-            local floor = floorsFolder:FindFirstChild(floorName)
-    
-            if floor and floor:IsA("BasePart") then
-                local floorIsClear = false
-        
-                while not floorIsClear do
-                    pcall(function() 
-                        local currentPos = hrp.Position
-                        hrp.CFrame = CFrame.new(currentPos.X, -3, -1)
-                        hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
-                    end)
+
+        local points = {
+            Vector3.new(153, 4, -137),
+            Vector3.new(256, 4, -139),
+            Vector3.new(2465, 4, -139),
+        }
+
+        local SPEED = 2000
+
+        local function tweenTo(point)
+            local distance = (point - hrp.Position).Magnitude
+            local duration = distance / SPEED
             
-                    if States.DebugMode then
-                        print(string.format("[Checking] Floor: %s (Index %d/%d)", floorName, currentIndex, #floorOrder))
-                    end
+            local tweenInfo = TweenInfo.new(
+                duration, 
+                Enum.EasingStyle.Linear,
+                Enum.EasingDirection.Out
+            )
             
-                    if hasWaveInFloor(floor) then
-                        local waveInfo = getClosestWaveInfo(hrp.Position.X)
-                
-                        if waveInfo then
-                            local playerX = hrp.Position.X
-                            local waveX = waveInfo.XPosition
-                            local floorEndX = floor.Position.X + (floor.Size.X / 2)
-                    
-                            if waveX < (playerX - 30) and waveX < (floorEndX - 40) then
-                                if States.DebugMode then
-                                    print(string.format("[Wave Passed] %s at X:%.1f is safely behind - Re-checking floor", waveInfo.Name, waveX))
-                                end
-                                task.wait(0.5)
-                                pcall(function() 
-                                    local currentPos = hrp.Position
-                                    hrp.CFrame = CFrame.new(currentPos.X, -3, -1)
-                                    hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
-                                end)
-                            else
-                                if States.DebugMode then
-                                    print(string.format("[Wave Detected] %s in %s at X:%.1f - Waiting for safe pass", waveInfo.Name, floorName, waveX))
-                                end
-                                task.wait(1.0)
-                                pcall(function() 
-                                    local currentPos = hrp.Position
-                                    hrp.CFrame = CFrame.new(currentPos.X, -3, -1)
-                                    hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
-                                end)
-                            end
-                        else
-                            task.wait(0.3)
-                            pcall(function() 
-                                local currentPos = hrp.Position
-                                hrp.CFrame = CFrame.new(currentPos.X, -3, -1)
-                                hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
-                            end)
-                        end
-                    else
-                        if States.DebugMode then
-                            print(string.format("[Clear] %s is clear, checking next floor entrance safety", floorName))
-                        end
-                
-                        local nextFloorIsSafe = true
-                        local nextFloorStartX = nil
-                        
-                        if currentIndex < #floorOrder then
-                            local nextFloorName = floorOrder[currentIndex + 1]
-                            local nextFloor = floorsFolder:FindFirstChild(nextFloorName)
-                            
-                            if nextFloor and nextFloor:IsA("BasePart") then
-                                nextFloorStartX = nextFloor.Position.X - (nextFloor.Size.X / 2)
-                                
-                                local waveInfo = getClosestWaveInfo(hrp.Position.X)
-                                if waveInfo then
-                                    local distToNextFloorStart = math.abs(waveInfo.XPosition - nextFloorStartX)
-                                    
-                                    if distToNextFloorStart < 20 and waveInfo.XPosition > hrp.Position.X then
-                                        nextFloorIsSafe = false
-                                        if States.DebugMode then
-                                            print(string.format("[Next Floor Unsafe] %s entrance has wave %.1f studs away - waiting for pass", nextFloorName, distToNextFloorStart))
-                                        end
-                                    end
-                                end
-                            end
-                        end
-                        
-                        if not nextFloorIsSafe or States.EmergencyRetreatCooldown then
-                            if States.DebugMode and States.EmergencyRetreatCooldown then
-                                print("[Cooldown Active] Waiting before next advancement")
-                            end
-                            task.wait(0.5)
-                            pcall(function() hrp.CFrame = CFrame.new(hrp.Position.X, -3, -1) end)
-                        else
-                            if States.DebugMode then
-                                print(string.format("[Safe to Advance] Moving to end of %s", floorName))
-                            end
-                            
-                            States.LastSafePosition = hrp.Position
-                            
-                            local targetPos = getFloorEndPosition(floor)
-                            if targetPos then
-                                local success = tweenToPosition(targetPos, string.format("End of %s", floorName), currentIndex, true, nextFloorStartX)
-                            if not success and not shouldCancelTween then
-                                WindUI:Notify({
-                                    Title = "Teleport Failed",
-                                    Content = string.format("Failed to reach %s", floorName),
-                                    Duration = 2,
-                                    Icon = "x",
-                                })
-                                return
-                            end
-                            pcall(function() hrp.CFrame = CFrame.new(hrp.Position.X, -3, -1) end)
-                            end
-                    
-                            floorIsClear = true
-                            currentIndex = currentIndex + 1
-                        end
-                    end
-            
-                    task.wait(0.05)
-                end
-            else
-                if States.DebugMode then
-                    print(string.format("[Skip] %s floor not found, moving to next", floorName))
-                end
-                currentIndex = currentIndex + 1
-            end
-    
-            pcall(function() hrp.CFrame = CFrame.new(hrp.Position.X, -3, -1) end)
+            local goal = {CFrame = CFrame.new(point, point + hrp.CFrame.LookVector)}
+            local tween = TweenService:Create(hrp, tweenInfo, goal)
+            tween:Play()
+            tween.Completed:Wait()
         end
-        
-        if States.DebugMode then
-            print("[Final] All floors clear, moving to Gap9")
+
+        for i, pos in pairs(points) do
+            tweenTo(pos)
         end
         
         local gap9 = gapsFolder:FindFirstChild("Gap9")
         if gap9 and gap9:GetChildren()[2] then
             local gap9Part = gap9:GetChildren()[2]
-            local finalPos = Vector3.new(gap9Part.Position.X + 5, -3, -1)
-            tweenToPosition(finalPos, "Gap9 Final", #floorOrder, false)
-        else
-            WindUI:Notify({
-                Title = "Teleport Warning",
-                Content = "Gap9 not found, stopped at last safe floor",
-                Duration = 3,
-                Icon = "alert-triangle",
-            })
+            hrp.CFrame = gap9Part.CFrame * CFrame.new(5, 0, 0)
+        end
+        
+        if not States.Noclip then
+            for _,v in pairs(character:GetDescendants()) do 
+                if v:IsA("BasePart") then 
+                    v.CanCollide = true 
+                end 
+            end
         end
         
         if States.DebugMode == false then
             local loadingGui = LocalPlayer.PlayerGui:FindFirstChild("CelestialLoadingScreen")
             if loadingGui then
-                local loadingFrame = loadingGui:FindFirstChild("Frame")
-                local loadingText = loadingFrame and loadingFrame:FindFirstChild("TextLabel")
-                local glowStroke = loadingText and loadingText:FindFirstChild("UIStroke")
-                
-                if loadingFrame and loadingText and glowStroke then
-                    local fadeOut = TweenService:Create(loadingFrame, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-                        BackgroundTransparency = 1
-                    })
-                    local textFadeOut = TweenService:Create(loadingText, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-                        TextTransparency = 1,
-                        TextStrokeTransparency = 1
-                    })
-                    local strokeFadeOut = TweenService:Create(glowStroke, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-                        Transparency = 1
-                    })
-
-                    fadeOut:Play()
-                    textFadeOut:Play()
-                    strokeFadeOut:Play()
-
-                    fadeOut.Completed:Connect(function()
-                        loadingGui:Destroy()
-                    end)
-                end
+                TweenService:Create(loadingGui.Frame, TweenInfo.new(0.5), {BackgroundTransparency = 1}):Play()
+                task.wait(0.5)
+                loadingGui:Destroy()
             end
         end
         
@@ -3331,8 +2962,8 @@ local AutoFarmCelestialToggle = MainTab:Toggle({
 })
 
 local TeleportLastGapButton = MainTab:Button({
-    Title = "Teleport Celestial Area",
-    Desc = "Teleport to Celestial Area On Gap",
+    Title = "Teleport Celestial Area (VIP)",
+    Desc = "Teleport to Celestial Area On Gap FOR VIP USERS IN GAME",
     Callback = function()
         teleportToLastGap()
     end
