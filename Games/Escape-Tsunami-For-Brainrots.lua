@@ -1931,79 +1931,79 @@ function executeCelestialSteal()
     })
     
     task.spawn(function()
-        local waypoints = {
-            {X = 140, Y = 3, Z = 68, Wait = 0.2},
-            {X = 200, Y = -4, Z = 68, Wait = 0.1},
-            {X = 282, Y = -4, Z = 68, Wait = 0.1},
-            {X = 353, Y = 3, Z = 77, Wait = 0.1},
-            {X = 403, Y = -4, Z = 68, Wait = 0.1},
-            {X = 467, Y = 3, Z = 77, Wait = 0.1},
-            {X = 539, Y = -4, Z = 68, Wait = 0.1},
-            {X = 626, Y = 3, Z = 77, Wait = 0.1},
-            {X = 677, Y = 3, Z = 77, Wait = 0.1},
-            {X = 757, Y = -4, Z = 68, Wait = 0.1},
-            {X = 875, Y = 3, Z = 77, Wait = 0.1},
-            {X = 951, Y = 3, Z = 77, Wait = 0.1},
-            {X = 1078, Y = -4, Z = 68, Wait = 0.1},
-            {X = 1255, Y = 3, Z = 77, Wait = 0.1},
-            {X = 1536, Y = -4, Z = 68, Wait = 0.1},
-            {X = 1573, Y = -4, Z = 68, Wait = 0.1},
-            {X = 1811, Y = 3, Z = 77, Wait = 0.1},
-            {X = 1989, Y = 3, Z = 77, Wait = 0.1},
-            {X = 2225, Y = -4, Z = 68, Wait = 0.1},
-            {X = 2278, Y = -4, Z = 68, Wait = 0.1},
-            {X = 2436, Y = 65, Z = -1, Wait = 0.1},
-            {X = 2590, Y = -4, Z = -1, Wait = 0.07}
+        for _,v in pairs(character:GetDescendants()) do 
+            if v:IsA("BasePart") then 
+                v.CanCollide = false 
+            end 
+        end
+
+        local points = {
+            Vector3.new(153, 4, -137),
+            Vector3.new(256, 4, -139),
+            Vector3.new(2465, 4, -139),
         }
-        
-        local currentPos = hrp.Position
-        local nearestIndex = 1
-        local nearestDist = math.huge
-        local player = LocalPlayer
-        local char = character
-        local humanoid = char:WaitForChild("Humanoid")
+
+        local SPEED = 2500
+
+        local function tweenTo(point)
+            local distance = (point - hrp.Position).Magnitude
+            local duration = distance / SPEED
             
-        for i, wp in ipairs(waypoints) do
-            local dist = (Vector3.new(wp.X, wp.Y, wp.Z) - currentPos).Magnitude
-            if dist < nearestDist then
-                nearestDist = dist
-                nearestIndex = i
-            end
+            local tweenInfo = TweenInfo.new(
+                duration, 
+                Enum.EasingStyle.Linear,
+                Enum.EasingDirection.Out
+            )
+            
+            local goal = {CFrame = CFrame.new(point, point + hrp.CFrame.LookVector)}
+            local tween = TweenService:Create(hrp, tweenInfo, goal)
+            tween:Play()
+            tween.Completed:Wait()
+        end
+
+        for i, pos in pairs(points) do
+            tweenTo(pos)
         end
         
-        for i = nearestIndex, #waypoints do
-            pcall(function()
-                humanoid:Move(Vector3.new(2, 0, 0), true)
-                task.wait(0.1)
-                humanoid:Move(Vector3.zero, true)
-                hrp.CFrame = CFrame.new(waypoints[i].X, waypoints[i].Y, waypoints[i].Z)
-                task.wait(waypoints[i].Wait)
-            end)
-        end
-        
-        task.wait(0.2)
+        task.wait(0.1)
         hrp.CFrame = celestialRoot.CFrame
-        task.wait(0.3)
+        task.wait(0.2)
         
         local takePrompt = celestialRoot:FindFirstChild("TakePrompt")
         if takePrompt and takePrompt:IsA("ProximityPrompt") then
-            fireproximityprompt(takePrompt)
-            task.wait(0.5)
+            for i = 1, 3 do
+                fireproximityprompt(takePrompt)
+                task.wait(0.1)
+            end
         end
         
         task.wait(0.3)
         
-        for i = #waypoints, 1, -1 do
-            pcall(function()
-                humanoid:Move(Vector3.new(2, 0, 0), true)
-                task.wait(0.1)
-                humanoid:Move(Vector3.zero, true)
-                hrp.CFrame = CFrame.new(waypoints[i].X, waypoints[i].Y, waypoints[i].Z)
-                task.wait(waypoints[i].Wait)
-            end)
+        local miscFolder = Workspace:FindFirstChild("Misc")
+        local gapsFolder = miscFolder and miscFolder:FindFirstChild("Gaps")
+        
+        if gapsFolder then
+            local gap9 = gapsFolder:FindFirstChild("Gap9")
+            if gap9 and gap9:GetChildren()[2] then
+                local gap9Part = gap9:GetChildren()[2]
+                local gap9X = gap9Part.Position.X
+                local gap9Z = gap9Part.Position.Z
+                hrp.CFrame = CFrame.new(gap9X + 5, -3, gap9Z)
+                task.wait(0.2)
+            end
         end
         
-        hrp.CFrame = CFrame.new(waypoints[1].X, waypoints[1].Y, waypoints[1].Z)
+        for i = #points, 1, -1 do
+            tweenTo(points[i])
+        end
+        
+        if not States.Noclip then
+            for _,v in pairs(character:GetDescendants()) do 
+                if v:IsA("BasePart") then 
+                    v.CanCollide = true 
+                end 
+            end
+        end
         
         removeStealingText()
         States.IsStealing = false
@@ -2700,7 +2700,7 @@ local function teleportToLastGap()
             Vector3.new(2465, 4, -139),
         }
 
-        local SPEED = 2200
+        local SPEED = 2500
 
         local function tweenTo(point)
             local distance = (point - hrp.Position).Magnitude
@@ -3455,7 +3455,7 @@ myConfig:Register("ThemeColor", ThemeColorPicker)
 WindUI:Popup({
     Title = "Escape Tsunami V2.0",
     Icon = "sword",
-    Content = "Added Anti Tsunami with smart gap detection and smooth tweening!",
+    Content = "Fixed Auto Farm Celestial, Fixed Steal Ui, made Teleport to celestial area vio only",
     Buttons = {
         {
             Title = "Close",
