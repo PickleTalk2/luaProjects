@@ -222,6 +222,12 @@ local function loadConfiguration()
     end)
     if not success then
         warn("Failed to load configuration:", err)
+        WindUI:Notify({
+            Title = "Load Failed",
+            Content = "Could not load configuration: " .. tostring(err),
+            Duration = 3,
+            Icon = "x",
+        })
     end
 end
 
@@ -1943,7 +1949,7 @@ function executeCelestialSteal()
             Vector3.new(2465, 4, -139),
         }
 
-        local SPEED = 2500
+        local SPEED = 2000
 
         local function tweenTo(point)
             local distance = (point - hrp.Position).Magnitude
@@ -3480,9 +3486,9 @@ WindUI:Popup({
 })
 
 toggleCameraZoom(true)
-task.wait(0.3)
-loadConfiguration()
 MainTab:Select()
+task.wait(0.5)
+loadConfiguration()
 
 LocalPlayer.CharacterAdded:Connect(function(character)
     task.wait(1)
