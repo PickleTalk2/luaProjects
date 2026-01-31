@@ -1160,69 +1160,6 @@ local function removeStealButton()
     end
 end
 
-local function createStealingText()
-    local existingGui = LocalPlayer.PlayerGui:FindFirstChild("StealingTextGui")
-    if existingGui then
-        existingGui:Destroy()
-    end
-    
-    local screenGui = Instance.new("ScreenGui")
-    screenGui.Name = "StealingTextGui"
-    screenGui.ResetOnSpawn = false
-    screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-    screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
-    
-    local stealingFrame = Instance.new("Frame")
-    stealingFrame.Size = UDim2.new(0, 300, 0, 80)
-    stealingFrame.Position = UDim2.new(0.5, -150, 0.15, 0)
-    stealingFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
-    stealingFrame.BackgroundTransparency = 0.3
-    stealingFrame.BorderSizePixel = 0
-    stealingFrame.Parent = screenGui
-    
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 16)
-    corner.Parent = stealingFrame
-    
-    local glowStroke = Instance.new("UIStroke")
-    glowStroke.Color = Color3.fromRGB(80, 255, 120)
-    glowStroke.Thickness = 3
-    glowStroke.Transparency = 0.2
-    glowStroke.Parent = stealingFrame
-    
-    local textLabel = Instance.new("TextLabel")
-    textLabel.Size = UDim2.new(1, 0, 1, 0)
-    textLabel.BackgroundTransparency = 1
-    textLabel.Text = "⚠️ STEALING CELESTIAL ⚠️"
-    textLabel.TextColor3 = Color3.fromRGB(80, 255, 120)
-    textLabel.TextSize = 24
-    textLabel.Font = Enum.Font.GothamBold
-    textLabel.TextStrokeTransparency = 0
-    textLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
-    textLabel.Parent = stealingFrame
-    
-    local glowTween = TweenService:Create(glowStroke, TweenInfo.new(0.6, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true), {
-        Thickness = 6,
-        Transparency = 0.5,
-        Color = Color3.fromRGB(120, 255, 160)
-    })
-    glowTween:Play()
-    
-    local textTween = TweenService:Create(textLabel, TweenInfo.new(0.8, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true), {
-        TextColor3 = Color3.fromRGB(120, 255, 160)
-    })
-    textTween:Play()
-    
-    return screenGui
-end
-
-local function removeStealingText()
-    local existingGui = LocalPlayer.PlayerGui:FindFirstChild("StealingTextGui")
-    if existingGui then
-        existingGui:Destroy()
-    end
-end
-
 local function getAllGaps()
     local gaps = {}
     
@@ -1850,7 +1787,6 @@ function executeCelestialSteal()
     end
     
     States.IsStealing = true
-    local stealingTextGui = createStealingText()
     
     WindUI:Notify({
         Title = "Steal Celestial",
@@ -1858,6 +1794,49 @@ function executeCelestialSteal()
         Duration = 2,
         Icon = "zap",
     })
+
+    if States.DebugMode == false then
+        local loadingGui = Instance.new("ScreenGui")
+        loadingGui.Name = "CelestialLoadingScreen"
+        loadingGui.ResetOnSpawn = false
+        loadingGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+        loadingGui.IgnoreGuiInset = true
+        loadingGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+
+        local loadingFrame = Instance.new("Frame")
+        loadingFrame.Size = UDim2.new(1, 0, 1, 0)
+        loadingFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+        loadingFrame.BorderSizePixel = 0
+        loadingFrame.Parent = loadingGui
+
+        local loadingText = Instance.new("TextLabel")
+        loadingText.Size = UDim2.new(0, 600, 0, 100)
+        loadingText.Position = UDim2.new(0.5, -300, 0.5, -50)
+        loadingText.BackgroundTransparency = 1
+        loadingText.Text = "STEALING CELESTIAL!"
+        loadingText.TextColor3 = Color3.fromRGB(80, 255, 120)
+        loadingText.TextSize = 32
+        loadingText.Font = Enum.Font.GothamBold
+        loadingText.TextStrokeTransparency = 0
+        loadingText.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+        loadingText.Parent = loadingFrame
+
+        local glowStroke = Instance.new("UIStroke")
+        glowStroke.Color = Color3.fromRGB(80, 255, 120)
+        glowStroke.Thickness = 3
+        glowStroke.Transparency = 0.3
+        glowStroke.Parent = loadingText
+
+        TweenService:Create(glowStroke, TweenInfo.new(0.8, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true), {
+            Thickness = 8,
+            Transparency = 0.7,
+            Color = Color3.fromRGB(120, 255, 160)
+        }):Play()
+
+        TweenService:Create(loadingText, TweenInfo.new(1.2, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true), {
+            TextColor3 = Color3.fromRGB(120, 255, 160)
+        }):Play()
+    end
     
     task.spawn(function()
         for _,v in pairs(character:GetDescendants()) do 
@@ -1943,15 +1922,21 @@ function executeCelestialSteal()
             end
         end
         
-        removeStealingText()
-        States.IsStealing = false
-        
         WindUI:Notify({
             Title = "Steal Complete",
             Content = "Celestial successfully stolen!",
             Duration = 3,
             Icon = "check",
         })
+
+        if States.DebugMode == false then
+            local loadingGui = LocalPlayer.PlayerGui:FindFirstChild("CelestialLoadingScreen")
+            if loadingGui then
+                TweenService:Create(loadingGui.Frame, TweenInfo.new(0.5), {BackgroundTransparency = 1}):Play()
+                task.wait(0.5)
+                loadingGui:Destroy()
+            end
+        end
     end)
 end
 
