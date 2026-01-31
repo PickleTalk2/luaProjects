@@ -1336,10 +1336,24 @@ local function toggleAutoUpgradeAllBrainrot(state)
             if not States.AutoUpgradeAllBrainrot then return end
             
             pcall(function()
+                local myBase = getMyBase()
+                if not myBase then
+                    States.AutoUpgradeAllBrainrot = false
+                    WindUI:Notify({
+                        Title = "Auto Upgrade Error",
+                        Content = "Could not find your base!",
+                        Duration = 3,
+                        Icon = "x",
+                    })
+                    return
+                end
+                
+                local plotId = myBase.Name
+                
                 for slotNum = 1, 50 do
                     local args = {
                         "Upgrade Brainrot",
-                        "",
+                        plotId,
                         tostring(slotNum)
                     }
                     
@@ -1359,6 +1373,14 @@ local function toggleIncreaseHitbox(state)
     States.SlapAura = state
     
     if state then
+        pcall(function()
+            local PhysicsService = game:GetService("PhysicsService")
+            if not PhysicsService:IsCollisionGroupRegistered("SlapAura") then
+                PhysicsService:RegisterCollisionGroup("SlapAura")
+            end
+            PhysicsService:CollisionGroupSetCollidable("SlapAura", "SlapAura", false)
+        end)
+        
         Connections.SlapAura = RunService.Heartbeat:Connect(function()
             if not States.SlapAura then return end
             
@@ -1370,6 +1392,13 @@ local function toggleIncreaseHitbox(state)
                             targetHrp.Size = Vector3.new(100, 100, 100)
                             targetHrp.Transparency = 0.9
                             targetHrp.CanCollide = false
+                            targetHrp.Massless = true
+                            targetHrp.CanQuery = false
+                            
+                            pcall(function()
+                                local PhysicsService = game:GetService("PhysicsService")
+                                PhysicsService:SetPartCollisionGroup(targetHrp, "SlapAura")
+                            end)
                         end
                     end
                 end
@@ -1389,6 +1418,13 @@ local function toggleIncreaseHitbox(state)
                         targetHrp.Size = Vector3.new(2, 2, 1)
                         targetHrp.Transparency = 1
                         targetHrp.CanCollide = false
+                        targetHrp.Massless = false
+                        targetHrp.CanQuery = true
+                        
+                        pcall(function()
+                            local PhysicsService = game:GetService("PhysicsService")
+                            PhysicsService:SetPartCollisionGroup(targetHrp, "Default")
+                        end)
                     end
                 end
             end
