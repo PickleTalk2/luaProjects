@@ -454,120 +454,6 @@ local function toggleAutoStealBrainrot(state)
     end
 end
 
-local function getBrainrotSlotInfo()
-    local slotInfo = {}
-    
-    pcall(function()
-        local myBase = getMyBase()
-        if not myBase then 
-            if States.DebugMode then
-                warn("[Brainrot Debug] getMyBase() returned nil")
-            end
-            return 
-        end
-        
-        for i = 1, 30 do
-            local slotName = "slot " .. i .. " brainrot"
-            local slotBrainrotModel = myBase:FindFirstChild(slotName)
-            
-            if States.DebugMode then
-                print(string.format("[Brainrot Debug] Checking slot %d: %s", i, slotName))
-            end
-            
-            if slotBrainrotModel then
-                local brainrotModel = slotBrainrotModel:GetChildren()[1]
-                
-                if brainrotModel then
-                    local modelExtents = brainrotModel:FindFirstChild("ModelExtents")
-                    if modelExtents then
-                        local statsGui = modelExtents:FindFirstChild("StatsGui")
-                        if statsGui then
-                            local frame = statsGui:FindFirstChild("Frame")
-                            if frame then
-                                local brainrotNameLabel = frame:FindFirstChild("BrainrotName")
-                                if brainrotNameLabel and brainrotNameLabel:IsA("TextLabel") then
-                                    local brainrotName = brainrotNameLabel.Text
-                                    
-                                    if States.DebugMode then
-                                        print(string.format("[Brainrot Debug] Slot %d found: %s", i, brainrotName))
-                                    end
-                                    
-                                    table.insert(slotInfo, {
-                                        Slot = i,
-                                        Name = brainrotName,
-                                        Display = string.format("Slot %d: %s", i, brainrotName)
-                                    })
-                                end
-                            end
-                        end
-                    end
-                end
-            end
-        end
-        
-        if States.DebugMode then
-            print(string.format("[Brainrot Debug] Total slots found: %d", #slotInfo))
-        end
-    end)
-    
-    return slotInfo
-end
-
-local function updateUpgradeDropdown(dropdown)
-    local slotInfo = getBrainrotSlotInfo()
-    local options = {}
-    
-    for _, info in ipairs(slotInfo) do
-        table.insert(options, {
-            Title = info.Display,
-            Icon = "box",
-            Slot = info.Slot
-        })
-    end
-    
-    States.UpgradeDropdownOptions = slotInfo
-    
-    if States.DebugMode then
-        print(string.format("[Brainrot Debug] Dropdown updated with %d options", #options))
-    end
-    
-    if dropdown and #options > 0 then
-        pcall(function()
-            dropdown:Set({Values = options})
-        end)
-    end
-    
-    return options
-end
-
-local function toggleAutoUpgradeBrainrot(state)
-    States.AutoUpgradeBrainrot = state
-    
-    if state then
-        Connections.AutoUpgradeBrainrot = RunService.Heartbeat:Connect(function()
-            if not States.AutoUpgradeBrainrot then return end
-            
-            pcall(function()
-                for slotNum, _ in pairs(States.SelectedUpgradeSlots) do
-                    local args = {
-                        "Upgrade Brainrot",
-                        "",
-                        tostring(slotNum)
-                    }
-                    
-                    ReplicatedStorage:WaitForChild("Packages"):WaitForChild("Net"):WaitForChild("RF/Plot.PlotAction"):InvokeServer(unpack(args))
-                    task.wait(0.05)
-                end
-            end)
-        end)
-    else
-        if Connections.AutoUpgradeBrainrot then
-            Connections.AutoUpgradeBrainrot:Disconnect()
-            Connections.AutoUpgradeBrainrot = nil
-        end
-    end
-end
-
 local ESPObjects = {}
 
 local function createESP(part, text, color)
@@ -1482,7 +1368,7 @@ local function toggleIncreaseHitbox(state)
                         local targetHrp = player.Character:FindFirstChild("HumanoidRootPart")
                         if targetHrp then
                             targetHrp.Size = Vector3.new(100, 100, 100)
-                            targetHrp.Transparency = 0.2
+                            targetHrp.Transparency = 0.9
                             targetHrp.CanCollide = false
                         end
                     end
