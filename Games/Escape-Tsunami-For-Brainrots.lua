@@ -1846,9 +1846,9 @@ function executeCelestialSteal()
         end
 
         local points = {
-            Vector3.new(153, 4, -137),
-            Vector3.new(256, 4, -139),
-            Vector3.new(2465, 4, -139),
+            Vector3.new(153, 4, -135),
+            Vector3.new(256, 4, -136),
+            Vector3.new(2465, 4, -136),
         }
 
         local SPEED = 2000
