@@ -3429,7 +3429,7 @@ myConfig:Register("Theme", ThemeDropdown)
 myConfig:Register("ThemeColor", ThemeColorPicker)
 
 WindUI:Popup({
-    Title = "Escape Tsunami V2.483.192",
+    Title = "Escape Tsunami V2.483.213",
     Icon = "sword",
     Content = "Fixed Auto Farm Celestial, Fixed Steal Ui, made Teleport to celestial area vio only",
     Buttons = {
