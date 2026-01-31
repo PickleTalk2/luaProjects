@@ -293,7 +293,8 @@ local States = {
     SelectedUpgradeSlots = {},
     UpgradeDropdownOptions = {},
     EmergencyRetreatCooldown = false,
-    LastSafePosition = nil
+    LastSafePosition = nil,
+    AutoUpgradeAllBrainrot = false,
 }
 
 local Connections = {
@@ -324,6 +325,7 @@ local Connections = {
     AutoStealBrainrot = nil,
     AutoUpgradeBrainrot = nil,
     UpgradeDropdownUpdater = nil,
+    AutoUpgradeAllBrainrot = nil,
 }
 
 local LowGFXStorage = {
@@ -1440,90 +1442,71 @@ local function toggleAntiSlap(state)
     end
 end
 
-local function findNearestPlayer()
-    local character = LocalPlayer.Character
-    if not character then return nil end
+local function toggleAutoUpgradeAllBrainrot(state)
+    States.AutoUpgradeAllBrainrot = state
     
-    local hrp = character:FindFirstChild("HumanoidRootPart")
-    if not hrp then return nil end
-    
-    local nearestPlayer = nil
-    local nearestDistance = math.huge
-    
-    for _, player in pairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer and player.Character then
-            local targetHrp = player.Character:FindFirstChild("HumanoidRootPart")
-            if targetHrp then
-                local distance = (hrp.Position - targetHrp.Position).Magnitude
-                if distance < nearestDistance then
-                    nearestDistance = distance
-                    nearestPlayer = player
+    if state then
+        Connections.AutoUpgradeAllBrainrot = RunService.Heartbeat:Connect(function()
+            if not States.AutoUpgradeAllBrainrot then return end
+            
+            pcall(function()
+                for slotNum = 1, 50 do
+                    local args = {
+                        "Upgrade Brainrot",
+                        "",
+                        tostring(slotNum)
+                    }
+                    
+                    ReplicatedStorage:WaitForChild("Packages"):WaitForChild("Net"):WaitForChild("RF/Plot.PlotAction"):InvokeServer(unpack(args))
                 end
-            end
+            end)
+        end)
+    else
+        if Connections.AutoUpgradeAllBrainrot then
+            Connections.AutoUpgradeAllBrainrot:Disconnect()
+            Connections.AutoUpgradeAllBrainrot = nil
         end
     end
-    
-    return nearestPlayer, nearestDistance
 end
 
-local function toggleSlapAura(state)
+local function toggleIncreaseHitbox(state)
     States.SlapAura = state
     
     if state then
-        Connections.SlapAura = UserInputService.InputBegan:Connect(function(input, gameProcessed)
-            if gameProcessed then return end
+        Connections.SlapAura = RunService.Heartbeat:Connect(function()
             if not States.SlapAura then return end
             
-            if input.UserInputType == Enum.UserInputType.MouseButton1 or 
-               input.UserInputType == Enum.UserInputType.Touch then
-                
-                pcall(function()
-                    local character = LocalPlayer.Character
-                    if not character then return end
-                    
-                    local hasBat = false
-                    for _, tool in pairs(character:GetChildren()) do
-                        if tool:IsA("Tool") and (tool.Name:lower():find("bat") or tool.Name:lower():find("slap")) then
-                            hasBat = true
-                            break
-                        end
-                    end
-                    
-                    if not hasBat then
-                        if States.DebugMode then
-                            print("No bat equipped")
-                        end
-                        return
-                    end
-                    
-                    local nearestPlayer, distance = findNearestPlayer()
-                    if nearestPlayer and nearestPlayer.Character then
-                        local targetHrp = nearestPlayer.Character:FindFirstChild("HumanoidRootPart")
+            pcall(function()
+                for _, player in pairs(Players:GetPlayers()) do
+                    if player ~= LocalPlayer and player.Character then
+                        local targetHrp = player.Character:FindFirstChild("HumanoidRootPart")
                         if targetHrp then
-                            local hrp = character:FindFirstChild("HumanoidRootPart")
-                            if hrp then
-                                task.wait(0.5)
-                                hrp.CFrame = targetHrp.CFrame * CFrame.new(0, 0, 3)
-                                
-                                if States.DebugMode then
-                                    WindUI:Notify({
-                                        Title = "Slap Teleport",
-                                        Content = string.format("Teleported to %s (%.0f studs)", nearestPlayer.Name, distance),
-                                        Duration = 1,
-                                        Icon = "zap",
-                                    })
-                                end
-                            end
+                            targetHrp.Size = Vector3.new(100, 100, 100)
+                            targetHrp.Transparency = 0.2
+                            targetHrp.CanCollide = false
                         end
                     end
-                end)
-            end
+                end
+            end)
         end)
     else
         if Connections.SlapAura then
             Connections.SlapAura:Disconnect()
             Connections.SlapAura = nil
         end
+        
+        pcall(function()
+            for _, player in pairs(Players:GetPlayers()) do
+                if player ~= LocalPlayer and player.Character then
+                    local targetHrp = player.Character:FindFirstChild("HumanoidRootPart")
+                    if targetHrp then
+                        targetHrp.Size = Vector3.new(2, 2, 1)
+                        targetHrp.Transparency = 1
+                        targetHrp.CanCollide = false
+                    end
+                end
+            end
+        end)
     end
 end
 
@@ -1972,15 +1955,24 @@ function executeCelestialSteal()
         end
         
         task.wait(0.1)
-        hrp.CFrame = celestialRoot.CFrame
-        task.wait(0.2)
         
         local takePrompt = celestialRoot:FindFirstChild("TakePrompt")
         if takePrompt and takePrompt:IsA("ProximityPrompt") then
-            for i = 1, 3 do
-                fireproximityprompt(takePrompt)
-                task.wait(0.1)
+            hrp.CFrame = celestialRoot.CFrame
+            task.wait(0.3)
+            
+            takePrompt.HoldDuration = 0
+            takePrompt.MaxActivationDistance = 50
+            
+            for i = 1, 5 do
+                fireproximityprompt(takePrompt, 0)
+                task.wait(0.05)
             end
+            
+            task.wait(0.3)
+        else
+            hrp.CFrame = celestialRoot.CFrame
+            task.wait(0.5)
         end
         
         task.wait(0.3)
@@ -2924,6 +2916,11 @@ local MainTab = Window:Tab({
     Icon = "home",
 })
 
+local AutomationTab = Window:Tab({
+    Title = "Automation",
+    Icon = "zap",
+})
+
 local BrainrotTab = Window:Tab({
     Title = "Brainrot",
     Icon = "brain",
@@ -2957,16 +2954,6 @@ local MiscTab = Window:Tab({
 local SettingsTab = Window:Tab({
     Title = "Settings",
     Icon = "settings",
-})
-
-local AutoFarmCelestialToggle = MainTab:Toggle({
-    Title = "Auto Farm Celestial",
-    Desc = "Automatically steal Celestial when it spawns",
-    Default = false,
-    Callback = function(state)
-        toggleAutoFarmCelestial(state)
-        saveConfiguration()
-    end
 })
 
 local TeleportLastGapButton = MainTab:Button({
@@ -3027,23 +3014,34 @@ local AntiSlapToggle = MainTab:Toggle({
     end
 })
 
-local SlapAuraToggle = MainTab:Toggle({
-    Title = "Slap Nearest Player",
-    Desc = "Click screen while holding bat to teleport to nearest player",
+local IncreaseHitboxToggle = MainTab:Toggle({
+    Title = "Slap Aura",
+    Desc = "Makes all players' hitboxes 100x bigger",
     Default = false,
     Callback = function(state)
-        toggleSlapAura(state)
+        toggleIncreaseHitbox(state)
+        saveConfiguration()
+    end
+})
+
+myConfig:Register("AutoCollect", AutoCollectToggle)
+myConfig:Register("StealUI", StealUIToggle)
+myConfig:Register("AntiSlap", AntiSlapToggle)
+myConfig:Register("IncreaseHitbox", IncreaseHitboxToggle)
+myConfig:Register("AntiTsunami", AntiTsunamiToggle)
+myConfig:Register("FastInteraction", FastInteractionToggle)
+
+local AutoFarmCelestialToggle = MainTab:Toggle({
+    Title = "Auto Farm Celestial",
+    Desc = "Automatically steal Celestial when it spawns",
+    Default = false,
+    Callback = function(state)
+        toggleAutoFarmCelestial(state)
         saveConfiguration()
     end
 })
 
 myConfig:Register("AutoFarmCelestial", AutoFarmCelestialToggle)
-myConfig:Register("AutoCollect", AutoCollectToggle)
-myConfig:Register("StealUI", StealUIToggle)
-myConfig:Register("AntiSlap", AntiSlapToggle)
-myConfig:Register("SlapAura", SlapAuraToggle)
-myConfig:Register("AntiTsunami", AntiTsunamiToggle)
-myConfig:Register("FastInteraction", FastInteractionToggle)
 
 local BrainrotTypeDropdown = BrainrotTab:Dropdown({
     Title = "Select Brainrot Type",
@@ -3075,47 +3073,19 @@ local AutoStealBrainrotToggle = BrainrotTab:Toggle({
     end
 })
 
-local UpgradeBrainrotDropdown = BrainrotTab:Dropdown({
-    Title = "Auto Upgrade Select Brainrots",
-    Values = {},
-    Value = {},
-    Multi = true,
-    Callback = function(selectedOptions)
-        States.SelectedUpgradeSlots = {}
-        for _, option in ipairs(selectedOptions) do
-            if option.Slot then
-                States.SelectedUpgradeSlots[option.Slot] = true
-            end
-        end
-        saveConfiguration()
-    end
-})
-
-task.spawn(function()
-    while task.wait(3) do
-        pcall(function()
-            if States.DebugMode then
-                print("[Brainrot Debug] Starting 3-second update cycle")
-            end
-            
-            updateUpgradeDropdown(UpgradeBrainrotDropdown)
-        end)
-    end
-end)
-
-local AutoUpgradeBrainrotToggle = BrainrotTab:Toggle({
-    Title = "Auto Upgrade Selected",
-    Desc = "Automatically upgrade selected brainrot slots",
+local AutoUpgradeAllToggle = BrainrotTab:Toggle({
+    Title = "Auto Upgrade All Brainrot",
+    Desc = "Spam upgrade all slots 1-50 with no delay",
     Default = false,
     Callback = function(state)
-        toggleAutoUpgradeBrainrot(state)
+        toggleAutoUpgradeAllBrainrot(state)
         saveConfiguration()
     end
 })
 
 myConfig:Register("BrainrotType", BrainrotTypeDropdown)
 myConfig:Register("AutoStealBrainrot", AutoStealBrainrotToggle)
-myConfig:Register("AutoUpgradeBrainrot", AutoUpgradeBrainrotToggle)
+myConfig:Register("AutoUpgradeAll", AutoUpgradeAllToggle)
 
 local ESPHighestBrainrotToggle = VisualTab:Toggle({
     Title = "ESP Highest Brainrot",
@@ -3542,5 +3512,11 @@ LocalPlayer.CharacterAdded:Connect(function(character)
         toggleCameraZoom(false)
         task.wait(0.1)
         toggleCameraZoom(true)
+    end
+
+    if States.SlapAura then
+        toggleIncreaseHitbox(false)
+        task.wait(0.1)
+        toggleIncreaseHitbox(true)
     end
 end)
