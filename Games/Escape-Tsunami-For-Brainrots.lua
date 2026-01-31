@@ -1398,7 +1398,7 @@ local function toggleIncreaseHitbox(state)
                     if player ~= LocalPlayer and player.Character then
                         local targetHrp = player.Character:FindFirstChild("HumanoidRootPart")
                         if targetHrp then
-                            targetHrp.Size = Vector3.new(120, 120, 120)
+                            targetHrp.Size = Vector3.new(80, 80, 80)
                             targetHrp.Transparency = 1
                             targetHrp.CanCollide = false
                             targetHrp.Massless = true
@@ -1909,13 +1909,13 @@ function executeCelestialSteal()
                 task.wait(0.05)
             end
             
-            task.wait(0.3)
+            task.wait(0.4)
         else
             hrp.CFrame = celestialRoot.CFrame
-            task.wait(0.5)
+            task.wait(0.6)
         end
         
-        task.wait(0.3)
+        task.wait(0.5)
         
         local miscFolder = Workspace:FindFirstChild("Misc")
         local gapsFolder = miscFolder and miscFolder:FindFirstChild("Gaps")
