@@ -1915,7 +1915,7 @@ function executeCelestialSteal()
             task.wait(0.6)
         end
         
-        task.wait(0.5)
+        task.wait(0.2)
         
         local miscFolder = Workspace:FindFirstChild("Misc")
         local gapsFolder = miscFolder and miscFolder:FindFirstChild("Gaps")
