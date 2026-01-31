@@ -1385,12 +1385,21 @@ local function toggleIncreaseHitbox(state)
             if not States.SlapAura then return end
             
             pcall(function()
+                local myCharacter = LocalPlayer.Character
+                if myCharacter then
+                    for _, part in pairs(myCharacter:GetDescendants()) do
+                        if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then
+                            part.CanCollide = false
+                        end
+                    end
+                end
+                
                 for _, player in pairs(Players:GetPlayers()) do
                     if player ~= LocalPlayer and player.Character then
                         local targetHrp = player.Character:FindFirstChild("HumanoidRootPart")
                         if targetHrp then
-                            targetHrp.Size = Vector3.new(100, 100, 100)
-                            targetHrp.Transparency = 0.9
+                            targetHrp.Size = Vector3.new(80, 80, 80)
+                            targetHrp.Transparency = 0.7
                             targetHrp.CanCollide = false
                             targetHrp.Massless = true
                             targetHrp.CanQuery = false
@@ -1411,6 +1420,15 @@ local function toggleIncreaseHitbox(state)
         end
         
         pcall(function()
+            local myCharacter = LocalPlayer.Character
+            if myCharacter then
+                for _, part in pairs(myCharacter:GetDescendants()) do
+                    if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then
+                        part.CanCollide = true
+                    end
+                end
+            end
+            
             for _, player in pairs(Players:GetPlayers()) do
                 if player ~= LocalPlayer and player.Character then
                     local targetHrp = player.Character:FindFirstChild("HumanoidRootPart")
@@ -2988,7 +3006,7 @@ local AutoUpgradeAllToggle = AutomationTab:Toggle({
     end
 })
 
-local AutoFarmCelestialToggle = Automation:Toggle({
+local AutoFarmCelestialToggle = AutomationTab:Toggle({
     Title = "Auto Farm Celestial",
     Desc = "Automatically steal Celestial when it spawns",
     Default = false,
