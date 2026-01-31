@@ -2807,11 +2807,6 @@ local AutomationTab = Window:Tab({
     Icon = "zap",
 })
 
-local BrainrotTab = Window:Tab({
-    Title = "Brainrot",
-    Icon = "brain",
-})
-
 local VisualTab = Window:Tab({
     Title = "Visual",
     Icon = "eye",
@@ -2917,19 +2912,7 @@ myConfig:Register("IncreaseHitbox", IncreaseHitboxToggle)
 myConfig:Register("AntiTsunami", AntiTsunamiToggle)
 myConfig:Register("FastInteraction", FastInteractionToggle)
 
-local AutoFarmCelestialToggle = MainTab:Toggle({
-    Title = "Auto Farm Celestial",
-    Desc = "Automatically steal Celestial when it spawns",
-    Default = false,
-    Callback = function(state)
-        toggleAutoFarmCelestial(state)
-        saveConfiguration()
-    end
-})
-
-myConfig:Register("AutoFarmCelestial", AutoFarmCelestialToggle)
-
-local BrainrotTypeDropdown = BrainrotTab:Dropdown({
+local BrainrotTypeDropdown = AutomationTab:Dropdown({
     Title = "Select Brainrot Type",
     Values = {
         {Title = "Common", Icon = "box"},
@@ -2949,7 +2932,7 @@ local BrainrotTypeDropdown = BrainrotTab:Dropdown({
     end
 })
 
-local AutoStealBrainrotToggle = BrainrotTab:Toggle({
+local AutoStealBrainrotToggle = AutomationTab:Toggle({
     Title = "Auto Steal Selected Brainrot (15 studs)",
     Desc = "Automatically steal nearby brainrot of selected type",
     Default = false,
@@ -2959,7 +2942,7 @@ local AutoStealBrainrotToggle = BrainrotTab:Toggle({
     end
 })
 
-local AutoUpgradeAllToggle = BrainrotTab:Toggle({
+local AutoUpgradeAllToggle = AutomationTab:Toggle({
     Title = "Auto Upgrade All Brainrot",
     Desc = "Spam upgrade all slots 1-50 with no delay",
     Default = false,
@@ -2969,9 +2952,20 @@ local AutoUpgradeAllToggle = BrainrotTab:Toggle({
     end
 })
 
+local AutoFarmCelestialToggle = Automation:Toggle({
+    Title = "Auto Farm Celestial",
+    Desc = "Automatically steal Celestial when it spawns",
+    Default = false,
+    Callback = function(state)
+        toggleAutoFarmCelestial(state)
+        saveConfiguration()
+    end
+})
+
 myConfig:Register("BrainrotType", BrainrotTypeDropdown)
 myConfig:Register("AutoStealBrainrot", AutoStealBrainrotToggle)
 myConfig:Register("AutoUpgradeAll", AutoUpgradeAllToggle)
+myConfig:Register("AutoFarmCelestial", AutoFarmCelestialToggle)
 
 local ESPHighestBrainrotToggle = VisualTab:Toggle({
     Title = "ESP Highest Brainrot",
@@ -3315,9 +3309,9 @@ myConfig:Register("Theme", ThemeDropdown)
 myConfig:Register("ThemeColor", ThemeColorPicker)
 
 WindUI:Popup({
-    Title = "Escape Tsunami V2.483.213",
+    Title = "Escape Tsunami V2.483.253",
     Icon = "sword",
-    Content = "Fixed Auto Farm Celestial, Fixed Steal Ui, made Teleport to celestial area vio only",
+    Content = "Added Auto Upgrade All, replaced Slap Aura",
     Buttons = {
         {
             Title = "Close",
