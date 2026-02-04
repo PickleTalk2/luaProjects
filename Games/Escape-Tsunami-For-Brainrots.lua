@@ -2618,9 +2618,9 @@ local function teleportToLastGap()
         end
 
         local points = {
-            Vector3.new(153, 4, -137),
-            Vector3.new(256, 4, -139),
-            Vector3.new(2465, 4, -139),
+            Vector3.new(153, 67, -138),
+            Vector3.new(256, 4, -138),
+            Vector3.new(2665, 4, -138),
         }
 
         local SPEED = 2000
