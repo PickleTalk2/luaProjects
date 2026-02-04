@@ -1065,6 +1065,156 @@ local function toggleFastInteraction(state)
     end
 end
 
+function Steal()
+    if States.IsStealing then
+        WindUI:Notify({
+            Title = "Steal In Progress",
+            Content = "Already stealing, please wait!",
+            Duration = 2,
+            Icon = "alert-circle",
+        })
+        return
+    end
+    
+    local character = LocalPlayer.Character
+    if not character then
+        WindUI:Notify({
+            Title = "Steal Failed",
+            Content = "No character found!",
+            Duration = 3,
+            Icon = "x",
+        })
+        return
+    end
+    
+    local hrp = character:FindFirstChild("HumanoidRootPart")
+    if not hrp then
+        WindUI:Notify({
+            Title = "Steal Failed",
+            Content = "No HumanoidRootPart found!",
+            Duration = 3,
+            Icon = "x",
+        })
+        return
+    end
+    
+    States.IsStealing = true
+    
+    WindUI:Notify({
+        Title = "Steal",
+        Content = "Starting steal sequence...",
+        Duration = 2,
+        Icon = "zap",
+    })
+
+    if States.DebugMode == false then
+        local loadingGui = Instance.new("ScreenGui")
+        loadingGui.Name = "CelestialLoadingScreen"
+        loadingGui.ResetOnSpawn = false
+        loadingGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+        loadingGui.IgnoreGuiInset = true
+        loadingGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+
+        local loadingFrame = Instance.new("Frame")
+        loadingFrame.Size = UDim2.new(1, 0, 1, 0)
+        loadingFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+        loadingFrame.BorderSizePixel = 0
+        loadingFrame.Parent = loadingGui
+
+        local loadingText = Instance.new("TextLabel")
+        loadingText.Size = UDim2.new(0, 600, 0, 100)
+        loadingText.Position = UDim2.new(0.5, -300, 0.5, -50)
+        loadingText.BackgroundTransparency = 1
+        loadingText.Text = "STEALING!"
+        loadingText.TextColor3 = Color3.fromRGB(80, 255, 120)
+        loadingText.TextSize = 32
+        loadingText.Font = Enum.Font.GothamBold
+        loadingText.TextStrokeTransparency = 0
+        loadingText.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+        loadingText.Parent = loadingFrame
+
+        local glowStroke = Instance.new("UIStroke")
+        glowStroke.Color = Color3.fromRGB(80, 255, 120)
+        glowStroke.Thickness = 3
+        glowStroke.Transparency = 0.3
+        glowStroke.Parent = loadingText
+
+        TweenService:Create(glowStroke, TweenInfo.new(0.8, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true), {
+            Thickness = 8,
+            Transparency = 0.7,
+            Color = Color3.fromRGB(120, 255, 160)
+        }):Play()
+
+        TweenService:Create(loadingText, TweenInfo.new(1.2, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true), {
+            TextColor3 = Color3.fromRGB(120, 255, 160)
+        }):Play()
+    end
+    
+    task.spawn(function()
+        for _,v in pairs(character:GetDescendants()) do 
+            if v:IsA("BasePart") then 
+                v.CanCollide = false 
+            end 
+        end
+
+        local playerXPos = hrp.Position.X
+
+        local points = {
+            Vector3.new(playerXPos, 67, -137),
+            Vector3.new(153, 67, -137),
+            Vector3.new(130, 3, -1),
+        }
+
+        local SPEED = 2000
+
+        local function tweenTo(point)
+            local distance = (point - hrp.Position).Magnitude
+            local duration = distance / SPEED
+            
+            local tweenInfo = TweenInfo.new(
+                duration, 
+                Enum.EasingStyle.Linear,
+                Enum.EasingDirection.Out
+            )
+            
+            local goal = {CFrame = CFrame.new(point, point + hrp.CFrame.LookVector)}
+            local tween = TweenService:Create(hrp, tweenInfo, goal)
+            tween:Play()
+            tween.Completed:Wait()
+        end
+
+        for i, pos in pairs(points) do
+            tweenTo(pos)
+        end
+        
+        if not States.Noclip then
+            for _,v in pairs(character:GetDescendants()) do 
+                if v:IsA("BasePart") then 
+                    v.CanCollide = true 
+                end 
+            end
+        end
+        
+        States.IsStealing = false
+        
+        WindUI:Notify({
+            Title = "Steal Complete",
+            Content = "Successfully completed!",
+            Duration = 3,
+            Icon = "check",
+        })
+
+        if States.DebugMode == false then
+            local loadingGui = LocalPlayer.PlayerGui:FindFirstChild("CelestialLoadingScreen")
+            if loadingGui then
+                TweenService:Create(loadingGui.Frame, TweenInfo.new(0.5), {BackgroundTransparency = 1}):Play()
+                task.wait(0.5)
+                loadingGui:Destroy()
+            end
+        end
+    end)
+end
+
 local function createStealButton()
     local screenGui = Instance.new("ScreenGui")
     screenGui.Name = "StealCelestialUI"
@@ -1110,7 +1260,7 @@ local function createStealButton()
     local buttonText = Instance.new("TextLabel")
     buttonText.Size = UDim2.new(1, 0, 1, 0)
     buttonText.BackgroundTransparency = 1
-    buttonText.Text = "STEAL CELESTIAL"
+    buttonText.Text = "STEAL"
     buttonText.TextColor3 = Color3.fromRGB(255, 255, 255)
     buttonText.TextSize = 20
     buttonText.Font = Enum.Font.GothamBold
@@ -1160,7 +1310,7 @@ local function createStealButton()
                     
                     if not hasMoved and not States.IsStealing then
                         task.spawn(function()
-                            executeCelestialSteal()
+                            Steal()
                         end)
                     end
                 end
@@ -1866,9 +2016,12 @@ function executeCelestialSteal()
         end
 
         local points = {
+            Vector3.new(130, 3, -1),
             Vector3.new(153, 67, -137),
             Vector3.new(256, 67, -137),
             Vector3.new(2608, 67, -137),
+            Vector3.new(2608, -3, -137),
+            Vector3.new(2608, -3, -1),
         }
 
         local SPEED = 2000
@@ -2632,6 +2785,8 @@ local function teleportToLastGap()
             Vector3.new(153, 67, -137),
             Vector3.new(256, 67, -137),
             Vector3.new(2608, 67, -137),
+            Vector3.new(2608, -3, -137),
+            Vector3.new(2608, -3, -1),
         }
 
         local SPEED = 2000
@@ -2655,8 +2810,6 @@ local function teleportToLastGap()
         for i, pos in pairs(points) do
             tweenTo(pos)
         end
-        
-        hrp.CFrame = CFrame.new(2608, -3, -90)
         
         if not States.Noclip then
             for _,v in pairs(character:GetDescendants()) do 
