@@ -3006,7 +3006,6 @@ local function finishMoneyObby1()
     end)
 end
 
-2254 -11 -177, 2251 -11 -184, 1251 -11 -192, 2252 -1 -229, 2252 -1 -337, 2330 -1 -337, 2372 -1 -338, 2383 -13 -341, 2389 -13 -341, 2390 -13 -335, 2397 -13 -335, 2399 -13 -338, 2406 -13 -338, 2412 -1 -332, 2560 -1 -332
 local function finishMoneyObby2()
     local character = LocalPlayer.Character
     if not character then 
