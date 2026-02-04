@@ -3006,7 +3006,7 @@ local function finishMoneyObby1()
     end)
 end
 
-local function finishMoneyObby1()
+local function finishMoneyObby2()
     local character = LocalPlayer.Character
     if not character then 
         WindUI:Notify({
@@ -3409,10 +3409,18 @@ local FinishRadioactiveObbyButton = ObbyTab:Button({
 })
 
 local FinishMoneyObby1Button = ObbyTab:Button({
-    Title = "Finish Money Obby",
+    Title = "Finish Money Obby1",
     Desc = "Auto-complete the Money obby1",
     Callback = function()
         finishMoneyObby1()
+    end
+})
+
+local FinishMoneyObby2Button = ObbyTab:Button({
+    Title = "Finish Money Obby2",
+    Desc = "Auto-complete the Money obby2",
+    Callback = function()
+        finishMoneyObby2()
     end
 })
 
