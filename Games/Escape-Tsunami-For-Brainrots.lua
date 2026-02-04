@@ -2999,7 +2999,83 @@ local function finishMoneyObby1()
 
         WindUI:Notify({
             Title = "Obby Complete",
-            Content = "Radioactive obby finished!",
+            Content = "Money obby1 finished!",
+            Duration = 3,
+            Icon = "check",
+        })
+    end)
+end
+
+local function finishMoneyObby1()
+    local character = LocalPlayer.Character
+    if not character then 
+        WindUI:Notify({
+            Title = "Teleport Failed",
+            Content = "No character found!",
+            Duration = 3,
+            Icon = "x",
+        })
+        return 
+    end
+    
+    local hrp = character:FindFirstChild("HumanoidRootPart")
+    if not hrp then 
+        WindUI:Notify({
+            Title = "Teleport Failed",
+            Content = "No HumanoidRootPart found!",
+            Duration = 3,
+            Icon = "x",
+        })
+        return 
+    end   
+    
+    task.spawn(function()
+        for _,v in pairs(character:GetDescendants()) do 
+            if v:IsA("BasePart") then 
+                v.CanCollide = false 
+            end 
+        end
+
+        local points = {
+            Vector3.new(1132, 7, 181),
+            Vector3.new(1111, 20, 216),
+            Vector3.new(1115, 20, 522),
+            Vector3.new(1125, 2, 522),
+        }
+         
+        local SPEED = 2100
+
+        local function tweenTo(point)
+            local distance = (point - hrp.Position).Magnitude
+            local duration = distance / SPEED
+            
+            local tweenInfo = TweenInfo.new(
+                duration, 
+                Enum.EasingStyle.Linear,
+                Enum.EasingDirection.Out
+            )
+            
+            local goal = {CFrame = CFrame.new(point, point + hrp.CFrame.LookVector)}
+            local tween = TweenService:Create(hrp, tweenInfo, goal)
+            tween:Play()
+            tween.Completed:Wait()
+        end
+
+        for i, pos in pairs(points) do
+            tweenTo(pos)
+        end
+        
+        if not States.Noclip then
+            for _,v in pairs(character:GetDescendants()) do 
+                if v:IsA("BasePart") then 
+                    v.CanCollide = true 
+                end 
+            end
+        end
+
+        WindUI:Notify({
+            Title = "Obby Complete",
+            Content = "Money obby2 finished!",
             Duration = 3,
             Icon = "check",
         })
