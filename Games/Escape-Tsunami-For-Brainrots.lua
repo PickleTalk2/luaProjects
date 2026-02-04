@@ -2719,17 +2719,6 @@ local function teleportToLastGap()
     end
     
     local miscFolder = Workspace:FindFirstChild("Misc")
-    local gapsFolder = miscFolder and miscFolder:FindFirstChild("Gaps")
-    
-    if not gapsFolder then
-        WindUI:Notify({
-            Title = "Teleport Failed",
-            Content = "Gaps folder not found!",
-            Duration = 3,
-            Icon = "x",
-        })
-        return
-    end
     
     if States.DebugMode == false then
         local loadingGui = Instance.new("ScreenGui")
