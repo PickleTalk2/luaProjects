@@ -1846,9 +1846,9 @@ function executeCelestialSteal()
         end
 
         local points = {
-            Vector3.new(153, 4, -137),
-            Vector3.new(256, 4, -139),
-            Vector3.new(2465, 4, -139),
+            Vector3.new(153, 67, -136),
+            Vector3.new(256, 67, -136),
+            Vector3.new(2608, 67, -136),
         }
 
         local SPEED = 1700
@@ -1899,16 +1899,7 @@ function executeCelestialSteal()
         local miscFolder = Workspace:FindFirstChild("Misc")
         local gapsFolder = miscFolder and miscFolder:FindFirstChild("Gaps")
         
-        if gapsFolder then
-            local gap9 = gapsFolder:FindFirstChild("Gap9")
-            if gap9 and gap9:GetChildren()[2] then
-                local gap9Part = gap9:GetChildren()[2]
-                local gap9X = gap9Part.Position.X
-                local gap9Z = gap9Part.Position.Z
-                hrp.CFrame = CFrame.new(gap9X + 5, -3, gap9Z)
-                task.wait(0.2)
-            end
-        end
+        hrp.CFrame = CFrame.new(2608, -3, -90)
         
         for i = #points, 1, -1 do
             tweenTo(points[i])
@@ -2618,9 +2609,9 @@ local function teleportToLastGap()
         end
 
         local points = {
-            Vector3.new(153, 67, -138),
-            Vector3.new(256, 67, -138),
-            Vector3.new(2608, 67, -138),
+            Vector3.new(153, 67, -136),
+            Vector3.new(256, 67, -136),
+            Vector3.new(2608, 67, -136),
         }
 
         local SPEED = 2000
@@ -2645,7 +2636,7 @@ local function teleportToLastGap()
             tweenTo(pos)
         end
         
-        hrp.CFrame = CFrame.new(2608, -2, -1)
+        hrp.CFrame = CFrame.new(2608, -3, -90)
         
         if not States.Noclip then
             for _,v in pairs(character:GetDescendants()) do 
