@@ -2862,8 +2862,8 @@ local SettingsTab = Window:Tab({
 })
 
 local TeleportLastGapButton = MainTab:Button({
-    Title = "Teleport Celestial Area (VIP)",
-    Desc = "Teleport to Celestial Area On Gap FOR VIP USERS IN GAME",
+    Title = "Teleport Celestial Area",
+    Desc = "Teleport to Celestial Area On Gap",
     Callback = function()
         teleportToLastGap()
     end
