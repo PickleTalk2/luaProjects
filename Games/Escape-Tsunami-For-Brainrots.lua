@@ -3006,6 +3006,7 @@ local function finishMoneyObby1()
     end)
 end
 
+2254 -11 -177, 2251 -11 -184, 1251 -11 -192, 2252 -1 -229, 2252 -1 -337, 2330 -1 -337, 2372 -1 -338, 2383 -13 -341, 2389 -13 -341, 2390 -13 -335, 2397 -13 -335, 2399 -13 -338, 2406 -13 -338, 2412 -1 -332, 2560 -1 -332
 local function finishMoneyObby2()
     local character = LocalPlayer.Character
     if not character then 
@@ -3076,6 +3077,93 @@ local function finishMoneyObby2()
         WindUI:Notify({
             Title = "Obby Complete",
             Content = "Money obby2 finished!",
+            Duration = 3,
+            Icon = "check",
+        })
+    end)
+end
+
+local function finishMoneyObby3()
+    local character = LocalPlayer.Character
+    if not character then 
+        WindUI:Notify({
+            Title = "Teleport Failed",
+            Content = "No character found!",
+            Duration = 3,
+            Icon = "x",
+        })
+        return 
+    end
+    
+    local hrp = character:FindFirstChild("HumanoidRootPart")
+    if not hrp then 
+        WindUI:Notify({
+            Title = "Teleport Failed",
+            Content = "No HumanoidRootPart found!",
+            Duration = 3,
+            Icon = "x",
+        })
+        return 
+    end   
+    
+    task.spawn(function()
+        for _,v in pairs(character:GetDescendants()) do 
+            if v:IsA("BasePart") then 
+                v.CanCollide = false 
+            end 
+        end
+
+        local points = {
+            Vector3.new(2254, -11, -177),
+            Vector3.new(2251, -11, -184),
+            Vector3.new(1251, -11, -192),
+            Vector3.new(2252, -1, -229),
+            Vector3.new(2252, -1, -337),
+            Vector3.new(2330, -1, -337),
+            Vector3.new(2372, -1, -337),
+            Vector3.new(2383, -13, -341),
+            Vector3.new(2389, -13, -341),
+            Vector3.new(2390, -13, -335),
+            Vector3.new(2397, -13, -335),
+            Vector3.new(2399, -13, -338),
+            Vector3.new(2406, -13, -338),
+            Vector3.new(2412, -1, -332),
+            Vector3.new(2560, -1, -332),
+        }
+
+        local SPEED = 2100
+
+        local function tweenTo(point)
+            local distance = (point - hrp.Position).Magnitude
+            local duration = distance / SPEED
+            
+            local tweenInfo = TweenInfo.new(
+                duration, 
+                Enum.EasingStyle.Linear,
+                Enum.EasingDirection.Out
+            )
+            
+            local goal = {CFrame = CFrame.new(point, point + hrp.CFrame.LookVector)}
+            local tween = TweenService:Create(hrp, tweenInfo, goal)
+            tween:Play()
+            tween.Completed:Wait()
+        end
+
+        for i, pos in pairs(points) do
+            tweenTo(pos)
+        end
+        
+        if not States.Noclip then
+            for _,v in pairs(character:GetDescendants()) do 
+                if v:IsA("BasePart") then 
+                    v.CanCollide = true 
+                end 
+            end
+        end
+
+        WindUI:Notify({
+            Title = "Obby Complete",
+            Content = "Money obby3 finished!",
             Duration = 3,
             Icon = "check",
         })
@@ -3421,6 +3509,14 @@ local FinishMoneyObby2Button = ObbyTab:Button({
     Desc = "Auto-complete the Money obby2",
     Callback = function()
         finishMoneyObby2()
+    end
+})
+
+local FinishMoneyObby3Button = ObbyTab:Button({
+    Title = "Finish Money Obby3",
+    Desc = "Auto-complete the Money obby3",
+    Callback = function()
+        finishMoneyObby3()
     end
 })
 
