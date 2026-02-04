@@ -2878,6 +2878,82 @@ local function finishRadioactiveObby()
     end)
 end
 
+local function finishMoneyObby1()
+    local character = LocalPlayer.Character
+    if not character then 
+        WindUI:Notify({
+            Title = "Teleport Failed",
+            Content = "No character found!",
+            Duration = 3,
+            Icon = "x",
+        })
+        return 
+    end
+    
+    local hrp = character:FindFirstChild("HumanoidRootPart")
+    if not hrp then 
+        WindUI:Notify({
+            Title = "Teleport Failed",
+            Content = "No HumanoidRootPart found!",
+            Duration = 3,
+            Icon = "x",
+        })
+        return 
+    end   
+    
+    task.spawn(function()
+        for _,v in pairs(character:GetDescendants()) do 
+            if v:IsA("BasePart") then 
+                v.CanCollide = false 
+            end 
+        end
+
+        local points = {
+            Vector3.new(400, -8, -232),
+            Vector3.new(505, -8, -223),
+            Vector3.new(502, -8, -340),
+            Vector3.new(434, -8, -340),
+        }
+            
+        local SPEED = 2500
+
+        local function tweenTo(point)
+            local distance = (point - hrp.Position).Magnitude
+            local duration = distance / SPEED
+            
+            local tweenInfo = TweenInfo.new(
+                duration, 
+                Enum.EasingStyle.Linear,
+                Enum.EasingDirection.Out
+            )
+            
+            local goal = {CFrame = CFrame.new(point, point + hrp.CFrame.LookVector)}
+            local tween = TweenService:Create(hrp, tweenInfo, goal)
+            tween:Play()
+            tween.Completed:Wait()
+        end
+
+        for i, pos in pairs(points) do
+            tweenTo(pos)
+        end
+        
+        if not States.Noclip then
+            for _,v in pairs(character:GetDescendants()) do 
+                if v:IsA("BasePart") then 
+                    v.CanCollide = true 
+                end 
+            end
+        end
+
+        WindUI:Notify({
+            Title = "Obby Complete",
+            Content = "Radioactive obby finished!",
+            Duration = 3,
+            Icon = "check",
+        })
+    end)
+end
+
 local function removeShadows()
     Lighting.GlobalShadows = false
     Lighting.ShadowSoftness = 0
@@ -3201,6 +3277,14 @@ local FinishRadioactiveObbyButton = ObbyTab:Button({
     Desc = "Auto-complete the Radioactive obby",
     Callback = function()
         finishRadioactiveObby()
+    end
+})
+
+local FinishMoneyObby1Button = ObbyTab:Button({
+    Title = "Finish Money Obby",
+    Desc = "Auto-complete the Money obby1",
+    Callback = function()
+        finishMoneyObby1()
     end
 })
 
