@@ -1846,9 +1846,9 @@ function executeCelestialSteal()
         end
 
         local points = {
-            Vector3.new(153, 67, -136),
-            Vector3.new(256, 67, -136),
-            Vector3.new(2608, 67, -136),
+            Vector3.new(153, 67, -137),
+            Vector3.new(256, 67, -137),
+            Vector3.new(2608, 67, -137),
         }
 
         local SPEED = 2000
@@ -2609,9 +2609,9 @@ local function teleportToLastGap()
         end
 
         local points = {
-            Vector3.new(153, 67, -136),
-            Vector3.new(256, 67, -136),
-            Vector3.new(2608, 67, -136),
+            Vector3.new(153, 67, -137),
+            Vector3.new(256, 67, -137),
+            Vector3.new(2608, 67, -137),
         }
 
         local SPEED = 2000
