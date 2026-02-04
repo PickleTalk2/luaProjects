@@ -228,7 +228,45 @@ local function loadConfiguration()
             Duration = 3,
             Icon = "x",
         })
+        return
     end
+    
+    task.wait(0.2)
+    
+    pcall(function()
+        if AutoCollectToggle.Value then toggleAutoCollect(true) end
+        if AntiSlapToggle.Value then toggleAntiSlap(true) end
+        if IncreaseHitboxToggle.Value then toggleIncreaseHitbox(true) end
+        if AntiTsunamiToggle.Value then toggleAntiTsunami(true) end
+        if FastInteractionToggle.Value then toggleFastInteraction(true) end
+        if AutoStealBrainrotToggle.Value then toggleAutoStealBrainrot(true) end
+        if AutoUpgradeAllToggle.Value then toggleAutoUpgradeAllBrainrot(true) end
+        if AutoFarmCelestialToggle.Value then toggleAutoFarmCelestial(true) end
+        if ESPHighestBrainrotToggle.Value then toggleESPHighestBrainrot(true) end
+        if ESPCelestialToggle.Value then toggleESPCelestial(true) end
+        if ESPCelestiallToggle.Value then toggleESPLuckyBlock(true, "Celestial") end
+        if ESPSecretToggle.Value then toggleESPLuckyBlock(true, "Secret") end
+        if ESPCosmicToggle.Value then toggleESPLuckyBlock(true, "Cosmic") end
+        if GodModeToggle.Value then toggleGodMode(true) end
+        if NoclipToggle.Value then toggleNoclip(true) end
+        if InfJumpToggle.Value then toggleInfJump(true) end
+        if SpeedToggle.Value then toggleSpeed(true) end
+        if JumpPowerToggle.Value then toggleJumpPower(true) end
+        if FullBrightToggle.Value then toggleFullBright(true) end
+        if LowGFXToggle.Value then toggleLowGFX(true) end
+        if StealUIToggle.Value then toggleStealUI(true) end
+        if DebugModeToggle.Value then States.DebugMode = true end
+        
+        States.SelectedBrainrotType = BrainrotTypeDropdown.Value.Title or "Common"
+        States.CurrentTheme = ThemeDropdown.Value.Title or "Dark"
+    end)
+    
+    WindUI:Notify({
+        Title = "Configuration Loaded",
+        Content = "Settings restored successfully!",
+        Duration = 3,
+        Icon = "check",
+    })
 end
 
 local function changeTheme(themeName)
@@ -1322,15 +1360,6 @@ local function toggleIncreaseHitbox(state)
             if not States.SlapAura then return end
             
             pcall(function()
-                local myCharacter = LocalPlayer.Character
-                if myCharacter then
-                    for _, part in pairs(myCharacter:GetDescendants()) do
-                        if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then
-                            part.CanCollide = false
-                        end
-                    end
-                end
-                
                 for _, player in pairs(Players:GetPlayers()) do
                     if player ~= LocalPlayer and player.Character then
                         local targetHrp = player.Character:FindFirstChild("HumanoidRootPart")
@@ -1357,15 +1386,6 @@ local function toggleIncreaseHitbox(state)
         end
         
         pcall(function()
-            local myCharacter = LocalPlayer.Character
-            if myCharacter then
-                for _, part in pairs(myCharacter:GetDescendants()) do
-                    if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then
-                        part.CanCollide = true
-                    end
-                end
-            end
-            
             for _, player in pairs(Players:GetPlayers()) do
                 if player ~= LocalPlayer and player.Character then
                     local targetHrp = player.Character:FindFirstChild("HumanoidRootPart")
@@ -2681,6 +2701,82 @@ local function clearFogs()
     })
 end
 
+local function finishRadioactiveObby()
+    local character = LocalPlayer.Character
+    if not character then 
+        WindUI:Notify({
+            Title = "Teleport Failed",
+            Content = "No character found!",
+            Duration = 3,
+            Icon = "x",
+        })
+        return 
+    end
+    
+    local hrp = character:FindFirstChild("HumanoidRootPart")
+    if not hrp then 
+        WindUI:Notify({
+            Title = "Teleport Failed",
+            Content = "No HumanoidRootPart found!",
+            Duration = 3,
+            Icon = "x",
+        })
+        return 
+    end   
+    
+    task.spawn(function()
+        for _,v in pairs(character:GetDescendants()) do 
+            if v:IsA("BasePart") then 
+                v.CanCollide = false 
+            end 
+        end
+
+        local points = {
+            Vector3.new(1071, 2, -216),
+            Vector3.new(1071, 2, -571),
+            Vector3.new(1000, 15, -571),
+            Vector3.new(910, 15, -571),
+        }
+
+        local SPEED = 2000
+
+        local function tweenTo(point)
+            local distance = (point - hrp.Position).Magnitude
+            local duration = distance / SPEED
+            
+            local tweenInfo = TweenInfo.new(
+                duration, 
+                Enum.EasingStyle.Linear,
+                Enum.EasingDirection.Out
+            )
+            
+            local goal = {CFrame = CFrame.new(point, point + hrp.CFrame.LookVector)}
+            local tween = TweenService:Create(hrp, tweenInfo, goal)
+            tween:Play()
+            tween.Completed:Wait()
+        end
+
+        for i, pos in pairs(points) do
+            tweenTo(pos)
+        end
+        
+        if not States.Noclip then
+            for _,v in pairs(character:GetDescendants()) do 
+                if v:IsA("BasePart") then 
+                    v.CanCollide = true 
+                end 
+            end
+        end
+
+        WindUI:Notify({
+            Title = "Obby Complete",
+            Content = "Radioactive obby finished!",
+            Duration = 3,
+            Icon = "check",
+        })
+    end)
+end
+
 local function removeShadows()
     Lighting.GlobalShadows = false
     Lighting.ShadowSoftness = 0
@@ -2831,6 +2927,11 @@ local AutomationTab = Window:Tab({
     Icon = "zap",
 })
 
+local ObbyTab = Window:Tab({
+    Title = "Obby",
+    Icon = "flag",
+})
+
 local VisualTab = Window:Tab({
     Title = "Visual",
     Icon = "eye",
@@ -2861,6 +2962,7 @@ local SettingsTab = Window:Tab({
     Icon = "settings",
 })
 
+-- Main Tab
 local TeleportLastGapButton = MainTab:Button({
     Title = "Teleport Celestial Area",
     Desc = "Teleport to Celestial Area On Gap",
@@ -2936,6 +3038,7 @@ myConfig:Register("IncreaseHitbox", IncreaseHitboxToggle)
 myConfig:Register("AntiTsunami", AntiTsunamiToggle)
 myConfig:Register("FastInteraction", FastInteractionToggle)
 
+-- Automation Tab
 local BrainrotTypeDropdown = AutomationTab:Dropdown({
     Title = "Select Brainrot Type",
     Values = {
@@ -2991,6 +3094,16 @@ myConfig:Register("AutoStealBrainrot", AutoStealBrainrotToggle)
 myConfig:Register("AutoUpgradeAll", AutoUpgradeAllToggle)
 myConfig:Register("AutoFarmCelestial", AutoFarmCelestialToggle)
 
+-- Obby Tab
+local FinishRadioactiveObbyButton = ObbyTab:Button({
+    Title = "Finish Radioactive Obby",
+    Desc = "Auto-complete the Radioactive obby",
+    Callback = function()
+        finishRadioactiveObby()
+    end
+})
+
+-- Visual Tab
 local ESPHighestBrainrotToggle = VisualTab:Toggle({
     Title = "ESP Highest Brainrot",
     Desc = "Show ESP for Celestial and Secret brainrots with stats",
@@ -3047,6 +3160,7 @@ myConfig:Register("ESPCelestiall", ESPCelestiallToggle)
 myConfig:Register("ESPSecret", ESPSecretToggle)
 myConfig:Register("ESPCosmic", ESPCosmicToggle)
 
+-- Player Tab
 local GodModeToggle = PlayerTab:Toggle({
     Title = "God Mode",
     Desc = "Prevents death and damage",
@@ -3133,6 +3247,7 @@ myConfig:Register("SpeedValue", SpeedSlider)
 myConfig:Register("JumpPower", JumpPowerToggle)
 myConfig:Register("JumpPowerValue", JumpPowerSlider)
 
+-- Optimization Tab
 local FullBrightToggle = OptimizationsTab:Toggle({
     Title = "Full Bright",
     Desc = "Make everything bright",
@@ -3174,6 +3289,7 @@ local RemoveShadowsButton = OptimizationsTab:Button({
 myConfig:Register("FullBright", FullBrightToggle)
 myConfig:Register("LowGFX", LowGFXToggle)
 
+-- CreditsTab
 local CreditsParagraph = CreditsTab:Paragraph({
     Title = "Shadow X | Official",
     Desc = "Made by PickleTalk. Join our discord server to be always updated with the latest features and scripts!",
@@ -3333,9 +3449,9 @@ myConfig:Register("Theme", ThemeDropdown)
 myConfig:Register("ThemeColor", ThemeColorPicker)
 
 WindUI:Popup({
-    Title = "Escape Tsunami V2.483.253",
+    Title = "Escape Tsunami V2.491.112",
     Icon = "sword",
-    Content = "Added Auto Upgrade All, replaced Slap Aura",
+    Content = "Improved Slap Aura, Added complete Radioactive Obby, Money obby coming soon!",
     Buttons = {
         {
             Title = "Close",
@@ -3370,7 +3486,6 @@ LocalPlayer.CharacterAdded:Connect(function(character)
     if States.IsStealing then
         States.IsStealing = false
         States.SavedStealPosition = nil
-        removeStealingText()
     end
         
     if States.GodMode then
