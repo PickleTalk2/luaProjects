@@ -1851,7 +1851,7 @@ function executeCelestialSteal()
             Vector3.new(2608, 67, -136),
         }
 
-        local SPEED = 1700
+        local SPEED = 2000
 
         local function tweenTo(point)
             local distance = (point - hrp.Position).Magnitude
