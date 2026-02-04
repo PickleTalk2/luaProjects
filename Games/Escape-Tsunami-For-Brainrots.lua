@@ -2619,8 +2619,8 @@ local function teleportToLastGap()
 
         local points = {
             Vector3.new(153, 67, -138),
-            Vector3.new(256, 4, -138),
-            Vector3.new(2665, 4, -138),
+            Vector3.new(256, 67, -138),
+            Vector3.new(2608, 67, -138),
         }
 
         local SPEED = 2000
@@ -2645,14 +2645,7 @@ local function teleportToLastGap()
             tweenTo(pos)
         end
         
-        local gap9 = gapsFolder:FindFirstChild("Gap9")
-        if gap9 and gap9:GetChildren()[2] then
-            local gap9Part = gap9:GetChildren()[2]
-            local gap9X = gap9Part.Position.X
-            local gap9Z = gap9Part.Position.Z
-            task.wait(0.05)
-            hrp.CFrame = CFrame.new(gap9X + 5, -2, gap9Z)
-        end
+        hrp.CFrame = CFrame.new(2608, -2, -1)
         
         if not States.Noclip then
             for _,v in pairs(character:GetDescendants()) do 
