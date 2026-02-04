@@ -1106,49 +1106,6 @@ function Steal()
         Duration = 2,
         Icon = "zap",
     })
-
-    if States.DebugMode == false then
-        local loadingGui = Instance.new("ScreenGui")
-        loadingGui.Name = "CelestialLoadingScreen"
-        loadingGui.ResetOnSpawn = false
-        loadingGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-        loadingGui.IgnoreGuiInset = true
-        loadingGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
-
-        local loadingFrame = Instance.new("Frame")
-        loadingFrame.Size = UDim2.new(1, 0, 1, 0)
-        loadingFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-        loadingFrame.BorderSizePixel = 0
-        loadingFrame.Parent = loadingGui
-
-        local loadingText = Instance.new("TextLabel")
-        loadingText.Size = UDim2.new(0, 600, 0, 100)
-        loadingText.Position = UDim2.new(0.5, -300, 0.5, -50)
-        loadingText.BackgroundTransparency = 1
-        loadingText.Text = "STEALING!"
-        loadingText.TextColor3 = Color3.fromRGB(80, 255, 120)
-        loadingText.TextSize = 32
-        loadingText.Font = Enum.Font.GothamBold
-        loadingText.TextStrokeTransparency = 0
-        loadingText.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
-        loadingText.Parent = loadingFrame
-
-        local glowStroke = Instance.new("UIStroke")
-        glowStroke.Color = Color3.fromRGB(80, 255, 120)
-        glowStroke.Thickness = 3
-        glowStroke.Transparency = 0.3
-        glowStroke.Parent = loadingText
-
-        TweenService:Create(glowStroke, TweenInfo.new(0.8, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true), {
-            Thickness = 8,
-            Transparency = 0.7,
-            Color = Color3.fromRGB(120, 255, 160)
-        }):Play()
-
-        TweenService:Create(loadingText, TweenInfo.new(1.2, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true), {
-            TextColor3 = Color3.fromRGB(120, 255, 160)
-        }):Play()
-    end
     
     task.spawn(function()
         for _,v in pairs(character:GetDescendants()) do 
@@ -1165,7 +1122,7 @@ function Steal()
             Vector3.new(130, 3, -1),
         }
 
-        local SPEED = 2000
+        local SPEED = 3000
 
         local function tweenTo(point)
             local distance = (point - hrp.Position).Magnitude
@@ -1203,15 +1160,6 @@ function Steal()
             Duration = 3,
             Icon = "check",
         })
-
-        if States.DebugMode == false then
-            local loadingGui = LocalPlayer.PlayerGui:FindFirstChild("CelestialLoadingScreen")
-            if loadingGui then
-                TweenService:Create(loadingGui.Frame, TweenInfo.new(0.5), {BackgroundTransparency = 1}):Play()
-                task.wait(0.5)
-                loadingGui:Destroy()
-            end
-        end
     end)
 end
 
@@ -2024,7 +1972,7 @@ function executeCelestialSteal()
             Vector3.new(2608, -3, -1),
         }
 
-        local SPEED = 2000
+        local SPEED = 2300
 
         local function tweenTo(point)
             local distance = (point - hrp.Position).Magnitude
@@ -2789,7 +2737,7 @@ local function teleportToLastGap()
             Vector3.new(2608, -3, -1),
         }
 
-        local SPEED = 2000
+        local SPEED = 3000
 
         local function tweenTo(point)
             local distance = (point - hrp.Position).Magnitude
