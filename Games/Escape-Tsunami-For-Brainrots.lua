@@ -1165,7 +1165,7 @@ function Steal()
             Vector3.new(130, 3, -1),
         }
 
-        local SPEED = 2100
+        local SPEED = 2000
 
         local function tweenTo(point)
             local distance = (point - hrp.Position).Magnitude
@@ -2024,7 +2024,7 @@ function executeCelestialSteal()
             Vector3.new(2608, -3, -1),
         }
 
-        local SPEED = 2100
+        local SPEED = 2000
 
         local function tweenTo(point)
             local distance = (point - hrp.Position).Magnitude
@@ -2779,7 +2779,7 @@ local function teleportToLastGap()
             Vector3.new(2608, -3, -1),
         }
 
-        local SPEED = 2100
+        local SPEED = 2000
 
         local function tweenTo(point)
             local distance = (point - hrp.Position).Magnitude
@@ -2885,7 +2885,7 @@ local function finishRadioactiveObby()
             Vector3.new(910, 15, -571),
         }
 
-        local SPEED = 2100
+        local SPEED = 2000
 
         local function tweenTo(point)
             local distance = (point - hrp.Position).Magnitude
@@ -2965,7 +2965,7 @@ local function finishMoneyObby1()
             Vector3.new(434, -8, -340),
         }
             
-        local SPEED = 2100
+        local SPEED = 2000
 
         local function tweenTo(point)
             local distance = (point - hrp.Position).Magnitude
@@ -3041,7 +3041,7 @@ local function finishMoneyObby2()
             Vector3.new(1125, 2, 522),
         }
          
-        local SPEED = 2100
+        local SPEED = 2000
 
         local function tweenTo(point)
             local distance = (point - hrp.Position).Magnitude
@@ -3132,7 +3132,7 @@ local function finishMoneyObby3()
             Vector3.new(2560, -1, -332),
         }
 
-        local SPEED = 2100
+        local SPEED = 2000
 
         local function tweenTo(point)
             local distance = (point - hrp.Position).Magnitude
