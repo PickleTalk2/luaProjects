@@ -2773,8 +2773,7 @@ local function teleportToLastGap()
         local playerXPos = hrp.Position.X
             
         local points = {
-            Vector3.new(153, 67, -137),
-            Vector3.new(256, 67, -137),
+            Vector3.new(playerXPos, 67, -137),
             Vector3.new(2608, 67, -137),
             Vector3.new(2608, -3, -137),
             Vector3.new(2608, -3, -1),
