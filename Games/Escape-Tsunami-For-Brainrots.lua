@@ -1125,7 +1125,7 @@ function Steal()
         loadingText.Size = UDim2.new(0, 600, 0, 100)
         loadingText.Position = UDim2.new(0.5, -300, 0.5, -50)
         loadingText.BackgroundTransparency = 1
-        loadingText.Text = "TELEPORTING TO CELESTIAL AREA"
+        loadingText.Text = "STEALING"
         loadingText.TextColor3 = Color3.fromRGB(80, 255, 120)
         loadingText.TextSize = 32
         loadingText.Font = Enum.Font.GothamBold
@@ -2770,6 +2770,8 @@ local function teleportToLastGap()
             end 
         end
 
+        local playerXPos = hrp.Position.X
+            
         local points = {
             Vector3.new(153, 67, -137),
             Vector3.new(256, 67, -137),
@@ -2873,7 +2875,11 @@ local function finishRadioactiveObby()
             end 
         end
 
+        local playerXPos = hrp.Position.X
+            
         local points = {
+            Vector3.new(playerXPos, 67, -137),
+            Vector3.new(1071, 67, -137),
             Vector3.new(1071, 2, -216),
             Vector3.new(1071, 2, -571),
             Vector3.new(1000, 15, -571),
@@ -2949,7 +2955,11 @@ local function finishMoneyObby1()
             end 
         end
 
+        local playerXPos = hrp.Position.X
+            
         local points = {
+            Vector3.new(playerXPos, 67, -137),
+            Vector3.new(400, 67, -137),
             Vector3.new(400, -8, -232),
             Vector3.new(505, -8, -223),
             Vector3.new(502, -8, -340),
@@ -3024,7 +3034,7 @@ local function finishMoneyObby2()
                 v.CanCollide = false 
             end 
         end
-
+            
         local points = {
             Vector3.new(1132, 7, 181),
             Vector3.new(1111, 20, 216),
@@ -3101,7 +3111,11 @@ local function finishMoneyObby3()
             end 
         end
 
+        local playerXPos = hrp.Position.X
+            
         local points = {
+            Vector3.new(playerXPos, 67, -137),
+            Vector3.new(2254, 67, -137),
             Vector3.new(2254, -11, -177),
             Vector3.new(2251, -11, -184),
             Vector3.new(1251, -11, -192),
