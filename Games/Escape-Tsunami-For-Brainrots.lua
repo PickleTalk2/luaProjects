@@ -228,45 +228,7 @@ local function loadConfiguration()
             Duration = 3,
             Icon = "x",
         })
-        return
     end
-    
-    task.wait(0.2)
-    
-    pcall(function()
-        if AutoCollectToggle.Value then toggleAutoCollect(true) end
-        if AntiSlapToggle.Value then toggleAntiSlap(true) end
-        if IncreaseHitboxToggle.Value then toggleIncreaseHitbox(true) end
-        if AntiTsunamiToggle.Value then toggleAntiTsunami(true) end
-        if FastInteractionToggle.Value then toggleFastInteraction(true) end
-        if AutoStealBrainrotToggle.Value then toggleAutoStealBrainrot(true) end
-        if AutoUpgradeAllToggle.Value then toggleAutoUpgradeAllBrainrot(true) end
-        if AutoFarmCelestialToggle.Value then toggleAutoFarmCelestial(true) end
-        if ESPHighestBrainrotToggle.Value then toggleESPHighestBrainrot(true) end
-        if ESPCelestialToggle.Value then toggleESPCelestial(true) end
-        if ESPCelestiallToggle.Value then toggleESPLuckyBlock(true, "Celestial") end
-        if ESPSecretToggle.Value then toggleESPLuckyBlock(true, "Secret") end
-        if ESPCosmicToggle.Value then toggleESPLuckyBlock(true, "Cosmic") end
-        if GodModeToggle.Value then toggleGodMode(true) end
-        if NoclipToggle.Value then toggleNoclip(true) end
-        if InfJumpToggle.Value then toggleInfJump(true) end
-        if SpeedToggle.Value then toggleSpeed(true) end
-        if JumpPowerToggle.Value then toggleJumpPower(true) end
-        if FullBrightToggle.Value then toggleFullBright(true) end
-        if LowGFXToggle.Value then toggleLowGFX(true) end
-        if StealUIToggle.Value then toggleStealUI(true) end
-        if DebugModeToggle.Value then States.DebugMode = true end
-        
-        States.SelectedBrainrotType = BrainrotTypeDropdown.Value.Title or "Common"
-        States.CurrentTheme = ThemeDropdown.Value.Title or "Dark"
-    end)
-    
-    WindUI:Notify({
-        Title = "Configuration Loaded",
-        Content = "Settings restored successfully!",
-        Duration = 3,
-        Icon = "check",
-    })
 end
 
 local function changeTheme(themeName)
