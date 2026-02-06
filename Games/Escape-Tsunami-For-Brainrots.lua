@@ -2639,7 +2639,7 @@ local function toggleCameraZoom(state)
             pcall(function()
                 local camera = Workspace.CurrentCamera
                 if camera then
-                    LocalPlayer.CameraMaxZoomDistance = 999999
+                    LocalPlayer.CameraMaxZoomDistance = 1000
                     LocalPlayer.CameraMinZoomDistance = 0.5
                 end
             end)
@@ -3867,11 +3867,6 @@ WindUI:Popup({
     }
 })
 
-toggleCameraZoom(true)
-MainTab:Select()
-task.wait(0.5)
-loadConfiguration()
-
 LocalPlayer.CharacterAdded:Connect(function(character)
     task.wait(1)
 
@@ -3931,3 +3926,7 @@ LocalPlayer.CharacterAdded:Connect(function(character)
         toggleIncreaseHitbox(true)
     end
 end)
+
+loadConfiguration()
+MainTab:Select()
+toggleCameraZoom(true)
