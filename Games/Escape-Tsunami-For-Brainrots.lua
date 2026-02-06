@@ -2927,7 +2927,7 @@ local function finishMoneyObby1()
             Vector3.new(400, -8, -232),
             Vector3.new(505, -8, -223),
             Vector3.new(502, -8, -340),
-            Vector3.new(434, -8, -340),
+            Vector3.new(426, -8, -340),
         }
             
         local SPEED = 2000
@@ -3001,14 +3001,19 @@ local function finishMoneyObby2()
                 v.CanCollide = false 
             end 
         end
+
+        local playerXPos = hrp.Position.X
             
         local points = {
+            Vector3.new(playerXPos, 67, 135),
+            Vector3.new(1132, 67, 135),
             Vector3.new(1132, 7, 181),
             Vector3.new(1111, 20, 216),
             Vector3.new(1115, 20, 522),
             Vector3.new(1125, 2, 522),
+            Vector3.new(1129, 2, 526),
         }
-         
+          
         local SPEED = 2000
 
         local function tweenTo(point)
@@ -3029,7 +3034,7 @@ local function finishMoneyObby2()
 
         for i, pos in pairs(points) do
             tweenTo(pos)
-            if i == 1 then
+            if i == 3 then
                 task.wait(0.2)
             end
         end
@@ -3101,6 +3106,7 @@ local function finishMoneyObby3()
             Vector3.new(2406, -13, -338),
             Vector3.new(2412, -1, -332),
             Vector3.new(2560, -1, -332),
+            Vector3.new(2569, -7, -337),
         }
 
         local SPEED = 2000
