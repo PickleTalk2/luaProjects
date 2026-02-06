@@ -3287,7 +3287,7 @@ end
 
 local MainTab = Window:Tab({
     Title = "Main",
-    Icon = "home",
+    Icon = "house",
 })
 
 local AutomationTab = Window:Tab({
