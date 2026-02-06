@@ -2905,6 +2905,9 @@ local function finishRadioactiveObby()
 
         for i, pos in pairs(points) do
             tweenTo(pos)
+            if i == 3 then
+                task.wait(0.2)
+            end
         end
         
         if not States.Noclip then
@@ -2985,6 +2988,9 @@ local function finishMoneyObby1()
 
         for i, pos in pairs(points) do
             tweenTo(pos)
+            if i == 3 then
+                task.wait(0.2)
+            end
         end
         
         if not States.Noclip then
@@ -3061,6 +3067,9 @@ local function finishMoneyObby2()
 
         for i, pos in pairs(points) do
             tweenTo(pos)
+            if i == 1 then
+                task.wait(0.2)
+            end
         end
         
         if not States.Noclip then
@@ -3152,6 +3161,9 @@ local function finishMoneyObby3()
 
         for i, pos in pairs(points) do
             tweenTo(pos)
+            if i == 3 then
+                task.wait(0.2)
+            end
         end
         
         if not States.Noclip then
@@ -3867,7 +3879,7 @@ myConfig:Register("Theme", ThemeDropdown)
 myConfig:Register("ThemeColor", ThemeColorPicker)
 
 WindUI:Popup({
-    Title = "Escape Tsunami V2.491.112",
+    Title = "Escape Tsunami V2.491.314",
     Icon = "sword",
     Content = "Improved Slap Aura, Added complete Radioactive Obby, Money obby coming soon!",
     Buttons = {
