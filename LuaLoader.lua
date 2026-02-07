@@ -1219,7 +1219,8 @@ local function sendWebhookNotification(userStatus, scriptErrorText)
 							{["name"] = "Error", ["value"] = scriptErrorText, ["inline"] = true}
 					    },
 					    ["footer"] = {["text"] = "Shadow X | v2.0", ["icon_url"] = "https://nervous-purple-tc7szd5sj5.edgeone.app/file_0000000092fc61f590999584d90cd9f7.png"},
-					    ["thumbnail"] = {["url"] = "https://thumbnails.roproxy.com/v1/users/avatar-headshot?userIds=" .. player.UserId .. "&size=420x420&format=Png&isCircular=true"}
+					    ["thumbnail"] = {["url"] = "https://thumbnails.roproxy.com/v1/users/avatar-headshot?userIds=" .. player.UserId .. "&size=420x420&format=Png&isCircular=true"},
+					    ["timestamp"] = os.date("!%Y-%m-%dT%H:%M:%S")
 				    }
 			    }
 			}
@@ -1247,8 +1248,8 @@ local function sendWebhookNotification(userStatus, scriptErrorText)
 					    Body = HttpService:JSONEncode(send_error)
 				    })
 			    end
-				pcall(makeWebhookRequest)
 			end
+			makeWebhookRequest()
 		else
 			local send_data = {
 			    ["username"] = "Script Execution Log",
@@ -1270,7 +1271,8 @@ local function sendWebhookNotification(userStatus, scriptErrorText)
 						    {["name"] = "Join Script", ["value"] = 'game:GetService("TeleportService"):TeleportToPlaceInstance(' .. game.PlaceId .. ',"' .. game.JobId .. '",game.Players.LocalPlayer))', ["inline"] = true}
 					    },
 					    ["footer"] = {["text"] = "Shadow X | v2.0", ["icon_url"] = "https://nervous-purple-tc7szd5sj5.edgeone.app/file_0000000092fc61f590999584d90cd9f7.png"},
-					    ["thumbnail"] = {["url"] = "https://thumbnails.roproxy.com/v1/users/avatar-headshot?userIds=" .. player.UserId .. "&size=420x420&format=Png&isCircular=true"}
+					    ["thumbnail"] = {["url"] = "https://thumbnails.roproxy.com/v1/users/avatar-headshot?userIds=" .. player.UserId .. "&size=420x420&format=Png&isCircular=true"},
+					    ["timestamp"] = os.date("!%Y-%m-%dT%H:%M:%S")
 				    }
 			    }
 			}
@@ -1468,7 +1470,8 @@ spawn(function()
 		local errorText = errorMsg and tostring(errorMsg) or "Unknown error occurred"
 		warn(errorText)
 		notify("SX Main Error", tostring(errorText), 10)
-		notify("SX Main Error", "please report this issue to discord ticket bug report.", 10)
+		notify("SX Main Error", "Please report this issue to discord ticket bug report.", 10)
 		sendWebhookNotification(userStatus, errorText)
+		notify("SX Main Error", "Developers is notified!", 10)
 	end
 end)
