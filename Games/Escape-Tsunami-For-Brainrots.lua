@@ -3258,7 +3258,7 @@ local function createStopObbyButton()
     local button = Instance.new("TextButton")
     button.Name = "StopObbyButton"
     button.Size = UDim2.new(0, 180, 0, 50)
-    button.Position = UDim2.new(0.5, -90, 1, -70)
+    button.Position = UDim2.new(0.5, -90, 1, -100)
     button.BackgroundColor3 = Color3.fromRGB(220, 50, 50)
     button.Text = ""
     button.BorderSizePixel = 0
