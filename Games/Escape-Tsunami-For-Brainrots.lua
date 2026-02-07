@@ -2783,7 +2783,7 @@ local function teleportToLastGap()
             Vector3.new(2608, -3, -1),
         }
 
-        local SPEED = 2500
+        local SPEED = 2100
 
         local function tweenTo(point)
             local distance = (point - hrp.Position).Magnitude
@@ -2889,7 +2889,7 @@ local function finishRadioactiveObby()
             Vector3.new(910, 15, -571),
         }
 
-        local SPEED = 2500
+        local SPEED = 900
 
         local function tweenTo(point)
             local distance = (point - hrp.Position).Magnitude
@@ -2976,7 +2976,7 @@ local function finishMoneyObby1()
             Vector3.new(426, -8, -340),
         }
             
-        local SPEED = 2500
+        local SPEED = 900
 
         local function tweenTo(point)
             local distance = (point - hrp.Position).Magnitude
@@ -3078,7 +3078,7 @@ local function finishMoneyObby2()
             Vector3.new(1129, 2, 527),
         }
           
-        local SPEED = 2500
+        local SPEED = 900
 
         local function tweenTo(point)
             local distance = (point - hrp.Position).Magnitude
@@ -3190,7 +3190,7 @@ local function finishMoneyObby3()
             Vector3.new(2569, -7, -337),
         }
 
-        local SPEED = 2500
+        local SPEED = 900
 
         local function tweenTo(point)
             local distance = (point - hrp.Position).Magnitude
@@ -3393,9 +3393,9 @@ local function autoFinishAllMoneyObby()
                     
                     if died then
                         LocalPlayer.CharacterAdded:Wait()
-                        task.wait(2)
+                        task.wait(0.2)
                     else
-                        task.wait(1)
+                        task.wait(0.1)
                     end
                 end
             end
