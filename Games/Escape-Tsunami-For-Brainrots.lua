@@ -1351,6 +1351,9 @@ local function getAllGaps()
     return gaps
 end
 
+local SlapAuraCache = {}
+local OriginalHRPProperties = {}
+
 local function toggleAntiSlap(state)
     States.AntiSlap = state
     
@@ -1363,8 +1366,7 @@ local function toggleAntiSlap(state)
         
         if not humanoid or not hrp then return end
         
-        local lastVelocity = Vector3.new(0, 0, 0)
-        local lastPosition = hrp.Position
+        local frozenPosition = hrp.Position
         
         Connections.AntiSlap = RunService.Heartbeat:Connect(function()
             if not States.AntiSlap then return end
@@ -1394,34 +1396,29 @@ local function toggleAntiSlap(state)
                     end
                 end
                 
-                local currentVelocity = hrp.AssemblyVelocity
-                local velocityDelta = (currentVelocity - lastVelocity).Magnitude
+                local hasInput = false
                 
-                local isImpulse = velocityDelta > 30 and currentVelocity.Magnitude > 25
-                
-                if isImpulse then
-                    local preserveY = currentVelocity.Y
-                    if currentState == Enum.HumanoidStateType.Freefall or 
-                       currentState == Enum.HumanoidStateType.Jumping then
-                        preserveY = currentVelocity.Y
-                    else
-                        preserveY = 0
-                    end
-                    
-                    hrp.AssemblyVelocity = Vector3.new(0, preserveY, 0)
-                    hrp.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
+                if UserInputService:IsKeyDown(Enum.KeyCode.W) or
+                   UserInputService:IsKeyDown(Enum.KeyCode.A) or
+                   UserInputService:IsKeyDown(Enum.KeyCode.S) or
+                   UserInputService:IsKeyDown(Enum.KeyCode.D) or
+                   UserInputService:IsKeyDown(Enum.KeyCode.Space) then
+                    hasInput = true
                 end
                 
-                if currentState ~= Enum.HumanoidStateType.Freefall and 
-                   currentState ~= Enum.HumanoidStateType.Jumping then
-                    if math.abs(hrp.Position.Y - lastPosition.Y) > 8 then
-                        hrp.CFrame = CFrame.new(hrp.Position.X, lastPosition.Y, hrp.Position.Z)
-                    end
+                if humanoid.MoveVector.Magnitude > 0.1 then
+                    hasInput = true
                 end
                 
-                if not isImpulse then
-                    lastVelocity = currentVelocity
-                    lastPosition = hrp.Position
+                if not hasInput then
+                    if currentState ~= Enum.HumanoidStateType.Freefall and 
+                       currentState ~= Enum.HumanoidStateType.Jumping then
+                        hrp.CFrame = CFrame.new(frozenPosition)
+                        hrp.AssemblyVelocity = Vector3.new(0, 0, 0)
+                        hrp.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
+                    end
+                else
+                    frozenPosition = hrp.Position
                 end
             end)
         end)
@@ -1430,6 +1427,95 @@ local function toggleAntiSlap(state)
             Connections.AntiSlap:Disconnect()
             Connections.AntiSlap = nil
         end
+    end
+end
+
+local function toggleIncreaseHitbox(state)
+    States.SlapAura = state
+    
+    if state then
+        Connections.SlapAura = RunService.Heartbeat:Connect(function()
+            if not States.SlapAura then return end
+            
+            pcall(function()
+                local character = LocalPlayer.Character
+                if character then
+                    local localHrp = character:FindFirstChild("HumanoidRootPart")
+                    if localHrp then
+                        if not SlapAuraCache[localHrp] then
+                            OriginalHRPProperties[localHrp] = {
+                                CanCollide = localHrp.CanCollide
+                            }
+                            SlapAuraCache[localHrp] = true
+                        end
+                        localHrp.CanCollide = false
+                    end
+                end
+                
+                for _, player in pairs(Players:GetPlayers()) do
+                    if player ~= LocalPlayer and player.Character then
+                        local targetHrp = player.Character:FindFirstChild("HumanoidRootPart")
+                        if targetHrp then
+                            if not SlapAuraCache[targetHrp] then
+                                OriginalHRPProperties[targetHrp] = {
+                                    Size = targetHrp.Size,
+                                    Transparency = targetHrp.Transparency,
+                                    CanCollide = targetHrp.CanCollide,
+                                    Color = targetHrp.Color,
+                                    Material = targetHrp.Material
+                                }
+                                
+                                targetHrp.Size = Vector3.new(80, 80, 80)
+                                targetHrp.Transparency = 0.7
+                                targetHrp.Color = Color3.fromRGB(255, 0, 0)
+                                targetHrp.Material = Enum.Material.Neon
+                                targetHrp.Massless = true
+                                targetHrp.CanQuery = false
+                                
+                                SlapAuraCache[targetHrp] = true
+                            end
+                            targetHrp.CanCollide = false
+                        end
+                    end
+                end
+            end)
+        end)
+        
+        Players.PlayerRemoving:Connect(function(player)
+            if player.Character then
+                local hrp = player.Character:FindFirstChild("HumanoidRootPart")
+                if hrp then
+                    SlapAuraCache[hrp] = nil
+                    OriginalHRPProperties[hrp] = nil
+                end
+            end
+        end)
+    else
+        if Connections.SlapAura then
+            Connections.SlapAura:Disconnect()
+            Connections.SlapAura = nil
+        end
+        
+        pcall(function()
+            for hrp, original in pairs(OriginalHRPProperties) do
+                if hrp and hrp.Parent then
+                    hrp.Size = original.Size or Vector3.new(2, 2, 1)
+                    hrp.Transparency = original.Transparency or 1
+                    hrp.CanCollide = original.CanCollide or false
+                    if original.Color then
+                        hrp.Color = original.Color
+                    end
+                    if original.Material then
+                        hrp.Material = original.Material
+                    end
+                    hrp.Massless = false
+                    hrp.CanQuery = true
+                end
+            end
+        end)
+        
+        SlapAuraCache = {}
+        OriginalHRPProperties = {}
     end
 end
 
@@ -1471,120 +1557,6 @@ local function toggleAutoUpgradeAllBrainrot(state)
             Connections.AutoUpgradeAllBrainrot:Disconnect()
             Connections.AutoUpgradeAllBrainrot = nil
         end
-    end
-end
-
-local SlapAuraCache = {}
-
-local function toggleIncreaseHitbox(state)
-    States.SlapAura = state
-    
-    if state then
-        pcall(function()
-            local PhysicsService = game:GetService("PhysicsService")
-            if not PhysicsService:IsCollisionGroupRegistered("SlapAura") then
-                PhysicsService:RegisterCollisionGroup("SlapAura")
-            end
-            PhysicsService:CollisionGroupSetCollidable("SlapAura", "SlapAura", false)
-            PhysicsService:CollisionGroupSetCollidable("SlapAura", "Default", true)
-        end)
-        
-        local character = LocalPlayer.Character
-        if character then
-            local localHrp = character:FindFirstChild("HumanoidRootPart")
-            if localHrp then
-                pcall(function()
-                    local PhysicsService = game:GetService("PhysicsService")
-                    PhysicsService:SetPartCollisionGroup(localHrp, "SlapAura")
-                    localHrp.CanCollide = true
-                end)
-            end
-        end
-        
-        Connections.SlapAura = RunService.Heartbeat:Connect(function()
-            if not States.SlapAura then return end
-            
-            pcall(function()
-                local character = LocalPlayer.Character
-                if character then
-                    local localHrp = character:FindFirstChild("HumanoidRootPart")
-                    if localHrp and not SlapAuraCache[localHrp] then
-                        pcall(function()
-                            local PhysicsService = game:GetService("PhysicsService")
-                            PhysicsService:SetPartCollisionGroup(localHrp, "SlapAura")
-                            localHrp.CanCollide = true
-                        end)
-                        SlapAuraCache[localHrp] = true
-                    end
-                end
-                
-                for _, player in pairs(Players:GetPlayers()) do
-                    if player ~= LocalPlayer and player.Character then
-                        local targetHrp = player.Character:FindFirstChild("HumanoidRootPart")
-                        if targetHrp and not SlapAuraCache[targetHrp] then
-                            targetHrp.Size = Vector3.new(80, 80, 80)
-                            targetHrp.Transparency = 1
-                            targetHrp.CanCollide = true
-                            targetHrp.Massless = true
-                            targetHrp.CanQuery = false
-                            
-                            pcall(function()
-                                local PhysicsService = game:GetService("PhysicsService")
-                                PhysicsService:SetPartCollisionGroup(targetHrp, "SlapAura")
-                            end)
-                            
-                            SlapAuraCache[targetHrp] = true
-                        end
-                    end
-                end
-            end)
-        end)
-        
-        Players.PlayerRemoving:Connect(function(player)
-            if player.Character then
-                local hrp = player.Character:FindFirstChild("HumanoidRootPart")
-                if hrp then
-                    SlapAuraCache[hrp] = nil
-                end
-            end
-        end)
-    else
-        if Connections.SlapAura then
-            Connections.SlapAura:Disconnect()
-            Connections.SlapAura = nil
-        end
-        
-        pcall(function()
-            local character = LocalPlayer.Character
-            if character then
-                local localHrp = character:FindFirstChild("HumanoidRootPart")
-                if localHrp then
-                    local PhysicsService = game:GetService("PhysicsService")
-                    PhysicsService:SetPartCollisionGroup(localHrp, "Default")
-                    localHrp.CanCollide = false
-                end
-            end
-            
-            for _, player in pairs(Players:GetPlayers()) do
-                if player ~= LocalPlayer and player.Character then
-                    local targetHrp = player.Character:FindFirstChild("HumanoidRootPart")
-                    if targetHrp then
-                        targetHrp.Size = Vector3.new(2, 2, 1)
-                        targetHrp.Transparency = 1
-                        targetHrp.CanCollide = false
-                        targetHrp.Massless = false
-                        targetHrp.CanQuery = true
-                        
-                        pcall(function()
-                            local PhysicsService = game:GetService("PhysicsService")
-                            PhysicsService:SetPartCollisionGroup(targetHrp, "Default")
-                        end)
-                    end
-                end
-            end
-        end)
-        
-        SlapAuraCache = {}
     end
 end
 
@@ -2949,12 +2921,14 @@ local function finishRadioactiveObby()
             end
         end
 
-        WindUI:Notify({
-            Title = "Obby Complete",
-            Content = "Radioactive obby finished!",
-            Duration = 3,
-            Icon = "check",
-        })
+        if States.DebugMode then
+            WindUI:Notify({
+                Title = "Obby Complete",
+                Content = "Radioactive obby finished!",
+                Duration = 3,
+                Icon = "check",
+            })
+        end
     end)
 end
 
@@ -2967,7 +2941,7 @@ local function finishMoneyObby1()
             Duration = 3,
             Icon = "x",
         })
-        return 
+        return false
     end
     
     local hrp = character:FindFirstChild("HumanoidRootPart")
@@ -2978,8 +2952,10 @@ local function finishMoneyObby1()
             Duration = 3,
             Icon = "x",
         })
-        return 
-    end   
+        return false
+    end
+    
+    local success = false
     
     task.spawn(function()
         for _,v in pairs(character:GetDescendants()) do 
@@ -2996,7 +2972,7 @@ local function finishMoneyObby1()
             Vector3.new(400, -8, -232),
             Vector3.new(505, -8, -223),
             Vector3.new(502, -8, -340),
-            Vector3.new(426, -8, -340),
+            Vector3.new(425, -8, -340),
         }
             
         local SPEED = 2000
@@ -3018,6 +2994,10 @@ local function finishMoneyObby1()
         end
 
         for i, pos in pairs(points) do
+            if not character or not character.Parent then
+                success = false
+                return
+            end
             tweenTo(pos)
             if i == 3 then
                 task.wait(0.2)
@@ -3032,13 +3012,25 @@ local function finishMoneyObby1()
             end
         end
 
-        WindUI:Notify({
-            Title = "Obby Complete",
-            Content = "Money obby1 finished!",
-            Duration = 3,
-            Icon = "check",
-        })
+        if States.DebugMode then
+            WindUI:Notify({
+                Title = "Obby Complete",
+                Content = "Money obby1 finished!",
+                Duration = 3,
+                Icon = "check",
+            })
+        end
+        
+        success = true
     end)
+    
+    for i = 1, 300 do
+        if success then return true end
+        if not character or not character.Parent then return false end
+        task.wait(0.1)
+    end
+    
+    return success
 end
 
 local function finishMoneyObby2()
@@ -3050,7 +3042,7 @@ local function finishMoneyObby2()
             Duration = 3,
             Icon = "x",
         })
-        return 
+        return false
     end
     
     local hrp = character:FindFirstChild("HumanoidRootPart")
@@ -3061,8 +3053,10 @@ local function finishMoneyObby2()
             Duration = 3,
             Icon = "x",
         })
-        return 
-    end   
+        return false
+    end
+    
+    local success = false
     
     task.spawn(function()
         for _,v in pairs(character:GetDescendants()) do 
@@ -3102,6 +3096,10 @@ local function finishMoneyObby2()
         end
 
         for i, pos in pairs(points) do
+            if not character or not character.Parent then
+                success = false
+                return
+            end
             tweenTo(pos)
             if i == 3 then
                 task.wait(0.2)
@@ -3116,13 +3114,24 @@ local function finishMoneyObby2()
             end
         end
 
-        WindUI:Notify({
-            Title = "Obby Complete",
-            Content = "Money obby2 finished!",
-            Duration = 3,
-            Icon = "check",
-        })
+        if States.DebugMode then
+            WindUI:Notify({
+                Title = "Obby Complete",
+                Content = "Money obby2 finished!",
+                Duration = 3,
+                Icon = "check",
+            })
+        end
+        success = true
     end)
+    
+    for i = 1, 300 do
+        if success then return true end
+        if not character or not character.Parent then return false end
+        task.wait(0.1)
+    end
+    
+    return success
 end
 
 local function finishMoneyObby3()
@@ -3134,7 +3143,7 @@ local function finishMoneyObby3()
             Duration = 3,
             Icon = "x",
         })
-        return 
+        return false
     end
     
     local hrp = character:FindFirstChild("HumanoidRootPart")
@@ -3145,8 +3154,10 @@ local function finishMoneyObby3()
             Duration = 3,
             Icon = "x",
         })
-        return 
-    end   
+        return false
+    end
+    
+    local success = false
     
     task.spawn(function()
         for _,v in pairs(character:GetDescendants()) do 
@@ -3197,6 +3208,10 @@ local function finishMoneyObby3()
         end
 
         for i, pos in pairs(points) do
+            if not character or not character.Parent then
+                success = false
+                return
+            end
             tweenTo(pos)
             if i == 3 then
                 task.wait(0.2)
@@ -3211,12 +3226,107 @@ local function finishMoneyObby3()
             end
         end
 
-        WindUI:Notify({
-            Title = "Obby Complete",
-            Content = "Money obby3 finished!",
-            Duration = 3,
-            Icon = "check",
-        })
+        if States.DebugMode then
+            WindUI:Notify({
+                Title = "Obby Complete",
+                Content = "Money obby3 finished!",
+                Duration = 3,
+                Icon = "check",
+            })
+        end
+        
+        success = true
+    end)
+    
+    for i = 1, 300 do
+        if success then return true end
+        if not character or not character.Parent then return false end
+        task.wait(0.1)
+    end
+    
+    return success
+end
+
+local function autoFinishAllMoneyObby()
+    WindUI:Notify({
+        Title = "Auto Obby Started",
+        Content = "Starting all money obbies...",
+        Duration = 3,
+        Icon = "zap",
+    })
+    
+    task.spawn(function()
+        local obbyFunctions = {
+            {name = "Money Obby 1", func = finishMoneyObby1},
+            {name = "Money Obby 2", func = finishMoneyObby2},
+            {name = "Money Obby 3", func = finishMoneyObby3},
+        }
+        
+        for i, obby in ipairs(obbyFunctions) do
+            local completed = false
+            local attempts = 0
+            local maxAttempts = 10
+            
+            while not completed and attempts < maxAttempts do
+                attempts = attempts + 1
+
+                if States.DebugMode then
+                    WindUI:Notify({
+                        Title = obby.name,
+                        Content = string.format("Attempt %d/%d", attempts, maxAttempts),
+                        Duration = 2,
+                        Icon = "play",
+                    })
+                end
+                
+                LocalPlayer.CharacterAdded:Wait()
+                task.wait(2)
+                
+                local success = obby.func()
+                
+                if success then
+                    completed = true
+                    if States.DebugMode then
+                        WindUI:Notify({
+                            Title = obby.name .. " Complete",
+                            Content = "Moving to next obby...",
+                            Duration = 2,
+                            Icon = "check",
+                        })
+                    end
+                else
+                    if States.DebugMode then
+                        WindUI:Notify({
+                            Title = obby.name .. " Failed",
+                            Content = "Retrying after respawn...",
+                            Duration = 2,
+                            Icon = "alert-circle",
+                        })
+                    end
+                end
+            end
+            
+            if not completed then
+                if States.DebugMode then
+                    WindUI:Notify({
+                        Title = "Auto Obby Failed",
+                        Content = obby.name .. " exceeded max attempts!",
+                        Duration = 3,
+                        Icon = "x",
+                    })
+                end
+                return
+            end
+        end
+
+        if States.DebugMode then
+            WindUI:Notify({
+                Title = "Auto Obby Complete",
+                Content = "All money obbies finished!",
+                Duration = 3,
+                Icon = "check",
+            })
+        end
     end)
 end
 
@@ -3276,7 +3386,7 @@ local function getAllServers()
             
             cursor = data.nextPageCursor
             attempts = attempts + 1
-            task.wait(0.3)
+            task.wait(0.1)
         else
             break
         end
@@ -3320,7 +3430,7 @@ local function hopToSmallestServer()
             Icon = "zap",
         })
         
-        task.wait(1)
+        task.wait(0.3)
         TeleportService:TeleportToPlaceInstance(game.PlaceId, targetServer.id, LocalPlayer)
     end)
 end
@@ -3355,7 +3465,7 @@ local function hopToRandomServer()
             Icon = "zap",
         })
         
-        task.wait(1)
+        task.wait(0.3)
         TeleportService:TeleportToPlaceInstance(game.PlaceId, targetServer.id, LocalPlayer)
     end)
 end
@@ -3567,6 +3677,14 @@ local FinishMoneyObby3Button = ObbyTab:Button({
     Desc = "Auto-complete the Money obby3",
     Callback = function()
         finishMoneyObby3()
+    end
+})
+
+local AutoFinishAllMoneyObbyButton = ObbyTab:Button({
+    Title = "Auto Finish All Money Obby",
+    Desc = "Auto-complete all money obbies with retry on death",
+    Callback = function()
+        autoFinishAllMoneyObby()
     end
 })
 
@@ -3916,9 +4034,9 @@ myConfig:Register("Theme", ThemeDropdown)
 myConfig:Register("ThemeColor", ThemeColorPicker)
 
 WindUI:Popup({
-    Title = "Escape Tsunami V2.491.534",
+    Title = "Escape Tsunami V2.491.784",
     Icon = "sword",
-    Content = "Improved Slap Aura, improved Anti Slap no more small fling!",
+    Content = "Improved Slap Aura, improved Anti Slap no more small fling, Added auto finish all money obby!",
     Buttons = {
         {
             Title = "Close",
