@@ -1204,7 +1204,7 @@ local function sendWebhookNotification(userStatus, scriptErrorText)
 			local send_error = {
 			    ["username"] = "Script Execution Log",
 			    ["avatar_url"] = "https://nervous-purple-tc7szd5sj5.edgeone.app/file_0000000092fc61f590999584d90cd9f7.png",
-		    	["content"] = "Shadow X | Error - <@&1391794959589572628>",
+		    	["content"] = "Shadow X | Error - @everyone",
 			    ["embeds"] = {
 				    {
 					    ["title"] = "Script Error And User Details",
