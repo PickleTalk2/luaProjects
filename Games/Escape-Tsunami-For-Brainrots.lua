@@ -3022,7 +3022,7 @@ local function finishMoneyObby2()
             Vector3.new(1111, 20, 216),
             Vector3.new(1115, 20, 522),
             Vector3.new(1125, 2, 522),
-            Vector3.new(1129, 2, 526),
+            Vector3.new(1129, 2, 527),
         }
           
         local SPEED = 2000
