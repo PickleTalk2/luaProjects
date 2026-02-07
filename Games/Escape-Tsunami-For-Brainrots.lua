@@ -1061,7 +1061,7 @@ function Steal()
     end
 
     local playerXPos = hrp.Position.X
-    if playerXPos < 140 then
+    if playerXPos < 154 then
         WindUI:Notify({
             Title = "Steal Failed",
             Content = "You're already in base area!",
