@@ -1,4 +1,4 @@
-1local success, WindUI = pcall(function()
+local success, WindUI = pcall(function()
     return loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
 end)
 
