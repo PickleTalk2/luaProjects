@@ -1363,8 +1363,8 @@ local function toggleAntiSlap(state)
         
         if not humanoid or not hrp then return end
         
-        local lastPosition = hrp.Position
         local lastVelocity = Vector3.new(0, 0, 0)
+        local lastPosition = hrp.Position
         
         Connections.AntiSlap = RunService.Heartbeat:Connect(function()
             if not States.AntiSlap then return end
@@ -1395,14 +1395,21 @@ local function toggleAntiSlap(state)
                 end
                 
                 local currentVelocity = hrp.AssemblyVelocity
+                local velocityDelta = (currentVelocity - lastVelocity).Magnitude
                 
-                if currentState ~= Enum.HumanoidStateType.Freefall and 
-                   currentState ~= Enum.HumanoidStateType.Jumping then
-                    if currentVelocity.Magnitude > 60 and not States.Speed then
-                        hrp.AssemblyVelocity = Vector3.new(0, currentVelocity.Y, 0)
-                        hrp.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
-                        hrp.CFrame = CFrame.new(lastPosition.X, hrp.Position.Y, lastPosition.Z)
+                local isImpulse = velocityDelta > 30 and currentVelocity.Magnitude > 25
+                
+                if isImpulse then
+                    local preserveY = currentVelocity.Y
+                    if currentState == Enum.HumanoidStateType.Freefall or 
+                       currentState == Enum.HumanoidStateType.Jumping then
+                        preserveY = currentVelocity.Y
+                    else
+                        preserveY = 0
                     end
+                    
+                    hrp.AssemblyVelocity = Vector3.new(0, preserveY, 0)
+                    hrp.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
                 end
                 
                 if currentState ~= Enum.HumanoidStateType.Freefall and 
@@ -1412,9 +1419,9 @@ local function toggleAntiSlap(state)
                     end
                 end
                 
-                if currentVelocity.Magnitude < 60 then
-                    lastPosition = hrp.Position
+                if not isImpulse then
                     lastVelocity = currentVelocity
+                    lastPosition = hrp.Position
                 end
             end)
         end)
@@ -1479,10 +1486,32 @@ local function toggleIncreaseHitbox(state)
             PhysicsService:CollisionGroupSetCollidable("SlapAura", "SlapAura", false)
         end)
         
+        local character = LocalPlayer.Character
+        if character then
+            local localHrp = character:FindFirstChild("HumanoidRootPart")
+            if localHrp then
+                pcall(function()
+                    local PhysicsService = game:GetService("PhysicsService")
+                    PhysicsService:SetPartCollisionGroup(localHrp, "SlapAura")
+                end)
+            end
+        end
+        
         Connections.SlapAura = RunService.Heartbeat:Connect(function()
             if not States.SlapAura then return end
             
             pcall(function()
+                local character = LocalPlayer.Character
+                if character then
+                    local localHrp = character:FindFirstChild("HumanoidRootPart")
+                    if localHrp then
+                        pcall(function()
+                            local PhysicsService = game:GetService("PhysicsService")
+                            PhysicsService:SetPartCollisionGroup(localHrp, "SlapAura")
+                        end)
+                    end
+                end
+                
                 for _, player in pairs(Players:GetPlayers()) do
                     if player ~= LocalPlayer and player.Character then
                         local targetHrp = player.Character:FindFirstChild("HumanoidRootPart")
@@ -1509,6 +1538,15 @@ local function toggleIncreaseHitbox(state)
         end
         
         pcall(function()
+            local character = LocalPlayer.Character
+            if character then
+                local localHrp = character:FindFirstChild("HumanoidRootPart")
+                if localHrp then
+                    local PhysicsService = game:GetService("PhysicsService")
+                    PhysicsService:SetPartCollisionGroup(localHrp, "Default")
+                end
+            end
+            
             for _, player in pairs(Players:GetPlayers()) do
                 if player ~= LocalPlayer and player.Character then
                     local targetHrp = player.Character:FindFirstChild("HumanoidRootPart")
@@ -3858,9 +3896,9 @@ myConfig:Register("Theme", ThemeDropdown)
 myConfig:Register("ThemeColor", ThemeColorPicker)
 
 WindUI:Popup({
-    Title = "Escape Tsunami V2.491.314",
+    Title = "Escape Tsunami V2.491.534",
     Icon = "sword",
-    Content = "Improved Slap Aura, Added complete Radioactive Obby, Money obby coming soon!",
+    Content = "Improved Slap Aura, improved Anti Slap no more small fling!",
     Buttons = {
         {
             Title = "Close",
