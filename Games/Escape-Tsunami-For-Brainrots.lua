@@ -295,6 +295,7 @@ local States = {
     EmergencyRetreatCooldown = false,
     LastSafePosition = nil,
     AutoUpgradeAllBrainrot = false,
+    AutoObbyRunning = false,
 }
 
 local Connections = {
@@ -3247,7 +3248,82 @@ local function finishMoneyObby3()
     return success
 end
 
+local function createStopObbyButton()
+    local screenGui = Instance.new("ScreenGui")
+    screenGui.Name = "StopAutoObbyUI"
+    screenGui.ResetOnSpawn = false
+    screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+
+    local button = Instance.new("TextButton")
+    button.Name = "StopObbyButton"
+    button.Size = UDim2.new(0, 180, 0, 50)
+    button.Position = UDim2.new(0.5, -90, 1, -70)
+    button.BackgroundColor3 = Color3.fromRGB(220, 50, 50)
+    button.Text = ""
+    button.BorderSizePixel = 0
+    button.AutoButtonColor = false
+    button.Parent = screenGui
+
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 10)
+    corner.Parent = button
+
+    local stroke = Instance.new("UIStroke")
+    stroke.Color = Color3.fromRGB(180, 30, 30)
+    stroke.Thickness = 2
+    stroke.Parent = button
+
+    local buttonText = Instance.new("TextLabel")
+    buttonText.Size = UDim2.new(1, 0, 1, 0)
+    buttonText.BackgroundTransparency = 1
+    buttonText.Text = "STOP AUTO OBBY"
+    buttonText.TextColor3 = Color3.fromRGB(255, 255, 255)
+    buttonText.TextSize = 16
+    buttonText.Font = Enum.Font.GothamBold
+    buttonText.TextStrokeTransparency = 0.5
+    buttonText.Parent = button
+
+    button.MouseButton1Click:Connect(function()
+        States.AutoObbyRunning = false
+        screenGui:Destroy()
+        WindUI:Notify({
+            Title = "Auto Obby Stopped",
+            Content = "Auto obby sequence cancelled!",
+            Duration = 3,
+            Icon = "x",
+        })
+    end)
+
+    local hoverTween = TweenService:Create(button, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(255, 70, 70)})
+    local unhoverTween = TweenService:Create(button, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(220, 50, 50)})
+
+    button.MouseEnter:Connect(function()
+        hoverTween:Play()
+    end)
+
+    button.MouseLeave:Connect(function()
+        unhoverTween:Play()
+    end)
+
+    return screenGui
+end
+
 local function autoFinishAllMoneyObby()
+    if States.AutoObbyRunning then
+        WindUI:Notify({
+            Title = "Auto Obby Running",
+            Content = "Already running auto obby!",
+            Duration = 3,
+            Icon = "alert-circle",
+        })
+        return
+    end
+    
+    States.AutoObbyRunning = true
+    
+    local stopButton = createStopObbyButton()
+    
     WindUI:Notify({
         Title = "Auto Obby Started",
         Content = "Starting all money obbies...",
@@ -3263,70 +3339,89 @@ local function autoFinishAllMoneyObby()
         }
         
         for i, obby in ipairs(obbyFunctions) do
+            if not States.AutoObbyRunning then break end
+            
             local completed = false
             local attempts = 0
             local maxAttempts = 10
             
-            while not completed and attempts < maxAttempts do
+            while not completed and attempts < maxAttempts and States.AutoObbyRunning do
                 attempts = attempts + 1
-
-                if States.DebugMode then
-                    WindUI:Notify({
-                        Title = obby.name,
-                        Content = string.format("Attempt %d/%d", attempts, maxAttempts),
-                        Duration = 2,
-                        Icon = "play",
-                    })
-                end
                 
-                LocalPlayer.CharacterAdded:Wait()
-                task.wait(2)
+                WindUI:Notify({
+                    Title = obby.name,
+                    Content = string.format("Attempt %d/%d", attempts, maxAttempts),
+                    Duration = 2,
+                    Icon = "play",
+                })
+                
+                local deathConnection
+                local died = false
+                
+                local character = LocalPlayer.Character
+                if character then
+                    local humanoid = character:FindFirstChildOfClass("Humanoid")
+                    if humanoid then
+                        deathConnection = humanoid.Died:Connect(function()
+                            died = true
+                        end)
+                    end
+                end
                 
                 local success = obby.func()
                 
+                if deathConnection then
+                    deathConnection:Disconnect()
+                end
+                
                 if success then
                     completed = true
-                    if States.DebugMode then
-                        WindUI:Notify({
-                            Title = obby.name .. " Complete",
-                            Content = "Moving to next obby...",
-                            Duration = 2,
-                            Icon = "check",
-                        })
-                    end
+                    WindUI:Notify({
+                        Title = obby.name .. " Complete",
+                        Content = "Moving to next obby...",
+                        Duration = 2,
+                        Icon = "check",
+                    })
+                    task.wait(1)
                 else
-                    if States.DebugMode then
-                        WindUI:Notify({
-                            Title = obby.name .. " Failed",
-                            Content = "Retrying after respawn...",
-                            Duration = 2,
-                            Icon = "alert-circle",
-                        })
+                    WindUI:Notify({
+                        Title = obby.name .. " Failed",
+                        Content = "Waiting for respawn...",
+                        Duration = 2,
+                        Icon = "alert-circle",
+                    })
+                    
+                    if died then
+                        LocalPlayer.CharacterAdded:Wait()
+                        task.wait(2)
+                    else
+                        task.wait(1)
                     end
                 end
             end
             
             if not completed then
-                if States.DebugMode then
-                    WindUI:Notify({
-                        Title = "Auto Obby Failed",
-                        Content = obby.name .. " exceeded max attempts!",
-                        Duration = 3,
-                        Icon = "x",
-                    })
-                end
+                WindUI:Notify({
+                    Title = "Auto Obby Failed",
+                    Content = obby.name .. " exceeded max attempts!",
+                    Duration = 3,
+                    Icon = "x",
+                })
+                States.AutoObbyRunning = false
+                if stopButton then stopButton:Destroy() end
                 return
             end
         end
-
-        if States.DebugMode then
-            WindUI:Notify({
-                Title = "Auto Obby Complete",
-                Content = "All money obbies finished!",
-                Duration = 3,
-                Icon = "check",
-            })
-        end
+        
+        States.AutoObbyRunning = false
+        if stopButton then stopButton:Destroy() end
+        
+        WindUI:Notify({
+            Title = "Auto Obby Complete",
+            Content = "All money obbies finished!",
+            Duration = 3,
+            Icon = "check",
+        })
     end)
 end
 
