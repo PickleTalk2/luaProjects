@@ -3382,7 +3382,7 @@ local function autoFinishAllMoneyObby()
                         Duration = 2,
                         Icon = "check",
                     })
-                    task.wait(1)
+                    task.wait(0.1)
                 else
                     WindUI:Notify({
                         Title = obby.name .. " Failed",
@@ -3395,7 +3395,7 @@ local function autoFinishAllMoneyObby()
                         LocalPlayer.CharacterAdded:Wait()
                         task.wait(0.2)
                     else
-                        task.wait(0.1)
+                        task.wait(0.05)
                     end
                 end
             end
@@ -3751,33 +3751,9 @@ local FinishRadioactiveObbyButton = ObbyTab:Button({
     end
 })
 
-local FinishMoneyObby1Button = ObbyTab:Button({
-    Title = "Finish Money Obby1",
-    Desc = "Auto-complete the Money obby1",
-    Callback = function()
-        finishMoneyObby1()
-    end
-})
-
-local FinishMoneyObby2Button = ObbyTab:Button({
-    Title = "Finish Money Obby2",
-    Desc = "Auto-complete the Money obby2",
-    Callback = function()
-        finishMoneyObby2()
-    end
-})
-
-local FinishMoneyObby3Button = ObbyTab:Button({
-    Title = "Finish Money Obby3",
-    Desc = "Auto-complete the Money obby3",
-    Callback = function()
-        finishMoneyObby3()
-    end
-})
-
 local AutoFinishAllMoneyObbyButton = ObbyTab:Button({
     Title = "Auto Finish All Money Obby",
-    Desc = "Auto-complete all money obbies with retry on death",
+    Desc = "Auto-complete all money obbies",
     Callback = function()
         autoFinishAllMoneyObby()
     end
