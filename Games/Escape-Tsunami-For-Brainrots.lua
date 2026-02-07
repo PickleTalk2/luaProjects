@@ -1474,6 +1474,8 @@ local function toggleAutoUpgradeAllBrainrot(state)
     end
 end
 
+local SlapAuraCache = {}
+
 local function toggleIncreaseHitbox(state)
     States.SlapAura = state
     
@@ -1484,6 +1486,7 @@ local function toggleIncreaseHitbox(state)
                 PhysicsService:RegisterCollisionGroup("SlapAura")
             end
             PhysicsService:CollisionGroupSetCollidable("SlapAura", "SlapAura", false)
+            PhysicsService:CollisionGroupSetCollidable("SlapAura", "Default", true)
         end)
         
         local character = LocalPlayer.Character
@@ -1493,6 +1496,7 @@ local function toggleIncreaseHitbox(state)
                 pcall(function()
                     local PhysicsService = game:GetService("PhysicsService")
                     PhysicsService:SetPartCollisionGroup(localHrp, "SlapAura")
+                    localHrp.CanCollide = true
                 end)
             end
         end
@@ -1504,21 +1508,23 @@ local function toggleIncreaseHitbox(state)
                 local character = LocalPlayer.Character
                 if character then
                     local localHrp = character:FindFirstChild("HumanoidRootPart")
-                    if localHrp then
+                    if localHrp and not SlapAuraCache[localHrp] then
                         pcall(function()
                             local PhysicsService = game:GetService("PhysicsService")
                             PhysicsService:SetPartCollisionGroup(localHrp, "SlapAura")
+                            localHrp.CanCollide = true
                         end)
+                        SlapAuraCache[localHrp] = true
                     end
                 end
                 
                 for _, player in pairs(Players:GetPlayers()) do
                     if player ~= LocalPlayer and player.Character then
                         local targetHrp = player.Character:FindFirstChild("HumanoidRootPart")
-                        if targetHrp then
+                        if targetHrp and not SlapAuraCache[targetHrp] then
                             targetHrp.Size = Vector3.new(80, 80, 80)
                             targetHrp.Transparency = 1
-                            targetHrp.CanCollide = false
+                            targetHrp.CanCollide = true
                             targetHrp.Massless = true
                             targetHrp.CanQuery = false
                             
@@ -1526,10 +1532,21 @@ local function toggleIncreaseHitbox(state)
                                 local PhysicsService = game:GetService("PhysicsService")
                                 PhysicsService:SetPartCollisionGroup(targetHrp, "SlapAura")
                             end)
+                            
+                            SlapAuraCache[targetHrp] = true
                         end
                     end
                 end
             end)
+        end)
+        
+        Players.PlayerRemoving:Connect(function(player)
+            if player.Character then
+                local hrp = player.Character:FindFirstChild("HumanoidRootPart")
+                if hrp then
+                    SlapAuraCache[hrp] = nil
+                end
+            end
         end)
     else
         if Connections.SlapAura then
@@ -1544,6 +1561,7 @@ local function toggleIncreaseHitbox(state)
                 if localHrp then
                     local PhysicsService = game:GetService("PhysicsService")
                     PhysicsService:SetPartCollisionGroup(localHrp, "Default")
+                    localHrp.CanCollide = false
                 end
             end
             
@@ -1565,6 +1583,8 @@ local function toggleIncreaseHitbox(state)
                 end
             end
         end)
+        
+        SlapAuraCache = {}
     end
 end
 
