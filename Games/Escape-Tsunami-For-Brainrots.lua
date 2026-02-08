@@ -1661,7 +1661,7 @@ local function toggleCoinMagnet(state)
         
         OriginalHRPSize = nil
     end
-end2
+end
 
 local function toggleAutoUpgradeAllBrainrot(state)
     States.AutoUpgradeAllBrainrot = state
