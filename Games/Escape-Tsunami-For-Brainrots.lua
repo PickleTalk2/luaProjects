@@ -1528,6 +1528,7 @@ local function toggleIncreaseHitbox(state)
 end
 
 local CoinMagnetVisual = nil
+local CoinMagnetOutline = nil
 local OriginalHRPSize = nil
 
 local function toggleCoinMagnet(state)
@@ -1548,41 +1549,53 @@ local function toggleCoinMagnet(state)
                     OriginalHRPSize = hrp.Size
                 end
                 
-                hrp.Size = Vector3.new(230, OriginalHRPSize.Y, 230)
+                hrp.Size = Vector3.new(230, 230, 230)
                 hrp.Transparency = 1
                 hrp.CanCollide = false
                 hrp.Massless = true
                 
                 if not CoinMagnetVisual or not CoinMagnetVisual.Parent then
-                    local visual = Instance.new("Part")
-                    visual.Name = "CoinMagnetIndicator"
-                    visual.Size = Vector3.new(230, 0.5, 230)
-                    visual.Anchored = true
-                    visual.CanCollide = false
-                    visual.CanQuery = false
-                    visual.Material = Enum.Material.Neon
-                    visual.Color = Color3.fromRGB(255, 0, 0)
-                    visual.Transparency = 0.6
-                    visual.Parent = Workspace
-                    
-                    local mesh = Instance.new("SpecialMesh")
-                    mesh.MeshType = Enum.MeshType.Cylinder
-                    mesh.Scale = Vector3.new(1, 1, 1)
-                    mesh.Parent = visual
-                    
-                    local outline = Instance.new("SelectionBox")
-                    outline.Adornee = visual
-                    outline.LineThickness = 0.05
-                    outline.Color3 = Color3.fromRGB(255, 0, 0)
+                    local outline = Instance.new("Part")
+                    outline.Name = "CoinMagnetOutline"
+                    outline.Size = Vector3.new(0.5, 233, 233)
+                    outline.Anchored = true
+                    outline.CanCollide = false
+                    outline.CanQuery = false
+                    outline.Material = Enum.Material.Neon
+                    outline.Color = Color3.fromRGB(255, 0, 0)
                     outline.Transparency = 0
-                    outline.Parent = visual
+                    outline.Parent = Workspace
                     
-                    CoinMagnetVisual = visual
+                    local outlineMesh = Instance.new("SpecialMesh")
+                    outlineMesh.MeshType = Enum.MeshType.Cylinder
+                    outlineMesh.Parent = outline
+                    
+                    CoinMagnetOutline = outline
+                    
+                    local inner = Instance.new("Part")
+                    inner.Name = "CoinMagnetInner"
+                    inner.Size = Vector3.new(0.5, 230, 230)
+                    inner.Anchored = true
+                    inner.CanCollide = false
+                    inner.CanQuery = false
+                    inner.Material = Enum.Material.Neon
+                    inner.Color = Color3.fromRGB(255, 0, 0)
+                    inner.Transparency = 0.6
+                    inner.Parent = Workspace
+                    
+                    local innerMesh = Instance.new("SpecialMesh")
+                    innerMesh.MeshType = Enum.MeshType.Cylinder
+                    innerMesh.Parent = inner
+                    
+                    CoinMagnetVisual = inner
                 end
                 
-                if CoinMagnetVisual then
+                if CoinMagnetVisual and CoinMagnetOutline then
                     local rootPos = hrp.Position
-                    CoinMagnetVisual.CFrame = CFrame.new(rootPos.X, rootPos.Y - (OriginalHRPSize.Y/2) - 0.25, rootPos.Z) * CFrame.Angles(0, 0, math.rad(90))
+                    local yOffset = rootPos.Y - (OriginalHRPSize.Y/2) - 0.25
+                    
+                    CoinMagnetVisual.CFrame = CFrame.new(rootPos.X, yOffset, rootPos.Z) * CFrame.Angles(0, 0, math.rad(90))
+                    CoinMagnetOutline.CFrame = CFrame.new(rootPos.X, yOffset, rootPos.Z) * CFrame.Angles(0, 0, math.rad(90))
                 end
             end)
         end)
@@ -1608,6 +1621,11 @@ local function toggleCoinMagnet(state)
         if CoinMagnetVisual then
             CoinMagnetVisual:Destroy()
             CoinMagnetVisual = nil
+        end
+        
+        if CoinMagnetOutline then
+            CoinMagnetOutline:Destroy()
+            CoinMagnetOutline = nil
         end
         
         OriginalHRPSize = nil
