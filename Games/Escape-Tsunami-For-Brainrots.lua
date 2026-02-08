@@ -1,4 +1,4 @@
-tlocal success, WindUI = pcall(function()
+local success, WindUI = pcall(function()
     return loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
 end)
 
@@ -4210,9 +4210,9 @@ myConfig:Register("Theme", ThemeDropdown)
 myConfig:Register("ThemeColor", ThemeColorPicker)
 
 WindUI:Popup({
-    Title = "Escape Tsunami V2.491.784",
+    Title = "Escape Tsunami V2.491.928",
     Icon = "sword",
-    Content = "Improved Slap Aura, improved Anti Slap no more small fling, Added auto finish all money obby!",
+    Content = "Added Magnet Coin!",
     Buttons = {
         {
             Title = "Close",
@@ -4264,12 +4264,6 @@ LocalPlayer.CharacterAdded:Connect(function(character)
         toggleAntiSlap(false)
         task.wait(0.1)
         toggleAntiSlap(true)
-    end
-    
-    if States.SlapAura then
-        toggleSlapAura(false)
-        task.wait(0.1)
-        toggleSlapAura(true)
     end
     
     if States.InfJump then
