@@ -3030,7 +3030,9 @@ local function finishRadioactiveObby()
             Vector3.new(1071, 2, -216),
             Vector3.new(1071, 2, -571),
             Vector3.new(1000, 15, -571),
-            Vector3.new(910, 15, -571),
+            Vector3.new(925, 15, -571),
+            Vector3.new(925, -17, -571),
+            Vector3.new(906, -17, -585),
         }
 
         local SPEED = 900
