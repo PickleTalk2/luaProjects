@@ -1549,31 +1549,29 @@ local function toggleCoinMagnet(state)
                     OriginalHRPSize = hrp.Size
                 end
                 
-                hrp.Size = Vector3.new(220, 1, 220)
+                hrp.Size = Vector3.new(230, 1, 230)
                 hrp.Transparency = 1
                 hrp.CanCollide = false
                 hrp.Massless = true
                 
-                local currentCFrame = hrp.CFrame
-                hrp.CFrame = CFrame.new(currentCFrame.X, 3, currentCFrame.Z) * CFrame.Angles(0, currentCFrame:ToEulerAnglesXYZ(), 0)
-                
                 if not CoinMagnetVisual or not CoinMagnetVisual.Parent then
                     local inner = Instance.new("Part")
                     inner.Name = "CoinMagnetInner"
-                    inner.Size = Vector3.new(220, 1, 220)
+                    inner.Size = Vector3.new(230, 0.5, 230)
                     inner.Anchored = true
                     inner.CanCollide = false
                     inner.CanQuery = false
                     inner.Material = Enum.Material.Neon
                     inner.Color = Color3.fromRGB(255, 0, 0)
                     inner.Transparency = 0.6
+                    inner.Shape = Enum.PartType.Cylinder
                     inner.Parent = Workspace
                     
                     CoinMagnetVisual = inner
                     
-                    local sides = 10
-                    local radius = 110
-                    local outlineThickness = 3
+                    local sides = 60
+                    local radius = 115
+                    local outlineThickness = 1.5
                     
                     for i = 1, sides do
                         local angle = (i / sides) * math.pi * 2
@@ -1591,7 +1589,7 @@ local function toggleCoinMagnet(state)
                         
                         local outlinePart = Instance.new("Part")
                         outlinePart.Name = "CoinMagnetOutline"
-                        outlinePart.Size = Vector3.new(length, 1, outlineThickness)
+                        outlinePart.Size = Vector3.new(length, 0.5, outlineThickness)
                         outlinePart.Anchored = true
                         outlinePart.CanCollide = false
                         outlinePart.CanQuery = false
@@ -1605,14 +1603,17 @@ local function toggleCoinMagnet(state)
                 end
                 
                 if CoinMagnetVisual then
-                    CoinMagnetVisual.CFrame = CFrame.new(currentCFrame.X, 3, currentCFrame.Z)
+                    local rootPos = hrp.Position
+                    local groundY = rootPos.Y - (hrp.Size.Y / 2) + 0.25
+                    
+                    CoinMagnetVisual.CFrame = CFrame.new(rootPos.X, groundY, rootPos.Z) * CFrame.Angles(0, 0, math.rad(90))
                     
                     for i, data in ipairs(CoinMagnetOutline) do
                         if data.part and data.part.Parent then
                             local angle = data.angle
                             local nextAngle = data.nextAngle
                             
-                            local radius = 110
+                            local radius = 115
                             local x1 = math.cos(angle) * radius
                             local z1 = math.sin(angle) * radius
                             local x2 = math.cos(nextAngle) * radius
@@ -1622,7 +1623,7 @@ local function toggleCoinMagnet(state)
                             local midZ = (z1 + z2) / 2
                             
                             local rotationAngle = math.atan2(z2 - z1, x2 - x1)
-                            data.part.CFrame = CFrame.new(currentCFrame.X + midX, 3, currentCFrame.Z + midZ) * CFrame.Angles(0, rotationAngle, 0)
+                            data.part.CFrame = CFrame.new(rootPos.X + midX, groundY, rootPos.Z + midZ) * CFrame.Angles(0, rotationAngle, 0)
                         end
                     end
                 end
