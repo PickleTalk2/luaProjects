@@ -1528,7 +1528,7 @@ local function toggleIncreaseHitbox(state)
 end
 
 local CoinMagnetVisual = nil
-local CoinMagnetOutline = nil
+local CoinMagnetOutline = {}
 local OriginalHRPSize = nil
 
 local function toggleCoinMagnet(state)
@@ -1555,47 +1555,78 @@ local function toggleCoinMagnet(state)
                 hrp.Massless = true
                 
                 if not CoinMagnetVisual or not CoinMagnetVisual.Parent then
-                    local outline = Instance.new("Part")
-                    outline.Name = "CoinMagnetOutline"
-                    outline.Size = Vector3.new(0.5, 233, 233)
-                    outline.Anchored = true
-                    outline.CanCollide = false
-                    outline.CanQuery = false
-                    outline.Material = Enum.Material.Neon
-                    outline.Color = Color3.fromRGB(255, 0, 0)
-                    outline.Transparency = 0
-                    outline.Parent = Workspace
-                    
-                    local outlineMesh = Instance.new("SpecialMesh")
-                    outlineMesh.MeshType = Enum.MeshType.Cylinder
-                    outlineMesh.Parent = outline
-                    
-                    CoinMagnetOutline = outline
-                    
                     local inner = Instance.new("Part")
                     inner.Name = "CoinMagnetInner"
-                    inner.Size = Vector3.new(0.5, 230, 230)
+                    inner.Size = Vector3.new(230, 0.5, 230)
                     inner.Anchored = true
                     inner.CanCollide = false
                     inner.CanQuery = false
                     inner.Material = Enum.Material.Neon
                     inner.Color = Color3.fromRGB(255, 0, 0)
                     inner.Transparency = 0.6
+                    inner.Shape = Enum.PartType.Cylinder
                     inner.Parent = Workspace
                     
-                    local innerMesh = Instance.new("SpecialMesh")
-                    innerMesh.MeshType = Enum.MeshType.Cylinder
-                    innerMesh.Parent = inner
-                    
                     CoinMagnetVisual = inner
+                    
+                    local sides = 12
+                    local radius = 115
+                    local outlineThickness = 2
+                    
+                    for i = 1, sides do
+                        local angle = (i / sides) * math.pi * 2
+                        local nextAngle = ((i + 1) / sides) * math.pi * 2
+                        
+                        local x1 = math.cos(angle) * radius
+                        local z1 = math.sin(angle) * radius
+                        local x2 = math.cos(nextAngle) * radius
+                        local z2 = math.sin(nextAngle) * radius
+                        
+                        local midX = (x1 + x2) / 2
+                        local midZ = (z1 + z2) / 2
+                        
+                        local length = math.sqrt((x2 - x1)^2 + (z2 - z1)^2)
+                        
+                        local outlinePart = Instance.new("Part")
+                        outlinePart.Name = "CoinMagnetOutline"
+                        outlinePart.Size = Vector3.new(length, 0.5, outlineThickness)
+                        outlinePart.Anchored = true
+                        outlinePart.CanCollide = false
+                        outlinePart.CanQuery = false
+                        outlinePart.Material = Enum.Material.Neon
+                        outlinePart.Color = Color3.fromRGB(255, 0, 0)
+                        outlinePart.Transparency = 0
+                        outlinePart.Parent = Workspace
+                        
+                        local rotationAngle = math.atan2(z2 - z1, x2 - x1)
+                        outlinePart.CFrame = CFrame.new(midX, 3, midZ) * CFrame.Angles(0, rotationAngle, 0)
+                        
+                        table.insert(CoinMagnetOutline, outlinePart)
+                    end
                 end
                 
-                if CoinMagnetVisual and CoinMagnetOutline then
+                if CoinMagnetVisual then
                     local rootPos = hrp.Position
-                    local yOffset = rootPos.Y - (OriginalHRPSize.Y/2) - 0.25
+                    CoinMagnetVisual.CFrame = CFrame.new(rootPos.X, 3, rootPos.Z) * CFrame.Angles(0, 0, math.rad(90))
                     
-                    CoinMagnetVisual.CFrame = CFrame.new(rootPos.X, yOffset, rootPos.Z) * CFrame.Angles(0, 0, math.rad(90))
-                    CoinMagnetOutline.CFrame = CFrame.new(rootPos.X, yOffset, rootPos.Z) * CFrame.Angles(0, 0, math.rad(90))
+                    for i, outlinePart in ipairs(CoinMagnetOutline) do
+                        if outlinePart and outlinePart.Parent then
+                            local angle = (i / #CoinMagnetOutline) * math.pi * 2
+                            local nextAngle = ((i + 1) / #CoinMagnetOutline) * math.pi * 2
+                            
+                            local radius = 115
+                            local x1 = math.cos(angle) * radius
+                            local z1 = math.sin(angle) * radius
+                            local x2 = math.cos(nextAngle) * radius
+                            local z2 = math.sin(nextAngle) * radius
+                            
+                            local midX = (x1 + x2) / 2
+                            local midZ = (z1 + z2) / 2
+                            
+                            local rotationAngle = math.atan2(z2 - z1, x2 - x1)
+                            outlinePart.CFrame = CFrame.new(rootPos.X + midX, 3, rootPos.Z + midZ) * CFrame.Angles(0, rotationAngle, 0)
+                        end
+                    end
                 end
             end)
         end)
@@ -1623,10 +1654,12 @@ local function toggleCoinMagnet(state)
             CoinMagnetVisual = nil
         end
         
-        if CoinMagnetOutline then
-            CoinMagnetOutline:Destroy()
-            CoinMagnetOutline = nil
+        for _, outlinePart in ipairs(CoinMagnetOutline) do
+            if outlinePart then
+                outlinePart:Destroy()
+            end
         end
+        CoinMagnetOutline = {}
         
         OriginalHRPSize = nil
     end
