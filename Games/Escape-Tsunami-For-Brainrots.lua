@@ -1,4 +1,4 @@
-local success, WindUI = pcall(function()
+tlocal success, WindUI = pcall(function()
     return loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
 end)
 
@@ -296,6 +296,7 @@ local States = {
     LastSafePosition = nil,
     AutoUpgradeAllBrainrot = false,
     AutoObbyRunning = false,
+    CoinMagnet = false,
 }
 
 local Connections = {
@@ -327,6 +328,7 @@ local Connections = {
     AutoUpgradeBrainrot = nil,
     UpgradeDropdownUpdater = nil,
     AutoUpgradeAllBrainrot = nil,
+    CoinMagnet = nil,
 }
 
 local LowGFXStorage = {
@@ -1445,11 +1447,13 @@ local function toggleIncreaseHitbox(state)
                     if localHrp then
                         if not SlapAuraCache[localHrp] then
                             OriginalHRPProperties[localHrp] = {
-                                CanCollide = localHrp.CanCollide
+                                CanCollide = localHrp.CanCollide,
+                                Anchored = localHrp.Anchored
                             }
                             SlapAuraCache[localHrp] = true
                         end
                         localHrp.CanCollide = false
+                        localHrp.Anchored = false
                     end
                 end
                 
@@ -1463,7 +1467,8 @@ local function toggleIncreaseHitbox(state)
                                     Transparency = targetHrp.Transparency,
                                     CanCollide = targetHrp.CanCollide,
                                     Color = targetHrp.Color,
-                                    Material = targetHrp.Material
+                                    Material = targetHrp.Material,
+                                    Anchored = targetHrp.Anchored
                                 }
                                 
                                 targetHrp.Size = Vector3.new(80, 80, 80)
@@ -1476,6 +1481,7 @@ local function toggleIncreaseHitbox(state)
                                 SlapAuraCache[targetHrp] = true
                             end
                             targetHrp.CanCollide = false
+                            targetHrp.Anchored = true
                         end
                     end
                 end
@@ -1503,6 +1509,7 @@ local function toggleIncreaseHitbox(state)
                     hrp.Size = original.Size or Vector3.new(2, 2, 1)
                     hrp.Transparency = original.Transparency or 1
                     hrp.CanCollide = original.CanCollide or false
+                    hrp.Anchored = original.Anchored or false
                     if original.Color then
                         hrp.Color = original.Color
                     end
@@ -1517,6 +1524,93 @@ local function toggleIncreaseHitbox(state)
         
         SlapAuraCache = {}
         OriginalHRPProperties = {}
+    end
+end
+
+local CoinMagnetVisual = nil
+local OriginalHRPSize = nil
+
+local function toggleCoinMagnet(state)
+    States.CoinMagnet = state
+    
+    if state then
+        Connections.CoinMagnet = RunService.Heartbeat:Connect(function()
+            if not States.CoinMagnet then return end
+            
+            pcall(function()
+                local character = LocalPlayer.Character
+                if not character then return end
+                
+                local hrp = character:FindFirstChild("HumanoidRootPart")
+                if not hrp then return end
+                
+                if not OriginalHRPSize then
+                    OriginalHRPSize = hrp.Size
+                end
+                
+                hrp.Size = Vector3.new(230, OriginalHRPSize.Y, 230)
+                hrp.Transparency = 1
+                hrp.CanCollide = false
+                hrp.Massless = true
+                
+                if not CoinMagnetVisual or not CoinMagnetVisual.Parent then
+                    local visual = Instance.new("Part")
+                    visual.Name = "CoinMagnetIndicator"
+                    visual.Size = Vector3.new(230, 0.5, 230)
+                    visual.Anchored = true
+                    visual.CanCollide = false
+                    visual.CanQuery = false
+                    visual.Material = Enum.Material.Neon
+                    visual.Color = Color3.fromRGB(255, 0, 0)
+                    visual.Transparency = 0.6
+                    visual.Parent = Workspace
+                    
+                    local mesh = Instance.new("SpecialMesh")
+                    mesh.MeshType = Enum.MeshType.Cylinder
+                    mesh.Scale = Vector3.new(1, 1, 1)
+                    mesh.Parent = visual
+                    
+                    local outline = Instance.new("SelectionBox")
+                    outline.Adornee = visual
+                    outline.LineThickness = 0.05
+                    outline.Color3 = Color3.fromRGB(255, 0, 0)
+                    outline.Transparency = 0
+                    outline.Parent = visual
+                    
+                    CoinMagnetVisual = visual
+                end
+                
+                if CoinMagnetVisual then
+                    local rootPos = hrp.Position
+                    CoinMagnetVisual.CFrame = CFrame.new(rootPos.X, rootPos.Y - (OriginalHRPSize.Y/2) - 0.25, rootPos.Z) * CFrame.Angles(0, 0, math.rad(90))
+                end
+            end)
+        end)
+    else
+        if Connections.CoinMagnet then
+            Connections.CoinMagnet:Disconnect()
+            Connections.CoinMagnet = nil
+        end
+        
+        pcall(function()
+            local character = LocalPlayer.Character
+            if character then
+                local hrp = character:FindFirstChild("HumanoidRootPart")
+                if hrp and OriginalHRPSize then
+                    hrp.Size = OriginalHRPSize
+                    hrp.Transparency = 1
+                    hrp.CanCollide = false
+                    hrp.Massless = false
+                end
+            end
+        end)
+        
+        if CoinMagnetVisual then
+            CoinMagnetVisual:Destroy()
+            CoinMagnetVisual = nil
+        end
+        
+        OriginalHRPSize = nil
     end
 end
 
@@ -3629,6 +3723,16 @@ local StealUIToggle = MainTab:Toggle({
     end
 })
 
+local CoinMagnetToggle = MainTab:Toggle({
+    Title = "Coin Magnet",
+    Desc = "Enlarge HRP to 230x230 for collecting coins",
+    Default = false,
+    Callback = function(state)
+        toggleCoinMagnet(state)
+        saveConfiguration()
+    end
+})
+
 local AntiTsunamiToggle = MainTab:Toggle({
     Title = "Anti Tsunami",
     Desc = "Auto tween to safe gap when wave detected",
@@ -3679,6 +3783,7 @@ local IncreaseHitboxToggle = MainTab:Toggle({
     end
 })
 
+myConfig:Register("CoinMagnet", CoinMagnetToggle)
 myConfig:Register("AutoCollect", AutoCollectToggle)
 myConfig:Register("StealUI", StealUIToggle)
 myConfig:Register("AntiSlap", AntiSlapToggle)
