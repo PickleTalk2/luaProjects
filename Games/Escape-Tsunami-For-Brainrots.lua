@@ -2922,9 +2922,9 @@ local function teleportToLastGap()
             
         local points = {
             Vector3.new(playerXPos, 67, -137),
-            Vector3.new(2608, 67, -137),
-            Vector3.new(2608, -3, -137),
-            Vector3.new(2608, -3, -1),
+            Vector3.new(4026, 67, -137),
+            Vector3.new(4026, -3, -137),
+            Vector3.new(4026, -3, -1),
         }
 
         local SPEED = 2100
